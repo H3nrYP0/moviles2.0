@@ -183,30 +183,58 @@ class ApiService {
     }
   }
 
+  // ===============================================================
+  //  UPDATE CLIENTE (VERSIÓN CORREGIDA E INTEGRADA)
+  // ===============================================================
+
   Future<Map<String, dynamic>> updateCliente({
     required int clienteId,
     required Map<String, dynamic> datos,
   }) async {
-    _log('UPDATE cliente: $clienteId', type: 'INFO');
+    _log('UPDATE cliente: $clienteId - Datos: $datos', type: 'INFO');
 
     try {
       final response = await http.put(
         Uri.parse('${ApiEndpoints.clientes}/$clienteId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: json.encode(datos),
       );
 
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Cliente actualizado exitosamente',
-        };
-      }
+      _log('Update response: ${response.statusCode} - ${response.body}',
+          type: 'DEBUG');
 
-      return {
-        'success': false,
-        'error': 'Error al actualizar cliente',
-      };
+      if (response.statusCode == 200) {
+        try {
+          final data = json.decode(response.body);
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Cliente actualizado exitosamente',
+            'cliente': data['cliente'] ?? data,
+          };
+        } catch (e) {
+          return {
+            'success': true,
+            'message': 'Cliente actualizado exitosamente',
+          };
+        }
+      } else {
+        try {
+          final errorData = json.decode(response.body);
+          return {
+            'success': false,
+            'error': errorData['error'] ??
+                'Error al actualizar cliente (${response.statusCode})',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'error': 'Error HTTP ${response.statusCode}: ${response.body}',
+          };
+        }
+      }
     } catch (e) {
       _log('Error updateCliente: $e', type: 'ERROR');
       return {
@@ -215,6 +243,8 @@ class ApiService {
       };
     }
   }
+
+  // --------------------------------------------------------------
 
   Future<Map<String, dynamic>> getClienteById(int id) async {
     _log('GET cliente by id: $id', type: 'INFO');
@@ -244,9 +274,6 @@ class ApiService {
     }
   }
 
-  // ----------------------------
-  // EXTRA: getClienteNombre()
-  // ----------------------------
   Future<Map<String, dynamic>> getClienteNombre(int clienteId) async {
     _log('GET nombre cliente: $clienteId', type: 'INFO');
 
@@ -277,9 +304,6 @@ class ApiService {
     }
   }
 
-  // ----------------------------
-  // EXTRA: getClientesMap()
-  // ----------------------------
   Future<Map<int, String>> getClientesMap() async {
     _log('GET mapa de clientes', type: 'INFO');
 
