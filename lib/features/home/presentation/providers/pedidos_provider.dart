@@ -7,22 +7,17 @@ class PedidosProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   List<Pedido> _pedidos = [];
-  List<Pedido> _allPedidos = []; // Para admin: todos los pedidos
+  List<Pedido> _allPedidos = [];
   String _error = '';
   bool _isLoading = false;
   bool _hasError = false;
 
-  /// Mapa: { clienteId : nombreCompleto }
   final Map<int, String> _clientesNombres = {};
 
-  // Filtros
   String? _filterEstado;
   int? _filterClienteId;
-
-  // Modo admin
   bool _isAdminMode = false;
 
-  // Getters
   List<Pedido> get pedidos => List.unmodifiable(_pedidos);
   List<Pedido> get allPedidos => List.unmodifiable(_allPedidos);
   String get error => _error;
@@ -32,7 +27,6 @@ class PedidosProvider extends ChangeNotifier {
   bool get isAdminMode => _isAdminMode;
   Map<int, String> get clientesNombres => Map.unmodifiable(_clientesNombres);
 
-  // Obtener nombre del cliente
   String getClienteNombre(int clienteId) {
     return _clientesNombres[clienteId] ?? 'Cliente #$clienteId';
   }
@@ -42,7 +36,6 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Lista filtrada
   List<Pedido> get filteredPedidos {
     List<Pedido> baseList = _isAdminMode ? _allPedidos : _pedidos;
 
@@ -77,9 +70,6 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // -----------------------------
-  // Cargar nombres de clientes
-  // -----------------------------
   Future<void> _cargarNombresClientes(List<Pedido> pedidos) async {
     final clienteIds = pedidos.map((p) => p.clienteId).toSet();
 
@@ -101,9 +91,6 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // -----------------------------
-  // Cargar pedidos
-  // -----------------------------
   Future<void> loadPedidos(int usuarioId, {bool isAdmin = false}) async {
     _isLoading = true;
     _error = '';
@@ -116,46 +103,31 @@ class PedidosProvider extends ChangeNotifier {
         // ADMIN: obtener todos los pedidos
         final response = await _apiService.getAllPedidos();
 
-        if (response is List) {
-          _allPedidos =
-              response.map((json) => Pedido.fromJson(json)).toList();
+        // Eliminamos la verificación 'response is List'
+        _allPedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
-          _pedidos =
-              _allPedidos.where((p) => p.usuarioId == usuarioId).toList();
+        _pedidos = _allPedidos.where((p) => p.usuarioId == usuarioId).toList();
 
-          _allPedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
-          _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+        _allPedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+        _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
 
-          await _cargarNombresClientes(_allPedidos);
+        await _cargarNombresClientes(_allPedidos);
 
-          _hasError = false;
-        } else {
-          _error = 'Formato de respuesta inválido';
-          _hasError = true;
-          _allPedidos = [];
-          _pedidos = [];
-        }
+        _hasError = false;
       } else {
         // CLIENTE: solo sus pedidos
         final response = await _apiService.getPedidosByUsuario(usuarioId);
 
-        if (response is List) {
-          _pedidos =
-              response.map((json) => Pedido.fromJson(json)).toList();
+        // Eliminamos la verificación 'response is List'
+        _pedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
-          _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+        _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
 
-          _allPedidos = _pedidos;
+        _allPedidos = _pedidos;
 
-          await _cargarNombresClientes(_pedidos);
+        await _cargarNombresClientes(_pedidos);
 
-          _hasError = false;
-        } else {
-          _error = 'Formato de respuesta inválido';
-          _hasError = true;
-          _pedidos = [];
-          _allPedidos = [];
-        }
+        _hasError = false;
       }
     } catch (e) {
       _error = 'Error al cargar pedidos: $e';
@@ -172,9 +144,6 @@ class PedidosProvider extends ChangeNotifier {
     await loadPedidos(usuarioId, isAdmin: _isAdminMode);
   }
 
-  // -----------------------------
-  // Estadísticas ADMIN
-  // -----------------------------
   Map<String, dynamic> get estadisticasAdmin {
     final stats = <String, dynamic>{};
 
@@ -205,18 +174,13 @@ class PedidosProvider extends ChangeNotifier {
     return stats;
   }
 
-  // Lista de clientes únicos
   List<int> get clientesUnicos {
     final ids = _allPedidos.map((p) => p.clienteId).toSet().toList();
     ids.sort();
     return ids;
   }
 
-  // -----------------------------
-  // Actualizar estado de pedido
-  // -----------------------------
-  Future<bool> updateEstadoPedido(
-      int pedidoId, String nuevoEstado) async {
+  Future<bool> updateEstadoPedido(int pedidoId, String nuevoEstado) async {
     try {
       final index = _allPedidos.indexWhere((p) => p.id == pedidoId);
       if (index >= 0) {

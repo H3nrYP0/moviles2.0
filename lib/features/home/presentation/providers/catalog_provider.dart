@@ -1,3 +1,4 @@
+// features/home/presentation/providers/catalog_provider.dart
 import 'package:flutter/material.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../catalog/data/models/category_model.dart';
@@ -26,15 +27,12 @@ class CatalogProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getCategorias();
       
-      if (response is List) {
-        _categories = response
-          .map((json) => Category.fromJson(json))
-          .where((category) => category.estado) // Solo categorías activas
-          .toList();
-        _error = '';
-      } else {
-        _error = 'Formato de respuesta inválido para categorías';
-      }
+      // Eliminamos la verificación 'response is List' ya que getCategorias() siempre devuelve List
+      _categories = response
+        .map((json) => Category.fromJson(json))
+        .where((category) => category.estado) // Solo categorías activas
+        .toList();
+      _error = '';
     } catch (e) {
       _error = 'Error al cargar categorías: $e';
       _categories = [];
@@ -54,21 +52,18 @@ class CatalogProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getProductos();
       
-      if (response is List) {
-        // Convertir todos los productos
-        final allProducts = response
-          .map((json) => Product.fromJson(json))
-          .toList();
+      // Eliminamos la verificación 'response is List'
+      // Convertir todos los productos
+      final allProducts = response
+        .map((json) => Product.fromJson(json))
+        .toList();
+      
+      // Filtrar por categoría
+      _products = allProducts
+        .where((product) => product.categoriaId == categoryId)
+        .toList();
         
-        // Filtrar por categoría y estado activo
-        _products = allProducts
-          .where((product) => product.categoriaId == categoryId)
-          .toList();
-          
-        _error = '';
-      } else {
-        _error = 'Formato de respuesta inválido para productos';
-      }
+      _error = '';
     } catch (e) {
       _error = 'Error al cargar productos: $e';
       _products = [];
@@ -93,28 +88,27 @@ class CatalogProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getProductos();
       
-      if (response is List) {
-        final allProducts = response
-          .map((json) => Product.fromJson(json))
+      // Eliminamos la verificación 'response is List'
+      final allProducts = response
+        .map((json) => Product.fromJson(json))
+        .toList();
+      
+      // Filtrar por búsqueda
+      var filteredProducts = allProducts
+        .where((product) => 
+          product.nombre.toLowerCase().contains(query.toLowerCase()) ||
+          (product.descripcion?.toLowerCase() ?? '').contains(query.toLowerCase()))
+        .toList();
+      
+      // Si tenemos una categoría activa, también filtrar por categoría
+      if (_currentCategoryId != null) {
+        filteredProducts = filteredProducts
+          .where((product) => product.categoriaId == _currentCategoryId)
           .toList();
-        
-        // Primero filtrar por búsqueda
-        var filteredProducts = allProducts
-          .where((product) => 
-            product.nombre.toLowerCase().contains(query.toLowerCase()) ||
-            (product.descripcion?.toLowerCase() ?? '').contains(query.toLowerCase()))
-          .toList();
-        
-        // Si tenemos una categoría activa, también filtrar por categoría
-        if (_currentCategoryId != null) {
-          filteredProducts = filteredProducts
-            .where((product) => product.categoriaId == _currentCategoryId)
-            .toList();
-        }
-        
-        _products = filteredProducts;
-        _error = '';
       }
+      
+      _products = filteredProducts;
+      _error = '';
     } catch (e) {
       _error = 'Error en búsqueda: $e';
     } finally {
