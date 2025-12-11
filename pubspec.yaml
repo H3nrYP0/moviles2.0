@@ -22,6 +22,7 @@ dependencies:
   
   # Formateo
   intl: ^0.19.0
+  mailer: ^6.6.0
 
 dev_dependencies:
   flutter_test:
