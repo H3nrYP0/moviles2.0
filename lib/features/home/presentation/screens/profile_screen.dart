@@ -7,7 +7,6 @@ import '../../../../core/services/api_service.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../../core/services/storage_service.dart';
 
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -261,12 +260,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildCompleteProfilePrompt()
                     else
                       _buildClienteForm(),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Estado del perfil para pedidos
-                    if (authProvider.user?.clienteId != null && _clienteData != null)
-                      _buildProfileStatus(),
                   ],
                 ),
               ),
@@ -340,135 +333,115 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Nombre y Apellido
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _isEditing,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El nombre es requerido';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _apellidoController,
-                decoration: const InputDecoration(
-                  labelText: 'Apellido *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _isEditing,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El apellido es requerido';
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ],
+        // Nombre
+        TextFormField(
+          controller: _nombreController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre *',
+            border: OutlineInputBorder(),
+          ),
+          enabled: _isEditing,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'El nombre es requerido';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         
-        // Tipo de Documento y Número
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: DropdownButtonFormField<String>(
-                value: _selectedTipoDocumento,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo Documento',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'CC', child: Text('Cédula')),
-                  DropdownMenuItem(value: 'TI', child: Text('Tarjeta Identidad')),
-                  DropdownMenuItem(value: 'CE', child: Text('Cédula Extranjería')),
-                  DropdownMenuItem(value: 'PA', child: Text('Pasaporte')),
-                ],
-                onChanged: _isEditing ? (value) {
-                  setState(() => _selectedTipoDocumento = value);
-                } : null,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: TextFormField(
-                controller: _documentoController,
-                decoration: const InputDecoration(
-                  labelText: 'Número de Documento *',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: _isEditing,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El documento es requerido';
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ],
+        // Apellido
+        TextFormField(
+          controller: _apellidoController,
+          decoration: const InputDecoration(
+            labelText: 'Apellido *',
+            border: OutlineInputBorder(),
+          ),
+          enabled: _isEditing,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'El apellido es requerido';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         
-        // Fecha de Nacimiento y Género
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _fechaNacimientoController,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha de Nacimiento (YYYY-MM-DD)',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                enabled: _isEditing,
-                onTap: _isEditing ? () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime(1990),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                  );
-                  if (date != null) {
-                    _fechaNacimientoController.text =
-                        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                  }
-                } : null,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _selectedGenero,
-                decoration: const InputDecoration(
-                  labelText: 'Género',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                  DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
-                  DropdownMenuItem(value: 'Otro', child: Text('Otro')),
-                ],
-                onChanged: _isEditing ? (value) {
-                  setState(() => _selectedGenero = value);
-                } : null,
-              ),
-            ),
+        // Tipo de Documento
+        DropdownButtonFormField<String>(
+          value: _selectedTipoDocumento,
+          decoration: const InputDecoration(
+            labelText: 'Tipo Documento',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'CC', child: Text('Cédula')),
+            DropdownMenuItem(value: 'TI', child: Text('Tarjeta Identidad')),
+            DropdownMenuItem(value: 'CE', child: Text('Cédula Extranjería')),
+            DropdownMenuItem(value: 'PA', child: Text('Pasaporte')),
           ],
+          onChanged: _isEditing ? (value) {
+            setState(() => _selectedTipoDocumento = value);
+          } : null,
+        ),
+        const SizedBox(height: 16),
+        
+        // Número de Documento
+        TextFormField(
+          controller: _documentoController,
+          decoration: const InputDecoration(
+            labelText: 'Número de Documento *',
+            border: OutlineInputBorder(),
+          ),
+          enabled: _isEditing,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'El documento es requerido';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        
+        // Fecha de Nacimiento
+        TextFormField(
+          controller: _fechaNacimientoController,
+          decoration: const InputDecoration(
+            labelText: 'Fecha de Nacimiento (YYYY-MM-DD)',
+            border: OutlineInputBorder(),
+            suffixIcon: Icon(Icons.calendar_today),
+          ),
+          enabled: _isEditing,
+          onTap: _isEditing ? () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: DateTime(1990),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+            );
+            if (date != null) {
+              _fechaNacimientoController.text =
+                  '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+            }
+          } : null,
+        ),
+        const SizedBox(height: 16),
+        
+        // Género
+        DropdownButtonFormField<String>(
+          value: _selectedGenero,
+          decoration: const InputDecoration(
+            labelText: 'Género',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+            DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
+            DropdownMenuItem(value: 'Otro', child: Text('Otro')),
+          ],
+          onChanged: _isEditing ? (value) {
+            setState(() => _selectedGenero = value);
+          } : null,
         ),
         const SizedBox(height: 16),
         
@@ -494,6 +467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         
+        // Correo (solo lectura)
+        TextFormField(
+          controller: _correoController,
+          decoration: const InputDecoration(
+            labelText: 'Correo Electrónico *',
+            border: OutlineInputBorder(),
+          ),
+          enabled: false, // El correo no se puede editar
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 16),
+        
         // Dirección
         TextFormField(
           controller: _direccionController,
@@ -505,13 +490,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           maxLines: 2,
         ),
         
+        // Botones de acción (solo en modo edición)
         if (_isEditing) ...[
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _saveClienteData,
-            child: const Text('Guardar Cambios'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'Guardar Cambios',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: () {
               setState(() {
@@ -519,41 +511,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _loadFormData(); // Recargar datos originales
               });
             },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
             child: const Text('Cancelar'),
           ),
         ],
       ],
-    );
-  }
-
-  Widget _buildProfileStatus() {
-    final authProvider = Provider.of<AuthProvider>(context);
-    
-    return Card(
-      color: Colors.green.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Icon(Icons.check_circle, size: 48, color: Colors.green),
-            const SizedBox(height: 12),
-            const Text(
-              '¡Perfil Completo!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Cliente ID: ${authProvider.user?.clienteId ?? 'No asignado'}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Ya puedes realizar pedidos en la tienda',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
