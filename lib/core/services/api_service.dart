@@ -9,9 +9,9 @@ class ApiService {
     if (_debugMode) print('[$type] $message');
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   //  USUARIOS
-  // ----------------------------------------------------------
+  // ==========================================================
 
   Future<List<dynamic>> getUsuarios() async {
     _log('GET usuarios from: ${ApiEndpoints.usuarios}');
@@ -122,9 +122,9 @@ class ApiService {
     }
   }
 
-  // ----------------------------------------------------------
-  //  CLIENTES (NUEVO)
-  // ----------------------------------------------------------
+  // ===================================================================
+  //  CLIENTES
+  // ===================================================================
 
   Future<Map<String, dynamic>> createCliente({
     required String nombre,
@@ -244,9 +244,75 @@ class ApiService {
     }
   }
 
-  // ----------------------------------------------------------
+  // ----------------------------
+  // EXTRA: getClienteNombre()
+  // ----------------------------
+  Future<Map<String, dynamic>> getClienteNombre(int clienteId) async {
+    _log('GET nombre cliente: $clienteId', type: 'INFO');
+
+    try {
+      final response =
+          await http.get(Uri.parse('${ApiEndpoints.clientes}/$clienteId'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'nombre': '${data['nombre']} ${data['apellido']}',
+          'telefono': data['telefono'] ?? '',
+          'correo': data['correo'] ?? '',
+        };
+      }
+
+      return {
+        'success': false,
+        'nombre': 'Cliente #$clienteId',
+      };
+    } catch (e) {
+      _log('Error getClienteNombre: $e', type: 'ERROR');
+      return {
+        'success': false,
+        'nombre': 'Cliente #$clienteId',
+      };
+    }
+  }
+
+  // ----------------------------
+  // EXTRA: getClientesMap()
+  // ----------------------------
+  Future<Map<int, String>> getClientesMap() async {
+    _log('GET mapa de clientes', type: 'INFO');
+
+    try {
+      final response = await http.get(Uri.parse(ApiEndpoints.clientes));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final Map<int, String> clientesMap = {};
+
+        if (data is List) {
+          for (var cliente in data) {
+            final id = cliente['id'] is int
+                ? cliente['id']
+                : int.parse(cliente['id'].toString());
+            final nombre = '${cliente['nombre']} ${cliente['apellido']}';
+            clientesMap[id] = nombre;
+          }
+        }
+
+        return clientesMap;
+      }
+
+      return {};
+    } catch (e) {
+      _log('Error getClientesMap: $e', type: 'ERROR');
+      return {};
+    }
+  }
+
+  // ==========================================================
   //  PRODUCTOS / CATEGORÍAS
-  // ----------------------------------------------------------
+  // ==========================================================
 
   Future<List<dynamic>> getProductos() async {
     _log('GET productos from: ${ApiEndpoints.productos}');
@@ -282,9 +348,27 @@ class ApiService {
     }
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   //  PEDIDOS
-  // ----------------------------------------------------------
+  // ==========================================================
+
+  Future<List<dynamic>> getAllPedidos() async {
+    _log('GET all pedidos from: ${ApiEndpoints.pedidos}', type: 'INFO');
+
+    try {
+      final response = await http.get(Uri.parse(ApiEndpoints.pedidos));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+
+      throw Exception(
+          'Error al obtener todos los pedidos: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getAllPedidos: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
+    }
+  }
 
   Future<bool> createPedido(Map<String, dynamic> pedidoData) async {
     _log('CREATE pedido', type: 'INFO');
@@ -313,8 +397,8 @@ class ApiService {
     _log('GET pedidos for usuario: $usuarioId');
 
     try {
-      final response =
-          await http.get(Uri.parse('${ApiEndpoints.pedidos}/usuario/$usuarioId'));
+      final response = await http
+          .get(Uri.parse('${ApiEndpoints.pedidos}/usuario/$usuarioId'));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -327,9 +411,9 @@ class ApiService {
     }
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   //  CITAS
-  // ----------------------------------------------------------
+  // ==========================================================
 
   Future<bool> createCita(Map<String, dynamic> citaData) async {
     _log('CREATE cita', type: 'INFO');
