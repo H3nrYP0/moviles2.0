@@ -5,7 +5,10 @@ import 'package:optica_app/features/home/presentation/screens/login_screen.dart'
 import 'package:optica_app/features/home/presentation/screens/catalog_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/home_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/register_screen.dart';
+import 'package:optica_app/features/home/presentation/screens/cart_screen.dart'; // <- IMPORT NECESARIO
 import '../core/services/storage_service.dart';
+import '../features/home/presentation/screens/profile_screen.dart';
+import 'package:optica_app/features/cart/presentation/providers/cart_provider.dart'; // ← AÑADIR ESTA IMPORTACIÓN
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -23,10 +26,10 @@ class _MainLayoutState extends State<MainLayout> {
     const CatalogScreen(),
     const LoginScreen(),
     const RegisterScreen(),
-    Container(child: Center(child: Text('Perfil'))),
+    const ProfileScreen(),
     Container(child: Center(child: Text('Mis Pedidos'))),
     Container(child: Center(child: Text('Mis Citas'))),
-    Container(child: Center(child: Text('Carrito'))),
+    const CartScreen(), // El carrito ahora está en índice 7
   ];
   
   final List<String> _titles = [
@@ -37,7 +40,7 @@ class _MainLayoutState extends State<MainLayout> {
     'Mi Perfil',
     'Mis Pedidos',
     'Mis Citas',
-    'Carrito'
+    'Carrito' // Índice 7 - Carrito
   ];
   
   String? _userName;
@@ -63,7 +66,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _onItemSelected(int index) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final requiresAuth = index >= 4 && index <= 7;
+    final requiresAuth = index >= 4 && index <= 7; // Ahora 4-7 requieren auth
     
     if (requiresAuth && !authProvider.isAuthenticated) {
       Navigator.push(
@@ -116,17 +119,11 @@ class _MainLayoutState extends State<MainLayout> {
             if (_userName != null) ...[
               const Icon(Icons.person, size: 20),
               const SizedBox(width: 8),
-              Text(
-                _userName!,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(_userName!, style: const TextStyle(fontSize: 16)),
             ] else if (_selectedIndex == 0 || _selectedIndex == 1) ...[
               const Icon(Icons.visibility, size: 20),
               const SizedBox(width: 8),
-              Text(
-                _titles[_selectedIndex],
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(_titles[_selectedIndex], style: const TextStyle(fontSize: 16)),
             ] else
               Text(_titles[_selectedIndex]),
           ],
@@ -155,8 +152,53 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   List<Widget> _buildAppBarActions(AuthProvider authProvider) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: true);
+    final itemCount = cartProvider.itemCount;
+    
+    List<Widget> actions = [];
+    
+    // Icono del carrito si el usuario está autenticado
+    if (authProvider.isAuthenticated && _selectedIndex != 7) { // No mostrar en la pantalla del carrito
+      actions.add(
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.shopping_cart),
+              onPressed: () => _onItemSelected(7), // Índice del carrito
+              tooltip: 'Ver carrito',
+            ),
+            if (itemCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    itemCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+    
+    // Avatar del usuario si está autenticado
     if (authProvider.isAuthenticated) {
-      return [
+      actions.add(
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: CircleAvatar(
@@ -167,20 +209,16 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ),
         ),
-      ];
+      );
     } else {
-      return [
-        if (_selectedIndex != 2 && _selectedIndex != 3)
+      // Botones de login/register si no está autenticado
+      if (_selectedIndex != 2 && _selectedIndex != 3) {
+        actions.addAll([
           TextButton(
             onPressed: () => _onItemSelected(2),
-            child: const Text(
-              'Iniciar sesión',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Iniciar sesión', style: TextStyle(color: Colors.white)),
           ),
-        if (_selectedIndex != 2 && _selectedIndex != 3)
           const SizedBox(width: 4),
-        if (_selectedIndex != 2 && _selectedIndex != 3)
           ElevatedButton(
             onPressed: () => _onItemSelected(3),
             style: ElevatedButton.styleFrom(
@@ -190,13 +228,18 @@ class _MainLayoutState extends State<MainLayout> {
             ),
             child: const Text('Registrarse'),
           ),
-        if (_selectedIndex != 2 && _selectedIndex != 3)
           const SizedBox(width: 8),
-      ];
+        ]);
+      }
     }
+    
+    return actions;
   }
 
   Widget _buildDrawer(AuthProvider authProvider) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: true);
+    final itemCount = cartProvider.itemCount;
+    
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -260,12 +303,80 @@ class _MainLayoutState extends State<MainLayout> {
             selected: _selectedIndex == 6,
             requiresAuth: true,
           ),
-          _buildDrawerItem(
-            icon: Icons.shopping_cart,
-            title: 'Carrito',
-            index: 7,
+          ListTile(
+            leading: Stack(
+              children: [
+                Icon(
+                  Icons.shopping_cart,
+                  color: _selectedIndex == 7 
+                      ? Colors.blue 
+                      : (authProvider.isAuthenticated ? null : Colors.grey),
+                ),
+                if (itemCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        itemCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Carrito',
+                    style: TextStyle(
+                      color: _selectedIndex == 7 
+                          ? Colors.blue 
+                          : (authProvider.isAuthenticated ? null : Colors.grey),
+                      fontWeight: _selectedIndex == 7 ? FontWeight.bold : null,
+                    ),
+                  ),
+                ),
+                if (itemCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$itemCount',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             selected: _selectedIndex == 7,
-            requiresAuth: true,
+            onTap: () => _onItemSelected(7),
+            subtitle: !authProvider.isAuthenticated
+                ? const Text(
+                    'Requiere inicio de sesión',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  )
+                : null,
           ),
           
           const Divider(),

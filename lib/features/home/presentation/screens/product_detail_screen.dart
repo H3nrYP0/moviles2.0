@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <-- IMPORTANTE para CartProvider
 import '../../../catalog/data/models/product_model.dart';
 import '../../../../widgets/back_button.dart';
+import '../../../cart/presentation/providers/cart_provider.dart'; // <-- IMPORTANTE
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -104,12 +106,19 @@ class ProductDetailScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                     ],
                     
+                    // ================================
+                    //   BOTÓN MODIFICADO CON PROVIDER
+                    // ================================
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton.icon(
                         onPressed: product.stock > 0
                             ? () {
+                                // Agregar al carrito usando Provider
+                                Provider.of<CartProvider>(context, listen: false)
+                                    .addToCart(product);
+
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('${product.nombre} agregado al carrito'),
@@ -132,6 +141,7 @@ class ProductDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // ================================
                     
                     const SizedBox(height: 16),
                     
@@ -161,9 +171,8 @@ class ProductDetailScreen extends StatelessWidget {
           ),
         ),
         
-        // Botón de regresar personalizado
         Positioned(
-          top: 70, // Debajo del AppBar
+          top: 70,
           left: 10,
           child: CustomBackButton(
             onPressed: () {

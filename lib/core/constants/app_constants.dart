@@ -9,6 +9,7 @@ class AppConstants {
   static const String userIdKey = 'userId';
   static const String userNameKey = 'userName';
   static const String userRolKey = 'userRol';
+  static const String clienteIdKey = 'clienteId';
   
   // Default values
   static const String defaultAdminEmail = 'admin@optica.com';
