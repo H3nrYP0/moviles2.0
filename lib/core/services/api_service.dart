@@ -122,6 +122,50 @@ class ApiService {
     }
   }
 
+  // ==================== ACTUALIZAR CONTRASEÑA ====================
+  Future<Map<String, dynamic>> updateUserPassword({
+    required int userId,
+    required String newPassword,
+  }) async {
+    _log('UPDATE password for user: $userId', type: 'INFO');
+
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiEndpoints.usuarios}/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({
+          'contrasenia': newPassword,
+        }),
+      );
+
+      _log('Response: ${response.statusCode} - ${response.body}', type: 'DEBUG');
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Contraseña actualizada exitosamente',
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ??
+              errorData['message'] ??
+              'Error al actualizar contraseña',
+        };
+      }
+    } catch (e) {
+      _log('❌ Error updateUserPassword: $e', type: 'ERROR');
+      return {
+        'success': false,
+        'error': 'Error de conexión: $e',
+      };
+    }
+  }
+
   // ===================================================================
   //  CLIENTES
   // ===================================================================
@@ -184,7 +228,7 @@ class ApiService {
   }
 
   // ===============================================================
-  //  UPDATE CLIENTE (VERSIÓN CORREGIDA E INTEGRADA)
+  //  UPDATE CLIENTE
   // ===============================================================
 
   Future<Map<String, dynamic>> updateCliente({

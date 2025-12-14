@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
+import 'password_recovery_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   final VoidCallback? onSuccess; // Hacerlo opcional
@@ -154,11 +155,11 @@ class __LoginFormState extends State<_LoginForm> {
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: Implementar recuperación de contraseña
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Funcionalidad en desarrollo'),
-                      duration: Duration(seconds: 2),
+                  // Navegar a la pantalla de recuperación de contraseña
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PasswordRecoveryScreen(),
                     ),
                   );
                 },

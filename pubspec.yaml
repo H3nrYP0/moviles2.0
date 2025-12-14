@@ -9,19 +9,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   cupertino_icons: ^1.0.8
   
   # Navegación y estado
-  provider: ^6.1.1  # Simple, ya lo conoces
+  provider: ^6.1.1
   
   # HTTP
-  http: ^1.1.0  # Simple, sin complicaciones
+  http: ^1.1.0
   
   # Storage
-  shared_preferences: ^2.2.2  # Simple y confiable
+  shared_preferences: ^2.2.2
   
   # Formateo
-  intl: ^0.19.0
+  intl: 0.20.2  # YA LO TIENES 👍
+  mailer: ^6.6.0
+  
+  # DEPENDENCIA CRÍTICA PARA EL CALENDARIO - AÑADE ESTA LÍNEA
+  flutter_localizations:
+    sdk: flutter  # Esta viene con el SDK de Flutter
 
 dev_dependencies:
   flutter_test:
