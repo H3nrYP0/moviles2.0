@@ -10,6 +10,7 @@ import '../core/services/storage_service.dart';
 import '../features/home/presentation/screens/profile_screen.dart';
 import 'package:optica_app/features/cart/presentation/providers/cart_provider.dart'; // ← AÑADIR ESTA IMPORTACIÓN
 import 'package:optica_app/features/home/presentation/screens/pedidos_screen.dart';
+import 'package:optica_app/features/home/presentation/screens/citas_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -29,7 +30,7 @@ class _MainLayoutState extends State<MainLayout> {
     const RegisterScreen(),
     const ProfileScreen(),
     const PedidosScreen(),
-    Container(child: Center(child: Text('Mis Citas'))),
+    const CitasScreen(),
     const CartScreen(), // El carrito ahora está en índice 7
   ];
   

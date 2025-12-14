@@ -198,17 +198,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     });
   }
 
-  void _goToEmailStep() {
-    setState(() {
-      _currentStep = RecoveryStep.email;
-      _clearCodeFields();
-      _passwordController.clear();
-      _confirmPasswordController.clear();
-      _error = null;
-      _success = null;
-    });
-  }
-
   void _clearCodeFields() {
     for (var c in _codeControllers) c.clear();
     _codeFocusNodes.first.requestFocus();
