@@ -19,7 +19,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Método para agregar al carrito (verifica autenticación)
   void _addToCart(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    //final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
     // Verificar si el usuario está autenticado
     if (!authProvider.isAuthenticated) {
@@ -66,8 +66,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    // Agregar al carrito
-    //cartProvider.addToCart(widget.product, quantity: _quantity);
+    // Agregar al carrito con la cantidad específica
+    cartProvider.addToCart(widget.product, quantity: _quantity);
 
     // Mostrar confirmación
     ScaffoldMessenger.of(context).showSnackBar(

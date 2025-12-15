@@ -25,7 +25,7 @@ class CartProvider extends ChangeNotifier {
   
   // Getters
   List<CartItem> get items => List.unmodifiable(_items);
-  int get itemCount => _items.length;
+  int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
   double get totalAmount => _items.fold(0, (sum, item) => sum + item.subtotal);
   double get subtotal => totalAmount; // Alias para consistencia
   String? get selectedDeliveryMethod => _selectedDeliveryMethod;
@@ -57,14 +57,16 @@ class CartProvider extends ChangeNotifier {
     return true;
   }
   
-  // Métodos del carrito
-  void addToCart(Product product) {
+  // Métodos del carrito - MODIFICADO PARA ACEPTAR CANTIDAD
+  void addToCart(Product product, {int quantity = 1}) {
     final existingIndex = _items.indexWhere((item) => item.product.id == product.id);
     
     if (existingIndex >= 0) {
-      _items[existingIndex].quantity++;
+      // Si ya existe, sumar la cantidad
+      _items[existingIndex].quantity += quantity;
     } else {
-      _items.add(CartItem(product: product));
+      // Si no existe, agregar nuevo item
+      _items.add(CartItem(product: product, quantity: quantity));
     }
     notifyListeners();
   }
@@ -92,6 +94,17 @@ class CartProvider extends ChangeNotifier {
     _selectedPaymentMethod = null;
     _deliveryAddress = null;
     notifyListeners();
+  }
+  
+  // Obtener la cantidad de un producto específico
+  int getQuantityForProduct(int productId) {
+    final index = _items.indexWhere((item) => item.product.id == productId);
+    return index >= 0 ? _items[index].quantity : 0;
+  }
+  
+  // Verificar si un producto ya está en el carrito
+  bool isProductInCart(int productId) {
+    return _items.any((item) => item.product.id == productId);
   }
   
   // Métodos para opciones del pedido
