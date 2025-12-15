@@ -575,6 +575,41 @@ class ApiService {
     }
   }
   
+Future<String?> getHomeImage() async {
+  _log('GET imagen para home');
+  
+  try {
+    // Opción A: Si usas tipo "home"
+    final response = await http.get(
+      Uri.parse('${ApiEndpoints.baseUrl}/multimedia/home')
+    );
+    
+    // Opción B: Si usas tipo "otro" (como subiste)
+    // final response = await http.get(
+    //   Uri.parse('${ApiEndpoints.baseUrl}/multimedia/otro')
+    // );
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      // Si es una lista, toma la primera
+      if (data is List && data.isNotEmpty) {
+        return data[0]['url']; // URL de Cloudinary
+      }
+      
+      // Si es un objeto directo
+      if (data is Map && data['url'] != null) {
+        return data['url'];
+      }
+    }
+    
+    return null;
+  } catch (e) {
+    _log('Error getHomeImage: $e', type: 'ERROR');
+    return null;
+  }
+}
+
   // Método unificado para cargar categorías con sus imágenes
   Future<List<Category>> getCategoriasConImagenes() async {
     try {
