@@ -185,7 +185,11 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       _error = null;
       _success = null;
 
-      if (_currentStep == RecoveryStep.code) {
+      if (_currentStep == RecoveryStep.email) {
+        // AÑADE ESTA LÍNEA: Cerrar pantalla si está en el primer paso
+        Navigator.pop(context);
+        return;
+      } else if (_currentStep == RecoveryStep.code) {
         _currentStep = RecoveryStep.email;
         _clearCodeFields();
       } else if (_currentStep == RecoveryStep.newPassword) {
@@ -205,39 +209,46 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Recuperar contraseña',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF1a237e)),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
+
+            // Botón de volver CON CAMBIO DE ESTILO
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    size: 20,
+                    color: Color(0xFF1a237e),
+                  ),
+                  onPressed: _goToPreviousStep, // CAMBIO: Usa _goToPreviousStep
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ),
             
             // Logo/Eyes Settings
             Center(
