@@ -89,6 +89,8 @@ class _MainLayoutState extends State<MainLayout> {
   
   // Navigator key para manejar navegación anidada
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  // Guardar el índice destino cuando se requiere autenticación
+  int? _pendingAuthIndex;
 
   @override
   void initState() {
@@ -109,31 +111,45 @@ class _MainLayoutState extends State<MainLayout> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final requiresAuth = index >= 4 && index <= 7; // Ahora 4-7 requieren auth
     
+    // Cerrar drawer primero
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    
     if (requiresAuth && !authProvider.isAuthenticated) {
+      // Guardar el índice destino para después del login
+      _pendingAuthIndex = index;
+      
+      // Abrir LoginScreen con espera de resultado
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => LoginScreen(
             onSuccess: () {
-              _navigateToMainScreen(index);
+              // Login exitoso - navegar al índice que quería el usuario
               _loadUserData();
+              _navigateToMainScreen(_pendingAuthIndex ?? index);
+              _pendingAuthIndex = null;
             },
             onRegisterPressed: () {
-              // Si desde login se quiere ir a register
+              // Ir a Register
+              Navigator.pop(context); // Cerrar Login
               _navigateToMainScreen(3);
             },
             onBackPressed: () {
+              // Volver a Home
+              Navigator.pop(context); // Cerrar Login
               _navigateToMainScreen(0);
+              _pendingAuthIndex = null;
             },
           ),
         ),
-      );
+      ).then((_) {
+        // Cuando se cierra el LoginScreen sin éxito
+        _pendingAuthIndex = null;
+      });
     } else {
       _navigateToMainScreen(index);
-    }
-    
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
     }
   }
 
@@ -386,57 +402,44 @@ class _MainLayoutState extends State<MainLayout> {
             primaryColor: primaryColor,
           ),
           
-          const Divider(height: 1),
           
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey[50],
-            child: Text(
-              'Mi cuenta',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          
-          _buildDrawerItem(
+          // Perfil
+          _buildAuthDrawerItem(
             icon: Icons.person,
             title: 'Perfil',
             index: 4,
             selected: _selectedIndex == 4,
-            requiresAuth: true,
+            authProvider: authProvider,
             primaryColor: primaryColor,
           ),
-          _buildDrawerItem(
+          
+          // Mis Pedidos
+          _buildAuthDrawerItem(
             icon: Icons.shopping_bag,
             title: 'Mis Pedidos',
             index: 5,
             selected: _selectedIndex == 5,
-            requiresAuth: true,
+            authProvider: authProvider,
             primaryColor: primaryColor,
           ),
-          _buildDrawerItem(
+          
+          // Mis Citas
+          _buildAuthDrawerItem(
             icon: Icons.calendar_today,
             title: 'Mis Citas',
             index: 6,
             selected: _selectedIndex == 6,
-            requiresAuth: true,
+            authProvider: authProvider,
             primaryColor: primaryColor,
           ),
           
-          // Item del carrito
-          _buildDrawerItem(
-            icon: Icons.shopping_cart,
-            title: 'Carrito',
+          // Carrito (con badge especial)
+          _buildCartDrawerItem(
             index: 7,
             selected: _selectedIndex == 7,
-            requiresAuth: true,
+            authProvider: authProvider,
             primaryColor: primaryColor,
             itemCount: itemCount,
-            authProvider: authProvider,
           ),
           
           const Divider(height: 1),
@@ -474,6 +477,163 @@ class _MainLayoutState extends State<MainLayout> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
         ],
+      ),
+    );
+  }
+
+  // Widget específico para items que requieren autenticación
+  Widget _buildAuthDrawerItem({
+    required IconData icon,
+    required String title,
+    required int index,
+    required AuthProvider authProvider,
+    required Color primaryColor,
+    bool selected = false,
+  }) {
+    final isAuthenticated = authProvider.isAuthenticated;
+    final isEnabled = isAuthenticated;
+    
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: selected 
+              ? primaryColor 
+              : (isEnabled ? Colors.grey[700] : Colors.grey[400]),
+          size: 22,
+        ),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: selected 
+              ? primaryColor 
+              : (isEnabled ? Colors.grey[800] : Colors.grey[400]),
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 14,
+        ),
+      ),
+      selected: selected,
+      onTap: isEnabled ? () => _onItemSelected(index) : null,
+      subtitle: !isAuthenticated
+          ? Text(
+              'Requiere inicio de sesión',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[500],
+              ),
+            )
+          : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+
+  // Widget específico para el carrito (con badge)
+  Widget _buildCartDrawerItem({
+    required int index,
+    required AuthProvider authProvider,
+    required Color primaryColor,
+    required int itemCount,
+    bool selected = false,
+  }) {
+    final isAuthenticated = authProvider.isAuthenticated;
+    final isEnabled = isAuthenticated;
+    
+    return ListTile(
+      leading: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.shopping_cart,
+              color: selected 
+                  ? primaryColor 
+                  : (isEnabled ? Colors.grey[700] : Colors.grey[400]),
+              size: 22,
+            ),
+          ),
+          if (isAuthenticated && itemCount > 0)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                child: Text(
+                  itemCount > 9 ? '9+' : itemCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+      title: Text(
+        'Carrito',
+        style: TextStyle(
+          color: selected 
+              ? primaryColor 
+              : (isEnabled ? Colors.grey[800] : Colors.grey[400]),
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 14,
+        ),
+      ),
+      trailing: isAuthenticated && itemCount > 0
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$itemCount',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
+      selected: selected,
+      onTap: isEnabled ? () => _onItemSelected(index) : null,
+      subtitle: !isAuthenticated
+          ? Text(
+              'Requiere inicio de sesión',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[500],
+              ),
+            )
+          : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
       ),
     );
   }
@@ -546,96 +706,31 @@ class _MainLayoutState extends State<MainLayout> {
     required int index,
     required Color primaryColor,
     bool selected = false,
-    bool requiresAuth = false,
-    int itemCount = 0,
-    AuthProvider? authProvider,
+
   }) {
-    final isEnabled = !requiresAuth || (authProvider?.isAuthenticated ?? true);
-    
     return ListTile(
-      leading: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: selected 
-                  ? primaryColor 
-                  : (isEnabled ? Colors.grey[700] : Colors.grey[400]),
-              size: 22,
-            ),
-          ),
-          if (icon == Icons.shopping_cart && itemCount > 0 && (authProvider?.isAuthenticated ?? false))
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 16,
-                  minHeight: 16,
-                ),
-                child: Text(
-                  itemCount > 9 ? '9+' : itemCount.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
+      leading: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: selected ? primaryColor : Colors.grey[700],
+          size: 22,
+        ),
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: selected 
-              ? primaryColor 
-              : (isEnabled ? Colors.grey[800] : Colors.grey[400]),
+          color: selected ? primaryColor : Colors.grey[800],
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),
       ),
-      trailing: requiresAuth && authProvider?.isAuthenticated == true && itemCount > 0 && icon == Icons.shopping_cart
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$itemCount',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: primaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          : null,
       selected: selected,
-      onTap: isEnabled ? () => _onItemSelected(index) : null,
-      subtitle: requiresAuth && !(authProvider?.isAuthenticated ?? true)
-          ? Text(
-              'Requiere inicio de sesión',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-              ),
-            )
-          : null,
+      onTap: () => _onItemSelected(index),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
