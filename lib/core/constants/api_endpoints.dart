@@ -20,4 +20,7 @@ class ApiEndpoints {
   static const String clientes = '$baseUrl/clientes';
   static const String horario = '$baseUrl/horario';
   static const String estadoCita = '$baseUrl/estado-cita';
+  static String get multimedia => '$baseUrl/multimedia';
+  static String imagenesCategoria(int categoriaId) => '$baseUrl/multimedia/categoria/$categoriaId';
+  static String get todasImagenesCategorias => '$baseUrl/multimedia/categoria';
 }

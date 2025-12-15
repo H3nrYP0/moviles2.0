@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constants/api_endpoints.dart';
+import '../../features/catalog/data/models/category_model.dart';
 
 class ApiService {
   static bool _debugMode = true;
@@ -526,6 +527,90 @@ class ApiService {
     } catch (e) {
       _log('Error getProductosConImagenes: $e', type: 'ERROR');
       throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  MULTIMEDIA - IMÁGENES DE CATEGORÍAS
+  // ==========================================================
+  
+  // Obtener imagen de una categoría específica
+  Future<Map<String, dynamic>> getImagenCategoria(int categoriaId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.imagenesCategoria(categoriaId))
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Si no hay imagen, devuelve null
+        if (data['imagen'] == null) {
+          return {'success': true, 'imagen': null};
+        }
+        
+        return {'success': true, 'imagen': data['imagen']};
+      }
+      
+      return {'success': false, 'error': 'Error ${response.statusCode}'};
+    } catch (e) {
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+  
+  // Obtener todas las imágenes de categorías de una vez
+  Future<List<dynamic>> getTodasImagenesCategorias() async {
+    try {
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.todasImagenesCategorias)
+      );
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      
+      throw Exception('Error al obtener imágenes de categorías');
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
+  
+  // Método unificado para cargar categorías con sus imágenes
+  Future<List<Category>> getCategoriasConImagenes() async {
+    try {
+      // 1. Obtener las categorías
+      final categoriasResponse = await getCategorias();
+      
+      // Convertir a objetos Category
+      final categorias = categoriasResponse
+          .map((json) => Category.fromJson(json))
+          .where((categoria) => categoria.estado)
+          .toList();
+      
+      // 2. Obtener todas las imágenes de categorías
+      final imagenesResponse = await getTodasImagenesCategorias();
+      
+      // Crear mapa de imagen por categoría ID
+      final Map<int, String> imagenesMap = {};
+      
+      for (var imagenData in imagenesResponse) {
+        if (imagenData['categoria_id'] != null) {
+          imagenesMap[imagenData['categoria_id']] = imagenData['url'];
+        }
+      }
+      
+      // 3. Asignar imágenes a las categorías
+      final categoriasConImagenes = categorias.map((categoria) {
+        final imagenUrl = imagenesMap[categoria.id];
+        return imagenUrl != null 
+            ? categoria.copyWithImage(imagenUrl)
+            : categoria;
+      }).toList();
+      
+      return categoriasConImagenes;
+      
+    } catch (e) {
+      throw Exception('Error al cargar categorías con imágenes: $e');
     }
   }
 }
