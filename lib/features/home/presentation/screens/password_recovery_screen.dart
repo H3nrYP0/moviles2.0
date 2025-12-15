@@ -244,8 +244,8 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
               child: Column(
                 children: [
                   Container(
-                    height: 60,
-                    width: 60,
+                    height: 80,
+                    width: 80,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
                       image: const DecorationImage(

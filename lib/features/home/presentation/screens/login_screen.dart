@@ -5,11 +5,15 @@ import '../providers/auth_provider.dart';
 import 'password_recovery_screen.dart';
 
 class LoginScreen extends StatelessWidget {
-  final VoidCallback? onSuccess; // Hacerlo opcional
+  final VoidCallback? onSuccess;
+  final VoidCallback? onBackPressed;
+  final VoidCallback? onRegisterPressed;
 
   const LoginScreen({
-    super.key, 
-    this.onSuccess, // No requerido, por defecto null
+    super.key,
+    this.onSuccess,
+    this.onBackPressed,
+    this.onRegisterPressed,
   });
 
   @override
@@ -19,50 +23,70 @@ class LoginScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 40), // Más espacio en la parte superior
-            
-            // Logo/Imagen del ojo (agregar esto)
+            // ===== BOTÓN VOLVER (IGUAL QUE REGISTER) =====
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Color(0xFF1a237e),
+                  ),
+                  onPressed: onBackPressed,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ===== LOGO =====
             Container(
               height: 80,
               width: 80,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(40),
                 image: const DecorationImage(
-                  image: NetworkImage('https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg'),
+                  image: NetworkImage(
+                    'https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg',
+                  ),
                   fit: BoxFit.cover,
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
-            
+
             const Text(
               'Eyes Settings',
               style: TextStyle(
-                fontSize: 28, // Más grande
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1a237e), // Azul oscuro
+                color: Color(0xFF1a237e),
               ),
             ),
+
             const SizedBox(height: 20),
-            
-            const Text(
-              'Iniciar sesión',
-              style: TextStyle(
-                fontSize: 22, // Un poco más pequeño que el título
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            
+
             const Text(
               'Accede a tu cuenta para continuar',
-              style: TextStyle(
-                color: Color(0xFF666666), // Gris más oscuro
-              ),
+              style: TextStyle(color: Color(0xFF666666)),
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 30),
-            
+
+            // ===== FORMULARIO =====
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -78,7 +102,10 @@ class LoginScreen extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _LoginForm(onSuccess: onSuccess),
+                child: _LoginForm(
+                  onSuccess: onSuccess,
+                  onRegisterPressed: onRegisterPressed,
+                ),
               ),
             ),
           ],
@@ -88,10 +115,15 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
+
 class _LoginForm extends StatefulWidget {
   final VoidCallback? onSuccess;
+  final VoidCallback? onRegisterPressed;
 
-  const _LoginForm({this.onSuccess});
+  const _LoginForm({
+    this.onSuccess,
+    this.onRegisterPressed,
+  });
 
   @override
   State<_LoginForm> createState() => __LoginFormState();
@@ -295,14 +327,7 @@ class __LoginFormState extends State<_LoginForm> {
                 style: TextStyle(color: Color(0xFF666666)),
               ),
               TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Usa el menú para registrarte'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onPressed: widget.onRegisterPressed,
                 child: const Text(
                   'Regístrate aquí',
                   style: TextStyle(
@@ -311,6 +336,7 @@ class __LoginFormState extends State<_LoginForm> {
                   ),
                 ),
               ),
+
             ],
           ),
         ],

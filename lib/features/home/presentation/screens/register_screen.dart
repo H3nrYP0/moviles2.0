@@ -5,10 +5,14 @@ import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatelessWidget {
   final VoidCallback? onSuccess;
+  final VoidCallback? onBackPressed; // ESTE FALTA
+  final VoidCallback? onLoginPressed;
   
   const RegisterScreen({
     super.key,
     this.onSuccess,
+    this.onBackPressed, // ESTE FALTA
+    this.onLoginPressed,
   });
 
   @override
@@ -18,8 +22,6 @@ class RegisterScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            
             // Botón de volver en la parte superior izquierda
             Align(
               alignment: Alignment.centerLeft,
@@ -37,23 +39,10 @@ class RegisterScreen extends StatelessWidget {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Color(0xFF1a237e)),
-                  onPressed: () {
-                    // En el MainLayout, necesitamos cambiar el índice seleccionado
-                    // Volver al índice 0 (Home) o al índice 2 (Login)
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                    
-                    // También podemos usar un callback si el MainLayout lo proporciona
-                    if (onSuccess != null) {
-                      onSuccess!();
-                    }
-                  },
+                  onPressed: onBackPressed,
                 ),
               ),
             ),
-            
-            const SizedBox(height: 20),
             
             // Logo/Imagen del ojo
             Container(
@@ -67,7 +56,6 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
             
             const Text(
               'Eyes Settings',
@@ -78,15 +66,6 @@ class RegisterScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
-            const Text(
-              'Registrarse',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
             
             const Text(
               'Crea una cuenta para disfrutar de nuestros servicios',
@@ -112,7 +91,11 @@ class RegisterScreen extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _RegisterForm(onSuccess: onSuccess),
+                child: _RegisterForm(
+                onSuccess: onSuccess,
+                onLoginPressed: onLoginPressed,
+              ),
+
               ),
             ),
           ],
@@ -124,8 +107,12 @@ class RegisterScreen extends StatelessWidget {
 
 class _RegisterForm extends StatefulWidget {
   final VoidCallback? onSuccess;
+  final VoidCallback? onLoginPressed;
   
-  const _RegisterForm({this.onSuccess});
+    const _RegisterForm({
+    this.onSuccess,
+    this.onLoginPressed,
+  });
 
   @override
   State<_RegisterForm> createState() => __RegisterFormState();
@@ -181,12 +168,7 @@ class __RegisterFormState extends State<_RegisterForm> {
         _passwordController.clear();
         _confirmPasswordController.clear();
         
-        // Notificar al MainLayout que el registro fue exitoso
-        // Esto hará que el MainLayout actualice el estado
-        if (widget.onSuccess != null) {
-          widget.onSuccess!();
-        }
-        
+
       } else {
         // Mostrar error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,21 +183,12 @@ class __RegisterFormState extends State<_RegisterForm> {
   }
 
   // Función para navegar a la pantalla de login
-  void _navigateToLogin(BuildContext context) {
-    // En el MainLayout, necesitamos cambiar al índice 2 (LoginScreen)
-    // Pero como estamos dentro del Navigator anidado, usamos el callback
-    if (widget.onSuccess != null) {
-      widget.onSuccess!();
+  void _navigateToLogin() {
+    if (widget.onLoginPressed != null) {
+      widget.onLoginPressed!();
     }
-    
-    // También mostrar un mensaje
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Redirigiendo a inicio de sesión'),
-        duration: Duration(seconds: 1),
-      ),
-    );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -225,32 +198,11 @@ class __RegisterFormState extends State<_RegisterForm> {
       key: _formKey,
       child: Column(
         children: [
-          // Nombre completo con indicador de obligatorio (ahora a la izquierda)
-          Row(
-            children: [
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Nombre completo:',
-                style: TextStyle(
-                  color: Color(0xFF555555),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
             decoration: InputDecoration(
-              hintText: 'Ingresa tu nombre completo',
+              hintText: 'Nombre completo *',
               hintStyle: const TextStyle(color: Colors.grey),
               prefixIcon: const Icon(Icons.person, color: Color(0xFF1a237e)),
               border: OutlineInputBorder(
@@ -269,33 +221,11 @@ class __RegisterFormState extends State<_RegisterForm> {
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 20),
-          
-          // Email con indicador de obligatorio (ahora a la izquierda)
-          Row(
-            children: [
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Correo electrónico:',
-                style: TextStyle(
-                  color: Color(0xFF555555),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _emailController,
             decoration: InputDecoration(
-              hintText: 'ejemplo@correo.com',
+              hintText: 'ejemplo@correo.com *',
               hintStyle: const TextStyle(color: Colors.grey),
               prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
               border: OutlineInputBorder(
@@ -316,32 +246,11 @@ class __RegisterFormState extends State<_RegisterForm> {
           ),
           const SizedBox(height: 20),
           
-          // Contraseña con indicador de obligatorio (ahora a la izquierda)
-          Row(
-            children: [
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Contraseña:',
-                style: TextStyle(
-                  color: Color(0xFF555555),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _passwordController,
             decoration: InputDecoration(
-              hintText: 'Mínimo 6 caracteres',
+              hintText: 'Contraseña *',
               hintStyle: const TextStyle(color: Colors.grey),
               prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
               border: OutlineInputBorder(
@@ -373,32 +282,11 @@ class __RegisterFormState extends State<_RegisterForm> {
           ),
           const SizedBox(height: 20),
           
-          // Confirmar contraseña con indicador de obligatorio (ahora a la izquierda)
-          Row(
-            children: [
-              Text(
-                '*',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Confirmar contraseña:',
-                style: TextStyle(
-                  color: Color(0xFF555555),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _confirmPasswordController,
             decoration: InputDecoration(
-              hintText: 'Repite tu contraseña',
+              hintText: 'Confirmar contraseña *',
               hintStyle: const TextStyle(color: Colors.grey),
               prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1a237e)),
               border: OutlineInputBorder(
@@ -517,7 +405,7 @@ class __RegisterFormState extends State<_RegisterForm> {
                 style: TextStyle(color: Color(0xFF666666)),
               ),
               TextButton(
-                onPressed: () => _navigateToLogin(context),
+                onPressed: _navigateToLogin,
                 child: const Text(
                   'Inicia sesión aquí',
                   style: TextStyle(
