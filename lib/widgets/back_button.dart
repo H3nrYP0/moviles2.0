@@ -8,8 +8,8 @@ class CustomBackButton extends StatelessWidget {
   const CustomBackButton({
     super.key,
     required this.onPressed,
-    this.backgroundColor = Colors.white,
-    this.iconColor = Colors.black,
+    this.backgroundColor = const Color.fromARGB(255, 30, 58, 138),
+    this.iconColor = const Color.fromARGB(255, 255, 255, 255),
   });
   
   @override
@@ -17,7 +17,7 @@ class CustomBackButton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(80),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),

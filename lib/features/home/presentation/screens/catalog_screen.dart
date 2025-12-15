@@ -84,12 +84,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildCategoriesList(List<Category> categories) {
     return ListView.builder(
-   
-      padding: const EdgeInsets.all(0),
+      padding: const EdgeInsets.only(top: 16, left: 12, right: 12, bottom: 16), // Márgenes ajustados
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final category = categories[index];
-        return _CategoryCard(category: category);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16), // Espacio entre cards
+          child: _CategoryCard(category: category),
+        );
       },
     );
   }
@@ -102,120 +104,123 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10), // Separación mínima entre tarjetas
-      child: Material(
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CategoryProductsScreen(
-                  categoryId: category.id,
-                  categoryName: category.nombre,
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CategoryProductsScreen(
+                categoryId: category.id,
+                categoryName: category.nombre,
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            // IMAGEN DE FONDO
+            Container(
+              height: 180,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+              ),
+              child: category.imagenUrl != null && category.imagenUrl!.isNotEmpty
+                  ? Image.network(
+                      category.imagenUrl!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildPlaceholder();
+                      },
+                    )
+                  : _buildPlaceholder(),
+            ),
+            
+            // GRADIENTE OSCURO PARA MEJOR LEGIBILIDAD DEL TEXTO
+            Container(
+              height: 180,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.black.withOpacity(0.3),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-            );
-          },
-          child: Stack(
-            children: [
-              // IMAGEN DE FONDO
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                ),
-                child: category.imagenUrl != null && category.imagenUrl!.isNotEmpty
-                    ? Image.network(
-                        category.imagenUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholder();
-                        },
-                      )
-                    : _buildPlaceholder(),
-              ),
-              
-              // GRADIENTE OSCURO PARA MEJOR LEGIBILIDAD DEL TEXTO
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.7),
-                      Colors.black.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
+            ),
+            
+            // TEXTO SUPERPUESTO
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // NOMBRE DE LA CATEGORÍA
+                  Text(
+                    category.nombre,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 4,
+                          color: Colors.black,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              
-              // TEXTO SUPERPUESTO
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // NOMBRE DE LA CATEGORÍA
+                  
+                  const SizedBox(height: 8),
+                  
+                  // DESCRIPCIÓN (si existe)
+                  if (category.descripcion != null && category.descripcion!.isNotEmpty)
                     Text(
-                      category.nombre,
+                      category.descripcion!,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                         shadows: [
                           Shadow(
-                            blurRadius: 4,
+                            blurRadius: 3,
                             color: Colors.black,
                           ),
                         ],
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // DESCRIPCIÓN (si existe)
-                    if (category.descripcion != null && category.descripcion!.isNotEmpty)
-                      Text(
-                        category.descripcion!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 3,
-                              color: Colors.black,
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            
+          ],
         ),
       ),
     );

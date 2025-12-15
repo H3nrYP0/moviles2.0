@@ -1,264 +1,548 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../catalog/data/models/product_model.dart';
-import '../../../../widgets/back_button.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../home/presentation/providers/auth_provider.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final Product product;
 
   const ProductDetailScreen({super.key, required this.product});
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ========================================
-              // 1. IMAGEN PRINCIPAL DEL PRODUCTO
-              // ========================================
-              Container(
-                height: 300, // Un poco más grande
-                color: Colors.grey.shade200,
-                child: Center(
-                  child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                      ? Image.network(
-                          product.imagenUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderImage();
-                          },
-                        )
-                      : _buildPlaceholderImage(),
-                ),
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  int _quantity = 1; // Contador para cantidad de productos
+
+  // Método para agregar al carrito (verifica autenticación)
+  void _addToCart(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    //final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+    // Verificar si el usuario está autenticado
+    if (!authProvider.isAuthenticated) {
+      // Mostrar mensaje de que necesita iniciar sesión
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Debes iniciar sesión para agregar al carrito'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'Iniciar sesión',
+            textColor: Colors.white,
+            onPressed: () {
+              // Aquí podrías navegar a la pantalla de login
+              // Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Verificar si hay stock disponible
+    if (widget.product.stock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Producto agotado'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Verificar que la cantidad no exceda el stock disponible
+    if (_quantity > widget.product.stock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Solo hay ${widget.product.stock} unidades disponibles'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Agregar al carrito
+    //cartProvider.addToCart(widget.product, quantity: _quantity);
+
+    // Mostrar confirmación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${_quantity} ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito',
+                style: const TextStyle(fontSize: 14),
               ),
-              
-              // ========================================
-              // 2. INFORMACIÓN DEL PRODUCTO
-              // ========================================
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nombre y precio
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            product.nombre,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+
+    // Resetear la cantidad después de agregar
+    setState(() {
+      _quantity = 1;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isAuthenticated = authProvider.isAuthenticated;
+    final hasStock = widget.product.stock > 0;
+
+    return Scaffold(
+      // APP BAR CON BOTÓN DE VOLVER Y TÍTULO
+      appBar: AppBar(
+        title: Text(
+          widget.product.nombre,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ========================================
+            // 1. IMAGEN PRINCIPAL DEL PRODUCTO
+            // ========================================
+            Container(
+              height: 320,
+              color: Colors.grey.shade50,
+              child: Stack(
+                children: [
+                  // Imagen principal
+                  Center(
+                    child: widget.product.imagenUrl != null && widget.product.imagenUrl!.isNotEmpty
+                        ? Container(
+                            constraints: const BoxConstraints(maxWidth: 400),
+                            child: Image.network(
+                              widget.product.imagenUrl!,
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildPlaceholderImage();
+                              },
                             ),
-                          ),
-                        ),
-                        Text(
-                          '\$${product.precioVenta.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Estado del stock
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                          )
+                        : _buildPlaceholderImage(),
+                  ),
+                  
+                  // Badge de stock en esquina
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: product.stock > 0 
-                            ? Colors.green.shade50 
-                            : Colors.red.shade50,
+                        color: hasStock 
+                            ? Colors.green.withOpacity(0.9) 
+                            : Colors.red.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: product.stock > 0 
-                              ? Colors.green.shade200 
-                              : Colors.red.shade200,
-                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            product.stock > 0 ? Icons.check_circle : Icons.error,
-                            size: 16,
-                            color: product.stock > 0 ? Colors.green : Colors.red,
+                            hasStock ? Icons.inventory : Icons.inventory_2,
+                            size: 14,
+                            color: Colors.white,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
-                            product.stock > 0 
-                                ? 'En stock: ${product.stock} unidades'
-                                : 'Sin stock',
-                            style: TextStyle(
-                              color: product.stock > 0 ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.bold,
+                            hasStock ? 'En stock' : 'Agotado',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Descripción (si existe)
-                    if (product.descripcion != null && product.descripcion!.isNotEmpty) ...[
-                      const Text(
-                        'Descripción',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        product.descripcion!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    
-                    // ========================================
-                    // 3. BOTÓN AGREGAR AL CARRITO
-                    // ========================================
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: product.stock > 0
-                            ? () {
-                                Provider.of<CartProvider>(context, listen: false)
-                                    .addToCart(product);
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${product.nombre} agregado al carrito'),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: product.stock > 0 ? Colors.blue : Colors.grey,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                  ),
+                ],
+              ),
+            ),
+            
+            // ========================================
+            // 2. INFORMACIÓN DETALLADA DEL PRODUCTO
+            // ========================================
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nombre y precio destacados
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.product.nombre,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
                           ),
                         ),
-                        icon: const Icon(Icons.shopping_cart),
-                        label: Text(
-                          product.stock > 0 
-                              ? 'Agregar al carrito' 
-                              : 'Sin stock',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '\$${widget.product.precioVenta.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          Text(
+                            'Total: \$${(widget.product.precioVenta * _quantity).toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Contador de stock
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: hasStock
+                          ? (widget.product.stock > 10
+                              ? Colors.green.shade50
+                              : Colors.orange.shade50)
+                          : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: hasStock
+                            ? (widget.product.stock > 10
+                                ? Colors.green.shade200
+                                : Colors.orange.shade200)
+                            : Colors.red.shade200,
                       ),
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // ========================================
-                    // 4. BOTÓN INFORMACIÓN ADICIONAL
-                    // ========================================
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          // Podríamos mostrar más imágenes aquí
-                          _showMoreInfo(context);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          side: const BorderSide(color: Colors.blue),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          hasStock
+                              ? (widget.product.stock > 10
+                                  ? Icons.check_circle
+                                  : Icons.warning)
+                              : Icons.cancel,
+                          size: 16,
+                          color: hasStock
+                              ? (widget.product.stock > 10
+                                  ? Colors.green
+                                  : Colors.orange)
+                              : Colors.red,
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        const SizedBox(width: 6),
+                        Text(
+                          hasStock
+                              ? '${widget.product.stock} unidades disponibles'
+                              : 'Sin stock',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: hasStock
+                                ? (widget.product.stock > 10
+                                    ? Colors.green
+                                    : Colors.orange)
+                                : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Descripción (si existe)
+                  if (widget.product.descripcion != null && widget.product.descripcion!.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.description, size: 18, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text(
+                                'Descripción',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            widget.product.descripcion!,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  
+                  // ========================================
+                  // 3. SELECTOR DE CANTIDAD (+ y -)
+                  // ========================================
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cantidad',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.info_outline, size: 20, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text(
-                              'Ver más información',
-                              style: TextStyle(color: Colors.blue),
+                            // Botón -
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.remove),
+                                onPressed: _quantity > 1
+                                    ? () {
+                                        setState(() {
+                                          _quantity--;
+                                        });
+                                      }
+                                    : null,
+                                color: _quantity > 1 ? Colors.blue : Colors.grey,
+                              ),
+                            ),
+                            
+                            // Cantidad actual
+                            Column(
+                              children: [
+                                Text(
+                                  '$_quantity',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '${hasStock ? widget.product.stock : 0} disponibles',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            
+                            // Botón +
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.add),
+                                onPressed: hasStock && _quantity < widget.product.stock
+                                    ? () {
+                                        setState(() {
+                                          _quantity++;
+                                        });
+                                      }
+                                    : null,
+                                color: hasStock && _quantity < widget.product.stock 
+                                    ? Colors.blue 
+                                    : Colors.grey,
+                              ),
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // ========================================
+                  // 4. BOTÓN AGREGAR AL CARRITO
+                  // ========================================
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: isAuthenticated && hasStock && _quantity > 0
+                          ? () => _addToCart(context)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isAuthenticated && hasStock && _quantity > 0
+                            ? const Color.fromARGB(255, 30, 58, 138) 
+                            : Colors.grey.shade400,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      icon: const Icon(Icons.shopping_cart_checkout, size: 22),
+                      label: Text(
+                        !isAuthenticated
+                            ? 'INICIA SESIÓN PARA COMPRAR'
+                            : !hasStock
+                                ? 'PRODUCTO AGOTADO'
+                                : 'AGREGAR $_quantity AL CARRITO',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    
-                    // ========================================
-                    // 5. ESPACIO PARA MÁS IMÁGENES (OPCIONAL)
-                    // ========================================
-                    const SizedBox(height: 32),
-                    const Text(
-                      'Más del producto',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  
+                  // ========================================
+                  // 5. MENSAJE PARA USUARIOS NO AUTENTICADOS
+                  // ========================================
+                  if (!isAuthenticated) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade100),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Categoría ID: ${product.categoriaId} | Marca ID: ${product.marcaId}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Para agregar productos al carrito, necesitas iniciar sesión',
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                  
+                  // Espacio final
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        
-        // Botón de regresar
-        Positioned(
-          top: 40,
-          left: 10,
-          child: CustomBackButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // ========================================
-  // MÉTODOS AUXILIARES
-  // ========================================
-  
   // Placeholder si no hay imagen
   Widget _buildPlaceholderImage() {
     return Container(
@@ -268,64 +552,34 @@ class ProductDetailScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.visibility,
+              Icons.shopping_bag,
               size: 80,
               color: Colors.blue.shade200,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                widget.product.nombre,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.blue.shade300,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
-              product.nombre,
-              style: TextStyle(
-                color: Colors.blue.shade300,
+              '\$${widget.product.precioVenta.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 24,
+                color: Colors.green,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Diálogo para más información
-  void _showMoreInfo(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Información del producto'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nombre: ${product.nombre}'),
-            const SizedBox(height: 8),
-            Text('Precio: \$${product.precioVenta.toStringAsFixed(2)}'),
-            const SizedBox(height: 8),
-            Text('Stock disponible: ${product.stock}'),
-            const SizedBox(height: 8),
-            Text('Categoría ID: ${product.categoriaId}'),
-            const SizedBox(height: 8),
-            Text('Marca ID: ${product.marcaId}'),
-            const SizedBox(height: 16),
-            if (product.imagenUrl != null)
-              Text(
-                'URL de imagen:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            if (product.imagenUrl != null)
-              Text(
-                product.imagenUrl!.length > 50
-                    ? '${product.imagenUrl!.substring(0, 50)}...'
-                    : product.imagenUrl!,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
       ),
     );
   }
