@@ -39,6 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   bool _showEditModal = false;
   Map<String, dynamic>? _clienteData;
+  
+  // Variable para controlar cambios de usuario
+  int? _currentUserId;
 
   final List<String> _generos = ['Masculino', 'Femenino', 'Otro'];
   final List<String> _tiposDocumento = ['CC', 'TI', 'CE', 'PA'];
@@ -46,7 +49,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadClienteData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadClienteData();
+    });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = Provider.of<AuthProvider>(context);
+    
+    if (_currentUserId != authProvider.user?.id) {
+      _currentUserId = authProvider.user?.id;
+      _loadClienteData();
+    }
   }
 
   @override
@@ -63,28 +79,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  // CORREGIDO: Método simplificado para cargar datos
   Future<void> _loadClienteData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
     
-    if (user?.clienteId != null) {
-      setState(() => _isLoading = true);
-      
-      final result = await _apiService.getClienteById(user!.clienteId!);
-      
-      if (result['success'] == true && mounted) {
-        setState(() {
-          _clienteData = result['cliente'];
-          _loadFormData();
-          _isLoading = false;
-        });
-      } else {
+    if (user == null) {
+      setState(() {
+        _clienteData = null;
+        _isLoading = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _clienteData = null;
+      _isLoading = true;
+    });
+    
+    // Limpiar formulario
+    _clearForm();
+    
+    if (user.clienteId != null) {
+      try {
+        // CORREGIDO: Usar el método correcto de ApiService
+        final result = await _apiService.getClienteById(user.clienteId!);
+        
+        if (result['success'] == true && mounted) {
+          setState(() {
+            _clienteData = result['cliente'];
+            _loadFormData();
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+          _prepareNewCliente(user);
+        }
+      } catch (e) {
+        print('Error cargando datos: $e');
         setState(() => _isLoading = false);
         _prepareNewCliente(user);
       }
     } else {
       _prepareNewCliente(user);
     }
+  }
+
+  // NUEVO: Método para limpiar el formulario
+  void _clearForm() {
+    _nombreController.clear();
+    _apellidoController.clear();
+    _telefonoController.clear();
+    _correoController.clear();
+    _direccionController.clear();
+    _ocupacionController.clear();
+    _documentoController.clear();
+    _telefonoEmergenciaController.clear();
+    _fechaNacimientoController.clear();
+    _selectedMunicipio = null;
+    _selectedGenero = null;
+    _selectedTipoDocumento = null;
   }
 
   void _loadFormData() {
@@ -129,56 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Método para mostrar diálogo de cambiar contraseña
-  void _showChangePasswordDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Cambiar contraseña',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        content: const Text(
-          'Serás redirigido a la pantalla de recuperación de contraseña para crear una nueva.',
-          style: TextStyle(fontSize: 14),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Cerrar el diálogo
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PasswordRecoveryScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 30, 58, 138),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Continuar',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // CORREGIDO: Método de guardar simplificado
   Future<void> _saveClienteData() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -205,6 +210,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     
+    if (!mounted) return;
+    
     setState(() => _isLoading = true);
     
     // Preparar datos para enviar
@@ -217,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'genero': _selectedGenero,
       'telefono': _telefonoController.text.trim(),
       'correo': _correoController.text.trim(),
-      'departamento': 'ANTIOQUIA', // Fijo
+      'departamento': 'ANTIOQUIA',
       'municipio': _selectedMunicipio,
       'direccion': _direccionController.text.trim().isNotEmpty 
           ? _direccionController.text.trim() 
@@ -238,12 +245,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       if (user.clienteId != null) {
         // Actualizar cliente existente
+        // CORREGIDO: Asegúrate de que el método exista
         result = await _apiService.updateCliente(
           clienteId: user.clienteId!,
           datos: clienteData,
         );
       } else {
         // Crear nuevo cliente
+        // CORREGIDO: Asegúrate de que el método exista
         result = await _apiService.createCliente(
           nombre: '${_nombreController.text.trim()} ${_apellidoController.text.trim()}',
           correo: _correoController.text.trim(),
@@ -253,7 +262,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (result['success'] == true) {
           final clienteId = result['cliente_id'];
           await StorageService.saveClienteId(clienteId);
-          authProvider.updateClienteId(clienteId);
+          
+          // CORREGIDO: Actualizar el user en AuthProvider
+          authProvider.updateUser(
+            user.copyWith(clienteId: clienteId)
+          );
           
           // Actualizar con datos completos
           final updateResult = await _apiService.updateCliente(
@@ -287,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${result['error']}'),
+              content: Text('Error: ${result['error'] ?? 'Error desconocido'}'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -308,8 +321,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Widget para el campo de municipio con estilo mejorado
+  // Widget para el campo de municipio
   Widget _buildMunicipioField() {
+    // CORREGIDO: Verificar que la lista de municipios exista
+    final List<String> municipiosList = MunicipiosAntioquia.municipios ?? [
+      'Medellín', 'Bello', 'Itagüí', 'Envigado', 'Rionegro',
+      'Marinilla', 'La Ceja', 'Santuario', 'La Unión', 'El Carmen'
+    ];
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Text('Seleccionar municipio'),
                   ),
                 ),
-                ...MunicipiosAntioquia.municipios.map((municipio) {
+                ...municipiosList.map((municipio) {
                   return DropdownMenuItem<String>(
                     value: municipio,
                     child: Padding(
@@ -382,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget genérico para campos de formulario con estilo mejorado
+  // Widget genérico para campos de formulario
   Widget _buildFormField({
     required String label,
     required TextEditingController controller,
@@ -438,7 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget para campos de selección con estilo mejorado
+  // Widget para campos de selección
   Widget _buildSelectField({
     required String label,
     required List<String> options,
@@ -512,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget para mostrar información en modo lectura
+  // Widget para mostrar información
   Widget _buildInfoItem({
     required IconData icon,
     required String label,
@@ -568,7 +587,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Método para mostrar el modal de edición
   void _showEditProfileModal() {
     // Cargar datos actuales en el formulario
     if (_clienteData != null) {
@@ -580,7 +598,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Widget del modal de edición
   Widget _buildEditProfileModal() {
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
@@ -770,7 +787,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               
-              // Botones de acción en el modal
+              // Botones de acción
               Row(
                 children: [
                   Expanded(
@@ -832,6 +849,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Método para mostrar diálogo de cambiar contraseña
+  void _showChangePasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Cambiar contraseña',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Serás redirigido a la pantalla de recuperación de contraseña para crear una nueva.',
+          style: TextStyle(fontSize: 14),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PasswordRecoveryScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 30, 58, 138),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Continuar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -851,11 +918,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: Stack(
         children: [
+          // Indicador de carga
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 30, 58, 138),
+              ),
+            ),
+          
           SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // Header con información del usuario - CENTRADO
+                // Header con información del usuario
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -922,8 +997,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 
                 // Botón para editar datos personales
-                if (_clienteData != null)
-                  Container(
+                if (_clienteData != null && !_isLoading)
+                  SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _showEditProfileModal,
@@ -955,7 +1030,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 
                 // Si no hay datos de cliente
-                if (_clienteData == null)
+                if (_clienteData == null && !_isLoading)
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -1015,7 +1090,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   )
                 
                 // Si hay datos de cliente, mostrar información
-                else if (_clienteData != null)
+                else if (_clienteData != null && !_isLoading)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1125,7 +1200,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(8),
-                          
                         ),
                         child: ListTile(
                           leading: Container(

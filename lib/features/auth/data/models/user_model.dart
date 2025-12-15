@@ -15,6 +15,8 @@ class User {
     required this.estado,
     this.clienteId,
   });
+
+  
   
   factory User.fromJson(Map<String, dynamic> json) {
     return User(

@@ -1,3 +1,4 @@
+// lib/main_layout.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:optica_app/features/home/presentation/providers/auth_provider.dart';
@@ -6,11 +7,14 @@ import 'package:optica_app/features/home/presentation/screens/catalog_screen.dar
 import 'package:optica_app/features/home/presentation/screens/home_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/register_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/cart_screen.dart';
-import '../core/services/storage_service.dart';
-import '../features/home/presentation/screens/profile_screen.dart';
 import 'package:optica_app/features/cart/presentation/providers/cart_provider.dart';
+import 'package:optica_app/features/home/presentation/screens/profile_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/pedidos_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/citas_screen.dart';
+import '../core/services/storage_service.dart';
+import '../../features/citas/presentation/providers/citas_provider.dart';
+import '../../features/home/presentation/providers/pedidos_provider.dart';
+import '../features/home/presentation/providers/catalog_provider.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -21,6 +25,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+  bool? _lastAuthState;
   
   // Lista de pantallas como GETTER para poder usar context
   List<Widget> get _mainScreens => [
@@ -98,6 +103,27 @@ class _MainLayoutState extends State<MainLayout> {
     _loadUserData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = Provider.of<AuthProvider>(context);
+    
+    // Escuchar cambios en la autenticación
+    if (_lastAuthState != authProvider.isAuthenticated) {
+      _lastAuthState = authProvider.isAuthenticated;
+      
+      if (!authProvider.isAuthenticated) {
+        // Usuario cerró sesión, limpiar todo
+        final cartProvider = Provider.of<CartProvider>(context, listen: false);
+        cartProvider.clearCart();
+        
+        // También limpiar otros providers si es necesario
+        final catalogProvider = Provider.of<CatalogProvider>(context, listen: false);
+        catalogProvider.clearProducts();
+      }
+    }
+  }
+
   Future<void> _loadUserData() async {
     final name = await StorageService.getUserName();
     final email = await StorageService.getUserEmail();
@@ -107,9 +133,13 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  void _onItemSelected(int index) {
+  Future<void> _onItemSelected(int index) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final requiresAuth = index >= 4 && index <= 7; // Ahora 4-7 requieren auth
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final pedidosProvider = Provider.of<PedidosProvider>(context, listen: false);
+    final citasProvider = Provider.of<CitasProvider>(context, listen: false);
+    
+    final requiresAuth = index >= 4 && index <= 7;
     
     // Cerrar drawer primero
     if (Navigator.canPop(context)) {
@@ -121,33 +151,34 @@ class _MainLayoutState extends State<MainLayout> {
       _pendingAuthIndex = index;
       
       // Abrir LoginScreen con espera de resultado
-      Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => LoginScreen(
             onSuccess: () {
-              // Login exitoso - navegar al índice que quería el usuario
+              // Cuando el login es exitoso, cargar datos del usuario
               _loadUserData();
-              _navigateToMainScreen(_pendingAuthIndex ?? index);
-              _pendingAuthIndex = null;
             },
             onRegisterPressed: () {
-              // Ir a Register
-              Navigator.pop(context); // Cerrar Login
+              Navigator.pop(context);
               _navigateToMainScreen(3);
             },
             onBackPressed: () {
-              // Volver a Home
-              Navigator.pop(context); // Cerrar Login
+              Navigator.pop(context);
               _navigateToMainScreen(0);
               _pendingAuthIndex = null;
             },
           ),
         ),
-      ).then((_) {
-        // Cuando se cierra el LoginScreen sin éxito
+      );
+      
+      // Si el login fue exitoso y hay un índice pendiente, navegar
+      if (result == true && _pendingAuthIndex != null) {
+        _navigateToMainScreen(_pendingAuthIndex!);
         _pendingAuthIndex = null;
-      });
+      } else {
+        _pendingAuthIndex = null;
+      }
     } else {
       _navigateToMainScreen(index);
     }
@@ -159,6 +190,61 @@ class _MainLayoutState extends State<MainLayout> {
     });
     // Limpiar el navigator anidado cuando cambiamos de pantalla principal
     _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _handleLogout() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final catalogProvider = Provider.of<CatalogProvider>(context, listen: false);
+    final pedidosProvider = Provider.of<PedidosProvider>(context, listen: false);
+    final citasProvider = Provider.of<CitasProvider>(context, listen: false);
+    
+    // Cerrar drawer
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    
+    // Mostrar indicador de carga
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            const SizedBox(width: 16),
+            const Text('Cerrando sesión...'),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    
+    // 1. Resetear todos los providers
+    cartProvider.clearCart();
+    catalogProvider.clearProducts();
+    // Si tienes método clearCache en CatalogProvider:
+    // catalogProvider.clearCache();
+    
+    // 2. Hacer logout
+    await authProvider.logout();
+    
+    // 3. Resetear estado local
+    setState(() {
+      _userName = null;
+      _userEmail = null;
+      _selectedIndex = 0;
+    });
+    
+    // 4. Mostrar mensaje de éxito
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Sesión cerrada exitosamente'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -402,7 +488,6 @@ class _MainLayoutState extends State<MainLayout> {
             primaryColor: primaryColor,
           ),
           
-          
           // Perfil
           _buildAuthDrawerItem(
             icon: Icons.person,
@@ -465,14 +550,36 @@ class _MainLayoutState extends State<MainLayout> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              onTap: () {
-                authProvider.logout();
+              onTap: () async {
+                // 1. Resetear todos los providers
+                final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                cartProvider.clearCart();
+                
+                final catalogProvider = Provider.of<CatalogProvider>(context, listen: false);
+                catalogProvider.clearProducts();
+                // Si tienes método clearCache en CatalogProvider:
+                // catalogProvider.clearCache();
+                
+                // 2. Hacer logout
+                await authProvider.logout();
+                
+                // 3. Resetear estado local
                 setState(() {
                   _userName = null;
                   _userEmail = null;
                   _selectedIndex = 0;
                 });
+                
+                // 4. Cerrar drawer
                 Navigator.pop(context);
+                
+                // 5. Mostrar confirmación
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Sesión cerrada exitosamente'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               },
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
@@ -706,7 +813,6 @@ class _MainLayoutState extends State<MainLayout> {
     required int index,
     required Color primaryColor,
     bool selected = false,
-
   }) {
     return ListTile(
       leading: Container(

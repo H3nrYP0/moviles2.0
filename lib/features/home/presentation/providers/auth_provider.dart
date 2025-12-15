@@ -233,6 +233,12 @@ class AuthProvider extends ChangeNotifier {
     await StorageService.clearLoginData();
     _user = null;
     _error = '';
+    
+    // Limpiar también otros datos persistentes si los hay
+    // Por ejemplo, podrías limpiar datos de carrito, favoritos, etc.
+    // await StorageService.clearCartData();
+    // await StorageService.clearFavorites();
+    
     notifyListeners();
   }
   

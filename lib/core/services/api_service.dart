@@ -5,9 +5,72 @@ import '../../features/catalog/data/models/category_model.dart';
 
 class ApiService {
   static bool _debugMode = true;
+  
+  // Cache para evitar múltiples llamadas simultáneas
+  static final Map<String, dynamic> _requestCache = {};
+  static final Map<String, DateTime> _cacheTimestamps = {};
 
   static void _log(String message, {String type = 'INFO'}) {
     if (_debugMode) print('[$type] $message');
+  }
+
+  // ==========================================================
+  //  CLEAR CACHE - NUEVO MÉTODO IMPORTANTE
+  // ==========================================================
+  
+  static void clearCache() {
+    _log('🧹 Limpiando cache de ApiService', type: 'CACHE');
+    _requestCache.clear();
+    _cacheTimestamps.clear();
+  }
+  
+  // ==========================================================
+  //  HEADERS Y UTILIDADES
+  // ==========================================================
+  
+  Future<Map<String, String>> _getHeaders() async {
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+  }
+  
+  Map<String, dynamic> _handleResponse(http.Response response) {
+    _log('Response: ${response.statusCode} - ${response.body}', type: 'DEBUG');
+    
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data,
+          'message': data['message'] ?? 'Operación exitosa',
+        };
+      } catch (e) {
+        return {
+          'success': true,
+          'data': response.body,
+          'message': 'Operación exitosa',
+        };
+      }
+    } else {
+      try {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 
+                   errorData['message'] ?? 
+                   'Error ${response.statusCode}',
+          'statusCode': response.statusCode,
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Error HTTP ${response.statusCode}: ${response.body}',
+          'statusCode': response.statusCode,
+        };
+      }
+    }
   }
 
   // ==========================================================
@@ -18,7 +81,11 @@ class ApiService {
     _log('GET usuarios from: ${ApiEndpoints.usuarios}');
 
     try {
-      final response = await http.get(Uri.parse(ApiEndpoints.usuarios));
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.usuarios),
+        headers: await _getHeaders(),
+      );
+      
       _log('Response status: ${response.statusCode}');
       _log('Response body: ${response.body}', type: 'DATA');
 
@@ -43,6 +110,10 @@ class ApiService {
         if (usuario['correo'] == email &&
             usuario['contrasenia'] == password) {
           _log('✅ Login successful for: ${usuario['nombre']}');
+          
+          // Limpiar cache al hacer login
+          clearCache();
+          
           return {
             'success': true,
             'usuario': usuario,
@@ -91,30 +162,11 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse(ApiEndpoints.usuarios),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await _getHeaders(),
         body: json.encode(userData),
       );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        return {
-          'success': true,
-          'usuario': data['usuario'] ?? data,
-          'message': 'Usuario registrado exitosamente',
-        };
-      } else {
-        final errorData = json.decode(response.body);
-        return {
-          'success': false,
-          'error': errorData['error'] ??
-              errorData['message'] ??
-              'Error al registrar usuario',
-        };
-      }
+      return _handleResponse(response);
     } catch (e) {
       _log('Error registerUser: $e', type: 'ERROR');
       return {
@@ -135,32 +187,13 @@ class ApiService {
     try {
       final response = await http.put(
         Uri.parse('${ApiEndpoints.usuarios}/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await _getHeaders(),
         body: json.encode({
           'contrasenia': newPassword,
         }),
       );
 
-      _log('Response: ${response.statusCode} - ${response.body}',
-          type: 'DEBUG');
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Contraseña actualizada exitosamente',
-        };
-      } else {
-        final errorData = json.decode(response.body);
-        return {
-          'success': false,
-          'error': errorData['error'] ??
-              errorData['message'] ??
-              'Error al actualizar contraseña',
-        };
-      }
+      return _handleResponse(response);
     } catch (e) {
       _log('❌ Error updateUserPassword: $e', type: 'ERROR');
       return {
@@ -171,7 +204,7 @@ class ApiService {
   }
 
   // ===================================================================
-  //  CLIENTES
+  //  CLIENTES - MÉTODOS MEJORADOS
   // ===================================================================
 
   Future<Map<String, dynamic>> createCliente({
@@ -184,8 +217,9 @@ class ApiService {
     try {
       final nombreParts = nombre.split(' ');
       final primerNombre = nombreParts.isNotEmpty ? nombreParts[0] : nombre;
-      final apellido =
-          nombreParts.length > 1 ? nombreParts.sublist(1).join(' ') : 'Usuario';
+      final apellido = nombreParts.length > 1 
+          ? nombreParts.sublist(1).join(' ') 
+          : 'Usuario';
 
       final clienteData = {
         'nombre': primerNombre,
@@ -200,22 +234,32 @@ class ApiService {
         'ocupacion': '',
         'telefono_emergencia': '',
         'estado': true,
+        'usuario_id': usuarioId,
       };
 
       final response = await http.post(
         Uri.parse(ApiEndpoints.clientes),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _getHeaders(),
         body: json.encode(clienteData),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final clienteId = data['cliente']?['id'] ?? data['id'];
-
-        return {
-          'success': true,
-          'cliente_id': clienteId,
-        };
+        try {
+          final data = json.decode(response.body);
+          final clienteId = data['id'] ?? data['cliente_id'];
+          
+          return {
+            'success': true,
+            'cliente_id': clienteId,
+            'message': 'Cliente creado exitosamente',
+          };
+        } catch (e) {
+          return {
+            'success': true,
+            'cliente_id': usuarioId, // Fallback
+            'message': 'Cliente creado exitosamente',
+          };
+        }
       }
 
       return {
@@ -232,7 +276,7 @@ class ApiService {
   }
 
   // ===============================================================
-  //  UPDATE CLIENTE
+  //  UPDATE CLIENTE - MÉTODO MEJORADO
   // ===============================================================
 
   Future<Map<String, dynamic>> updateCliente({
@@ -244,10 +288,7 @@ class ApiService {
     try {
       final response = await http.put(
         Uri.parse('${ApiEndpoints.clientes}/$clienteId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await _getHeaders(),
         body: json.encode(datos),
       );
 
@@ -296,23 +337,49 @@ class ApiService {
 
   Future<Map<String, dynamic>> getClienteById(int id) async {
     _log('GET cliente by id: $id', type: 'INFO');
+    
+    // Verificar cache
+    final cacheKey = 'cliente_$id';
+    if (_requestCache.containsKey(cacheKey)) {
+      final cacheTime = _cacheTimestamps[cacheKey];
+      if (cacheTime != null && 
+          DateTime.now().difference(cacheTime).inMinutes < 5) {
+        _log('📦 Usando cache para cliente $id', type: 'CACHE');
+        return _requestCache[cacheKey];
+      }
+    }
 
     try {
-      final response =
-          await http.get(Uri.parse('${ApiEndpoints.clientes}/$id'));
+      final response = await http.get(
+        Uri.parse('${ApiEndpoints.clientes}/$id'),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {
+        final result = {
           'success': true,
           'cliente': data,
         };
+        
+        // Guardar en cache
+        _requestCache[cacheKey] = result;
+        _cacheTimestamps[cacheKey] = DateTime.now();
+        
+        return result;
       }
 
-      return {
+      final result = {
         'success': false,
         'error': 'Cliente no encontrado',
       };
+      
+      // Guardar error en cache también (para evitar múltiples llamadas)
+      _requestCache[cacheKey] = result;
+      _cacheTimestamps[cacheKey] = DateTime.now();
+      
+      return result;
+      
     } catch (e) {
       _log('Error getClienteById: $e', type: 'ERROR');
       return {
@@ -326,8 +393,10 @@ class ApiService {
     _log('GET nombre cliente: $clienteId', type: 'INFO');
 
     try {
-      final response =
-          await http.get(Uri.parse('${ApiEndpoints.clientes}/$clienteId'));
+      final response = await http.get(
+        Uri.parse('${ApiEndpoints.clientes}/$clienteId'),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -356,7 +425,10 @@ class ApiService {
     _log('GET mapa de clientes', type: 'INFO');
 
     try {
-      final response = await http.get(Uri.parse(ApiEndpoints.clientes));
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.clientes),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -390,7 +462,10 @@ class ApiService {
     _log('GET productos from: ${ApiEndpoints.productos}');
 
     try {
-      final response = await http.get(Uri.parse(ApiEndpoints.productos));
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.productos),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -407,7 +482,10 @@ class ApiService {
     _log('GET categorias from: ${ApiEndpoints.categorias}');
 
     try {
-      final response = await http.get(Uri.parse(ApiEndpoints.categorias));
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.categorias),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -428,7 +506,10 @@ class ApiService {
     _log('GET all pedidos from: ${ApiEndpoints.pedidos}', type: 'INFO');
 
     try {
-      final response = await http.get(Uri.parse(ApiEndpoints.pedidos));
+      final response = await http.get(
+        Uri.parse(ApiEndpoints.pedidos),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -449,7 +530,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse(ApiEndpoints.pedidos),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _getHeaders(),
         body: json.encode(pedidoData),
       );
 
@@ -469,8 +550,10 @@ class ApiService {
     _log('GET pedidos for usuario: $usuarioId');
 
     try {
-      final response = await http
-          .get(Uri.parse('${ApiEndpoints.pedidos}/usuario/$usuarioId'));
+      final response = await http.get(
+        Uri.parse('${ApiEndpoints.pedidos}/usuario/$usuarioId'),
+        headers: await _getHeaders(),
+      );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -493,7 +576,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse(ApiEndpoints.citas),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _getHeaders(),
         body: json.encode(citaData),
       );
 
@@ -505,7 +588,7 @@ class ApiService {
   }
 
   // ==========================================================
-  //  🔥 NUEVO MÉTODO (AÑADIDO, NADA MÁS)
+  //  PRODUCTOS CON IMÁGENES
   // ==========================================================
 
   Future<List<dynamic>> getProductosConImagenes() async {
@@ -513,8 +596,8 @@ class ApiService {
 
     try {
       final response = await http.get(
-        Uri.parse(
-            'https://optica-api-vad8.onrender.com/productos-imagenes'),
+        Uri.parse('https://optica-api-vad8.onrender.com/productos-imagenes'),
+        headers: await _getHeaders(),
       );
 
       _log('Response status: ${response.statusCode}');
@@ -538,7 +621,8 @@ class ApiService {
   Future<Map<String, dynamic>> getImagenCategoria(int categoriaId) async {
     try {
       final response = await http.get(
-        Uri.parse(ApiEndpoints.imagenesCategoria(categoriaId))
+        Uri.parse(ApiEndpoints.imagenesCategoria(categoriaId)),
+        headers: await _getHeaders(),
       );
       
       if (response.statusCode == 200) {
@@ -562,7 +646,8 @@ class ApiService {
   Future<List<dynamic>> getTodasImagenesCategorias() async {
     try {
       final response = await http.get(
-        Uri.parse(ApiEndpoints.todasImagenesCategorias)
+        Uri.parse(ApiEndpoints.todasImagenesCategorias),
+        headers: await _getHeaders(),
       );
       
       if (response.statusCode == 200) {
@@ -575,40 +660,35 @@ class ApiService {
     }
   }
   
-Future<String?> getHomeImage() async {
-  _log('GET imagen para home');
-  
-  try {
-    // Opción A: Si usas tipo "home"
-    final response = await http.get(
-      Uri.parse('${ApiEndpoints.baseUrl}/multimedia/home')
-    );
+  Future<String?> getHomeImage() async {
+    _log('GET imagen para home');
     
-    // Opción B: Si usas tipo "otro" (como subiste)
-    // final response = await http.get(
-    //   Uri.parse('${ApiEndpoints.baseUrl}/multimedia/otro')
-    // );
-    
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiEndpoints.baseUrl}/multimedia/home'),
+        headers: await _getHeaders(),
+      );
       
-      // Si es una lista, toma la primera
-      if (data is List && data.isNotEmpty) {
-        return data[0]['url']; // URL de Cloudinary
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Si es una lista, toma la primera
+        if (data is List && data.isNotEmpty) {
+          return data[0]['url'];
+        }
+        
+        // Si es un objeto directo
+        if (data is Map && data['url'] != null) {
+          return data['url'];
+        }
       }
       
-      // Si es un objeto directo
-      if (data is Map && data['url'] != null) {
-        return data['url'];
-      }
+      return null;
+    } catch (e) {
+      _log('Error getHomeImage: $e', type: 'ERROR');
+      return null;
     }
-    
-    return null;
-  } catch (e) {
-    _log('Error getHomeImage: $e', type: 'ERROR');
-    return null;
   }
-}
 
   // Método unificado para cargar categorías con sus imágenes
   Future<List<Category>> getCategoriasConImagenes() async {

@@ -1,6 +1,8 @@
 // features/cart/presentation/providers/cart_provider.dart
 import 'package:flutter/material.dart';
 import '../../../catalog/data/models/product_model.dart';
+import '../../../auth/data/models/user_model.dart';
+import '../../../home/presentation/providers/auth_provider.dart';
 
 class CartItem {
   final Product product;
@@ -76,6 +78,12 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  // En AuthProvider
+  void updateUser(User updatedUser) {
+    _user = updatedUser;
+    notifyListeners();
+  }
+
   void updateQuantity(int productId, int newQuantity) {
     final index = _items.indexWhere((item) => item.product.id == productId);
     if (index >= 0) {
@@ -93,6 +101,17 @@ class CartProvider extends ChangeNotifier {
     _selectedDeliveryMethod = null;
     _selectedPaymentMethod = null;
     _deliveryAddress = null;
+    notifyListeners();
+  }
+  
+  // MÉTODO NUEVO AÑADIDO: Limpiar carrito para usuario específico
+  void clearCartForUser(int userId) {
+    // Podrías guardar el userId actual y verificar
+    _items.clear();
+    _selectedDeliveryMethod = null;
+    _selectedPaymentMethod = null;
+    _deliveryAddress = null;
+    _isProcessing = false;
     notifyListeners();
   }
   
