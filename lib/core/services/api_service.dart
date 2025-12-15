@@ -442,28 +442,132 @@ class ApiService {
     }
   }
 
-  Future<bool> createPedido(Map<String, dynamic> pedidoData) async {
-    _log('CREATE pedido', type: 'INFO');
-    _log('Pedido data: $pedidoData', type: 'DATA');
+// REEMPLAZA TU MÉTODO createPedido CON ESTO:
+Future<Map<String, dynamic>> createPedido(Map<String, dynamic> pedidoData) async {
+  _log('CREATE pedido', type: 'INFO');
+  _log('Pedido data: $pedidoData', type: 'DATA');
 
-    try {
-      final response = await http.post(
-        Uri.parse(ApiEndpoints.pedidos),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(pedidoData),
-      );
+  try {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.pedidos),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(pedidoData),
+    );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['message'] != null;
+    _log('Create pedido response: ${response.statusCode}', type: 'DEBUG');
+    _log('Response body: ${response.body}', type: 'DEBUG');
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      // Verificar que la respuesta tenga el formato correcto
+      final pedidoId = data['pedido']?['id'] ?? 
+                       data['id'] ?? 
+                       data['pedido_id'];
+      
+      if (pedidoId != null) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Pedido creado exitosamente',
+          'pedido_id': pedidoId,
+          'pedido': data['pedido'] ?? data,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'No se pudo obtener el ID del pedido creado',
+        };
       }
-
-      return false;
-    } catch (e) {
-      _log('Error createPedido: $e', type: 'ERROR');
-      return false;
+    } else {
+      try {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Error ${response.statusCode} al crear pedido',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Error HTTP ${response.statusCode}: ${response.body}',
+        };
+      }
     }
+  } catch (e) {
+    _log('Error createPedido: $e', type: 'ERROR');
+    return {
+      'success': false,
+      'error': 'Error de conexión: $e',
+    };
   }
+}
+
+// Añade este método a tu ApiService
+Future<Map<String, dynamic>> createPedidoConComprobante({
+  required Map<String, dynamic> pedidoData,
+  String? comprobanteUrl,
+}) async {
+  _log('CREATE pedido con comprobante', type: 'INFO');
+  
+  // Si hay comprobante, añadirlo a los datos del pedido
+  if (comprobanteUrl != null && comprobanteUrl.isNotEmpty) {
+    pedidoData['transferencia_comprobante'] = comprobanteUrl;
+  }
+  
+  _log('Pedido data final: $pedidoData', type: 'DATA');
+
+  try {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.pedidos),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(pedidoData),
+    );
+
+    _log('Response: ${response.statusCode}', type: 'DEBUG');
+    _log('Body: ${response.body}', type: 'DEBUG');
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      final pedidoId = data['pedido']?['id'] ?? 
+                       data['id'] ?? 
+                       data['pedido_id'];
+      
+      if (pedidoId != null) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Pedido creado exitosamente',
+          'pedido_id': pedidoId,
+          'pedido': data['pedido'] ?? data,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'No se pudo obtener el ID del pedido',
+        };
+      }
+    } else {
+      try {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Error ${response.statusCode}',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Error HTTP ${response.statusCode}: ${response.body}',
+        };
+      }
+    }
+  } catch (e) {
+    _log('Error createPedidoConComprobante: $e', type: 'ERROR');
+    return {
+      'success': false,
+      'error': 'Error de conexión: $e',
+    };
+  }
+}
+
 
   Future<List<dynamic>> getPedidosByUsuario(int usuarioId) async {
     _log('GET pedidos for usuario: $usuarioId');
@@ -648,4 +752,62 @@ Future<String?> getHomeImage() async {
       throw Exception('Error al cargar categorías con imágenes: $e');
     }
   }
+
+  // AÑADE ESTE NUEVO MÉTODO AL FINAL DE TU ApiService:
+Future<Map<String, dynamic>> updatePedidoComprobante({
+  required int pedidoId,
+  required String comprobanteUrl,
+}) async {
+  _log('UPDATE comprobante for pedido: $pedidoId', type: 'INFO');
+  _log('Comprobante URL: $comprobanteUrl', type: 'DATA');
+
+  try {
+    final response = await http.put(
+      Uri.parse('${ApiEndpoints.pedidos}/$pedidoId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'transferencia_comprobante': comprobanteUrl,
+        'estado': 'pendiente' // O 'confirmado' según tu lógica
+      }),
+    );
+
+    _log('Update response: ${response.statusCode}', type: 'DEBUG');
+    _log('Update body: ${response.body}', type: 'DEBUG');
+
+    if (response.statusCode == 200) {
+      try {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Comprobante actualizado exitosamente',
+          'pedido': data['pedido'] ?? data,
+        };
+      } catch (e) {
+        return {
+          'success': true,
+          'message': 'Comprobante actualizado exitosamente',
+        };
+      }
+    } else {
+      try {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Error ${response.statusCode} al actualizar comprobante',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'error': 'Error HTTP ${response.statusCode}: ${response.body}',
+        };
+      }
+    }
+  } catch (e) {
+    _log('Error updatePedidoComprobante: $e', type: 'ERROR');
+    return {
+      'success': false,
+      'error': 'Error de conexión: $e',
+    };
+  }
+}
 }

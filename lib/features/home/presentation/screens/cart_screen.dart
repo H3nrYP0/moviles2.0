@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import 'package:optica_app/features/home/presentation/screens/profile_screen.dart';
-import 'checkout_modal.dart'; // Crearemos este archivo después
+import 'checkout_modal.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -23,7 +22,6 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 30, 58, 138),
         iconTheme: const IconThemeData(color: Colors.white),
-
         actions: [
           Consumer<CartProvider>(
             builder: (context, cartProvider, child) {
@@ -76,17 +74,6 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Volver atrás
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 30, 58, 138),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Explorar Catálogo'),
-            ),
           ],
         ),
       );
@@ -94,7 +81,6 @@ class _CartScreenState extends State<CartScreen> {
 
     return Column(
       children: [
-        // LISTA DE PRODUCTOS
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -106,7 +92,6 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ),
 
-        // RESUMEN Y CONTINUAR (SIEMPRE VISIBLE)
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -122,11 +107,9 @@ class _CartScreenState extends State<CartScreen> {
           ),
           child: Column(
             children: [
-              // RESUMEN
               _buildSummary(cartProvider),
               const SizedBox(height: 16),
               
-              // BOTÓN CONTINUAR
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -297,22 +280,21 @@ class _CartScreenState extends State<CartScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => CheckoutModal(
-        cartProvider: Provider.of<CartProvider>(context, listen: false),
-        authProvider: authProvider,
-        apiService: _apiService,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: CheckoutModal(
+          cartProvider: Provider.of<CartProvider>(context, listen: false),
+          authProvider: authProvider,
+          apiService: _apiService,
+        ),
       ),
     );
   }
 }
-
-// -------------------------------------------------------------
-// ---------------------- ITEM CARD ----------------------------
-// -------------------------------------------------------------
 
 class _CartItemCard extends StatelessWidget {
   final CartItem item;
@@ -333,7 +315,6 @@ class _CartItemCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // IMAGEN DEL PRODUCTO
             Container(
               width: 70,
               height: 70,
@@ -359,7 +340,6 @@ class _CartItemCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
 
-            // INFORMACIÓN DEL PRODUCTO
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +356,6 @@ class _CartItemCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   
-                  // Precio unitario
                   Text(
                     '\$${item.product.precioVenta.toStringAsFixed(2)} c/u',
                     style: TextStyle(
@@ -387,7 +366,6 @@ class _CartItemCard extends StatelessWidget {
                   
                   const SizedBox(height: 4),
                   
-                  // Subtotal
                   Text(
                     '\$${item.subtotal.toStringAsFixed(2)} total',
                     style: const TextStyle(
@@ -400,7 +378,6 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
 
-            // SELECTOR DE CANTIDAD CON VALIDACIÓN
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -410,7 +387,6 @@ class _CartItemCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Botón - (NO permite llegar a 0)
                   Container(
                     width: 32,
                     height: 32,
@@ -433,7 +409,6 @@ class _CartItemCard extends StatelessWidget {
                     ),
                   ),
                   
-                  // Cantidad
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
@@ -445,7 +420,6 @@ class _CartItemCard extends StatelessWidget {
                     ),
                   ),
                   
-                  // Botón + (NO permite exceder stock)
                   Container(
                     width: 32,
                     height: 32,
@@ -471,7 +445,6 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
 
-            // BOTÓN ELIMINAR
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
               onPressed: () {

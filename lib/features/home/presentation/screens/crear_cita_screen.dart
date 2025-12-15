@@ -52,6 +52,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   String? _userName;
   String? _userEmail;
   
+  // Color principal
+  Color get _primaryColor => const Color.fromARGB(255, 30, 58, 138);
+  
   @override
   void initState() {
     super.initState();
@@ -94,15 +97,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       final authProvider = context.read<AuthProvider>();
       final citasProvider = context.read<CitasProvider>();
       
-      print('🔍 Iniciando carga de datos...');
-      print('  Es admin: ${authProvider.isAdmin}');
-      print('  Autenticado: ${authProvider.isAuthenticated}');
-      
       if (authProvider.isAuthenticated && authProvider.user != null) {
         // 1. CARGAR CLIENTE ID
         if (authProvider.isAdmin) {
-          print('👨‍💼 Modo ADMIN: cargando lista de clientes');
-          
           if (citasProvider.clientes.isEmpty) {
             await citasProvider.loadCitas();
           }
@@ -112,44 +109,30 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
             return estado == true || estado == 'true' || estado == 1;
           }).toList();
           
-          print('✅ Clientes activos cargados: ${_clientesList.length}');
-          
           if (_clientesList.isNotEmpty) {
             // Seleccionar primer cliente por defecto
             final cliente = _clientesList[0];
             _selectedClienteId = _parseId(cliente['id']);
-            print('👤 Cliente seleccionado por defecto: $_selectedClienteId');
           } else {
             _error = 'No hay clientes disponibles en el sistema';
-            print('❌ Error: $_error');
           }
         } else {
           // MODO CLIENTE: usar clienteId del usuario actual
-          print('👤 Modo CLIENTE: obteniendo clienteId del usuario');
-          
           if (authProvider.user?.clienteId != null) {
             _selectedClienteId = authProvider.user!.clienteId;
-            print('✅ Cliente ID desde user: $_selectedClienteId');
           } else {
             // Intentar obtener del storage como respaldo
             final clienteId = await StorageService.getClienteId();
             _selectedClienteId = clienteId;
-            print('✅ Cliente ID desde storage: $clienteId');
           }
           
           if (_selectedClienteId == null) {
             _error = 'No se encontró perfil de cliente. Complete su perfil primero.';
-            print('❌ Error: $_error');
-          } else {
-            print('✅ Cliente ID establecido: $_selectedClienteId');
           }
         }
         
         // 2. CARGAR EMPLEADOS (OPTÓMETRAS)
-        print('👨‍⚕️ Cargando lista de empleados...');
-        
         if (citasProvider.empleados.isEmpty) {
-          print('⚠️ Lista de empleados vacía, recargando datos...');
           await citasProvider.loadCitas();
         }
         
@@ -158,23 +141,16 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           return estado == true || estado == 'true' || estado == 1;
         }).toList();
         
-        print('✅ Empleados activos cargados: ${_empleadosList.length}');
-        
         if (_empleadosList.isNotEmpty) {
           // Seleccionar primer empleado por defecto
           final empleado = _empleadosList[0];
           _selectedEmpleadoId = _parseId(empleado['id']);
-          print('✅ Empleado seleccionado por defecto: $_selectedEmpleadoId');
         } else {
           _error = _error.isNotEmpty ? '$_error\nNo hay optómetras disponibles' : 'No hay optómetras disponibles';
-          print('❌ Error: No hay empleados disponibles');
         }
         
         // 3. CARGAR SERVICIOS
-        print('🩺 Cargando lista de servicios...');
-        
         if (citasProvider.servicios.isEmpty) {
-          print('⚠️ Lista de servicios vacía, recargando datos...');
           await citasProvider.loadCitas();
         }
         
@@ -188,16 +164,12 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           };
         }).toList();
         
-        print('✅ Servicios cargados: ${_serviciosList.length}');
-        
         if (_serviciosList.isNotEmpty) {
           // Seleccionar primer servicio por defecto
           final servicio = _serviciosList[0];
           _selectedServicioId = _parseId(servicio['id']);
-          print('✅ Servicio seleccionado por defecto: $_selectedServicioId');
         } else {
           _error = _error.isNotEmpty ? '$_error\nNo hay servicios disponibles' : 'No hay servicios disponibles';
-          print('❌ Error: No hay servicios disponibles');
         }
         
         // 4. SELECCIONAR MÉTODO DE PAGO POR DEFECTO
@@ -207,18 +179,13 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           _info = authProvider.isAdmin 
               ? 'Seleccione cliente y complete el formulario' 
               : 'Complete los datos para agendar su cita';
-          print('✅ Todos los datos cargados correctamente');
-        } else {
-          print('⚠️ Hay errores: $_error');
         }
       } else {
         _error = 'Debe iniciar sesión para agendar citas';
-        print('❌ Error: Usuario no autenticado');
       }
       
     } catch (e) {
       _error = 'Error al cargar datos: $e';
-      print('❌ Error en _loadDatosIniciales: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -236,8 +203,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   
   // CREAR CITA CON VALIDACIÓN MEJORADA
   Future<void> _crearCita() async {
-    print('🔄 Iniciando proceso de creación de cita...');
-    
     // Validar campos obligatorios
     final errores = <String>[];
     
@@ -265,7 +230,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       setState(() {
         _error = 'Complete todos los campos requeridos:\n• ${errores.join('\n• ')}';
       });
-      print('❌ Errores de validación: $_error');
       return;
     }
     
@@ -275,7 +239,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     });
     
     final citasProvider = context.read<CitasProvider>();
-    final authProvider = context.read<AuthProvider>();
     
     try {
       // Obtener duración del servicio seleccionado
@@ -285,18 +248,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       );
       
       final duracion = servicioSeleccionado['duracion'] ?? 30;
-      
-      // DEPURACIÓN: Mostrar datos que se enviarán
-      print('📋 DATOS DE LA CITA A CREAR:');
-      print('  Cliente ID: $_selectedClienteId');
-      print('  Empleado ID: $_selectedEmpleadoId');
-      print('  Servicio ID: $_selectedServicioId');
-      print('  Estado Cita ID: 1 (pendiente)');
-      print('  Método Pago: $_selectedMetodoPago');
-      print('  Fecha: ${_selectedDate!.toIso8601String()}');
-      print('  Hora: ${_selectedTime!.hour}:${_selectedTime!.minute}');
-      print('  Duración: $duracion minutos');
-      print('  Es admin: ${authProvider.isAdmin}');
       
       // Crear objeto Cita
       final nuevaCita = Cita(
@@ -322,11 +273,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       setState(() {
         _isLoading = false;
       });
-      
-      print('📨 Resultado de creación de cita:');
-      print('  Success: ${result['success']}');
-      print('  Message: ${result['message']}');
-      print('  Error: ${result['error']}');
       
       if (result['success'] == true && mounted) {
         // ÉXITO: mostrar mensaje y regresar
@@ -365,8 +311,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         _isLoading = false;
         _error = 'Error inesperado: $e';
       });
-      
-      print('❌ Error inesperado en _crearCita: $e');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -442,8 +386,8 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: Colors.blue.shade50,
-                  foregroundColor: Colors.blue,
+                  backgroundColor: _primaryColor.withOpacity(0.1),
+                  foregroundColor: _primaryColor,
                 ),
                 child: Text(
                   horaStr,
@@ -456,7 +400,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar', style: TextStyle(color: _primaryColor)),
           ),
         ],
       ),
@@ -485,6 +429,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(authProvider.isAdmin ? 'Crear Nueva Cita' : 'Agendar Cita'),
+        backgroundColor: _primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -537,12 +482,15 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       else
                         DropdownButtonFormField<int>(
                           value: _selectedClienteId,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Cliente *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person_outline),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.person_outline, color: _primaryColor),
                             filled: true,
                             fillColor: Colors.white,
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: _primaryColor, width: 2),
+                            ),
                           ),
                           items: _clientesList.map((cliente) {
                             final id = _parseId(cliente['id']);
@@ -594,7 +542,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.person, color: Colors.green, size: 20),
+                            Icon(Icons.person, color: _primaryColor, size: 20),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -655,12 +603,15 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     else
                       DropdownButtonFormField<int>(
                         value: _selectedEmpleadoId,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Optómetra *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.medical_services),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.medical_services, color: _primaryColor),
                           filled: true,
                           fillColor: Colors.white,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: _primaryColor, width: 2),
+                          ),
                         ),
                         items: _empleadosList.map((empleado) {
                           final id = _parseId(empleado['id']);
@@ -705,18 +656,20 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     else
                       DropdownButtonFormField<int>(
                         value: _selectedServicioId,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Servicio *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.spa),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.spa, color: _primaryColor),
                           filled: true,
                           fillColor: Colors.white,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: _primaryColor, width: 2),
+                          ),
                         ),
                         items: _serviciosList.map((servicio) {
                           final id = _parseId(servicio['id']);
                           final nombre = servicio['nombre']?.toString() ?? 'Servicio';
-                          final duracion = servicio['duracion'] ?? 30;
-                          final precio = servicio['precio'] ?? 0.0;
+
                           
                           return DropdownMenuItem<int>(
                             value: id,
@@ -729,13 +682,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 14),
                                 ),
-                                Text(
-                                  '$duracion min • \$$precio',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
+                               
                               ],
                             ),
                           );
@@ -767,12 +714,15 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     
                     DropdownButtonFormField<String>(
                       value: _selectedMetodoPago,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Método de Pago',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.payment),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.payment, color: _primaryColor),
                         filled: true,
                         fillColor: Colors.white,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: _primaryColor, width: 2),
+                        ),
                       ),
                       items: _metodosPago.map((metodo) {
                         return DropdownMenuItem<String>(
@@ -818,7 +768,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                   Icon(
                                     Icons.calendar_today,
                                     size: 20,
-                                    color: _selectedDate != null ? Colors.blue : Colors.grey,
+                                    color: _selectedDate != null ? _primaryColor : Colors.grey,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -859,7 +809,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                   Icon(
                                     Icons.access_time,
                                     size: 20,
-                                    color: _selectedTime != null ? Colors.blue : Colors.grey,
+                                    color: _selectedTime != null ? _primaryColor : Colors.grey,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -890,22 +840,22 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: _primaryColor.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade100),
+                        border: Border.all(color: _primaryColor.withOpacity(0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.info, size: 16, color: Colors.blue),
-                              SizedBox(width: 8),
+                              Icon(Icons.info, size: 16, color: _primaryColor),
+                              const SizedBox(width: 8),
                               Text(
                                 'Información de Horarios',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: _primaryColor,
                                 ),
                               ),
                             ],
@@ -935,7 +885,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       child: ElevatedButton(
                         onPressed: (_isLoading || _selectedClienteId == null) ? null : _crearCita,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _selectedClienteId == null ? Colors.grey : Colors.blue,
+                          backgroundColor: _selectedClienteId == null ? Colors.grey : _primaryColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -976,9 +926,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          child: const Text(
+                          child: Text(
                             'Cancelar',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: _primaryColor),
                           ),
                         ),
                       ),
@@ -1036,15 +986,15 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: _primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(color: _primaryColor.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info, size: 20, color: Colors.blue),
+          Icon(Icons.info, size: 20, color: _primaryColor),
           const SizedBox(width: 8),
-          Expanded(child: Text(mensaje)),
+          Expanded(child: Text(mensaje, style: TextStyle(color: _primaryColor))),
         ],
       ),
     );

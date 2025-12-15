@@ -12,6 +12,8 @@ class ApiEndpoints {
   
   // Orders
   static const String pedidos = '$baseUrl/pedidos';
+  static String pedidoById(int id) => '$baseUrl/pedidos/$id';
+  static String pedidosByUsuario(int usuarioId) => '$baseUrl/pedidos/usuario/$usuarioId';
   
   // Appointments
   static const String citas = '$baseUrl/citas';

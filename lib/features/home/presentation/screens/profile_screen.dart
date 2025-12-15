@@ -838,17 +838,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final primaryColor = const Color.fromARGB(255, 30, 58, 138);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Mi Perfil',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(

@@ -168,46 +168,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         : _buildPlaceholderImage(),
                   ),
                   
-                  // Badge de stock en esquina
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: hasStock 
-                            ? Colors.green.withOpacity(0.9) 
-                            : Colors.red.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            hasStock ? Icons.inventory : Icons.inventory_2,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            hasStock ? 'En stock' : 'Agotado',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -260,61 +220,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   
                   const SizedBox(height: 16),
-                  
-                  // Contador de stock
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: hasStock
-                          ? (widget.product.stock > 10
-                              ? Colors.green.shade50
-                              : Colors.orange.shade50)
-                          : Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: hasStock
-                            ? (widget.product.stock > 10
-                                ? Colors.green.shade200
-                                : Colors.orange.shade200)
-                            : Colors.red.shade200,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          hasStock
-                              ? (widget.product.stock > 10
-                                  ? Icons.check_circle
-                                  : Icons.warning)
-                              : Icons.cancel,
-                          size: 16,
-                          color: hasStock
-                              ? (widget.product.stock > 10
-                                  ? Colors.green
-                                  : Colors.orange)
-                              : Colors.red,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          hasStock
-                              ? '${widget.product.stock} unidades disponibles'
-                              : 'Sin stock',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: hasStock
-                                ? (widget.product.stock > 10
-                                    ? Colors.green
-                                    : Colors.orange)
-                                : Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
                   
                   // Descripción (si existe)
                   if (widget.product.descripcion != null && widget.product.descripcion!.isNotEmpty) ...[

@@ -187,10 +187,24 @@ class _CitasScreenState extends State<CitasScreen> {
     setState(() {});
   }
 
+  void _aplicarFiltroEstado(String? estado) {
+    setState(() => _selectedFilter = estado);
+    final citasProvider = context.read<CitasProvider>();
+    citasProvider.setFilterEstado(estado);
+  }
+
   List<Cita> _getCitasFiltradas(CitasProvider citasProvider) {
-    final lista = citasProvider.isAdminMode 
+    List<Cita> lista = citasProvider.isAdminMode 
         ? citasProvider.filteredCitas
         : citasProvider.citas;
+    
+    // Aplicar filtro por estado si está seleccionado
+    if (_selectedFilter != null && _selectedFilter != 'todas') {
+      lista = lista.where((cita) {
+        final estadoCita = cita.estadoNombre?.toLowerCase() ?? '';
+        return estadoCita == _selectedFilter;
+      }).toList();
+    }
     
     final query = _searchController.text.toLowerCase();
     
@@ -213,6 +227,9 @@ class _CitasScreenState extends State<CitasScreen> {
     }).toList();
   }
 
+  // Color principal desde ARGB
+  Color get _primaryColor => const Color.fromARGB(255, 30, 58, 138);
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -229,38 +246,13 @@ class _CitasScreenState extends State<CitasScreen> {
             ? 'Panel de Citas (Admin)' 
             : 'Mis Citas'
         ),
+        backgroundColor: _primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: citasProvider.isLoading ? null : _refreshCitas,
             tooltip: 'Actualizar',
           ),
-          if (authProvider.isAdmin)
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                setState(() => _selectedFilter = value == 'todas' ? null : value);
-                citasProvider.setFilterEstado(value == 'todas' ? null : value);
-              },
-              itemBuilder: (context) => _estados.entries.map((entry) {
-                final key = entry.key;
-                final value = entry.value;
-                
-                return PopupMenuItem<String>(
-                  value: key,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _getEstadoIcon(key),
-                        color: _getEstadoColor(key),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(value),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
         ],
       ),
       body: _buildBody(authProvider, citasProvider),
@@ -273,7 +265,8 @@ class _CitasScreenState extends State<CitasScreen> {
             ),
           );
         },
-        child: const Icon(Icons.add),
+        backgroundColor: _primaryColor,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -305,7 +298,10 @@ class _CitasScreenState extends State<CitasScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadCitas,
-                child: const Text('Reintentar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                ),
+                child: const Text('Reintentar', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -318,6 +314,48 @@ class _CitasScreenState extends State<CitasScreen> {
     if (citasMostrar.isEmpty) {
       return Column(
         children: [
+          // Filtro de estado
+          if (authProvider.isAdmin)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _estados.entries.map((entry) {
+                    final isSelected = _selectedFilter == entry.key ||
+                        (_selectedFilter == null && entry.key == 'todas');
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(entry.value),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (entry.key == 'todas') {
+                            _aplicarFiltroEstado(null);
+                          } else {
+                            _aplicarFiltroEstado(entry.key);
+                          }
+                        },
+                        selectedColor: _primaryColor.withOpacity(0.2),
+                        backgroundColor: Colors.grey.shade100,
+                        labelStyle: TextStyle(
+                          color: isSelected ? _primaryColor : Colors.black,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: isSelected ? _primaryColor : Colors.grey.shade300,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -346,11 +384,11 @@ class _CitasScreenState extends State<CitasScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.event_note, size: 80, color: Colors.grey),
+                    Icon(Icons.event_note, size: 80, color: _primaryColor),
                     const SizedBox(height: 16),
                     Text(
                       authProvider.isAdmin ? 'No hay citas' : 'No tienes citas',
-                      style: const TextStyle(fontSize: 18, color: Colors.grey),
+                      style: TextStyle(fontSize: 18, color: _primaryColor),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -364,10 +402,12 @@ class _CitasScreenState extends State<CitasScreen> {
                     if (authProvider.isAdmin && _selectedFilter != null)
                       ElevatedButton(
                         onPressed: () {
-                          setState(() => _selectedFilter = null);
-                          citasProvider.setFilterEstado(null);
+                          _aplicarFiltroEstado(null);
                         },
-                        child: const Text('Limpiar filtro'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                        ),
+                        child: const Text('Limpiar filtro', style: TextStyle(color: Colors.white)),
                       )
                     else if (!authProvider.isAdmin)
                       ElevatedButton(
@@ -379,7 +419,10 @@ class _CitasScreenState extends State<CitasScreen> {
                             ),
                           );
                         },
-                        child: const Text('Agendar Cita'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                        ),
+                        child: const Text('Agendar Cita', style: TextStyle(color: Colors.white)),
                       ),
                   ],
                 ),
@@ -392,6 +435,48 @@ class _CitasScreenState extends State<CitasScreen> {
     
     return Column(
       children: [
+        // Filtro de estado
+        if (authProvider.isAdmin)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.white,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _estados.entries.map((entry) {
+                  final isSelected = _selectedFilter == entry.key ||
+                      (_selectedFilter == null && entry.key == 'todas');
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(entry.value),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (entry.key == 'todas') {
+                          _aplicarFiltroEstado(null);
+                        } else {
+                          _aplicarFiltroEstado(entry.key);
+                        }
+                      },
+                      selectedColor: _primaryColor.withOpacity(0.2),
+                      backgroundColor: Colors.grey.shade100,
+                      labelStyle: TextStyle(
+                        color: isSelected ? _primaryColor : Colors.black,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected ? _primaryColor : Colors.grey.shade300,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: TextField(
@@ -425,8 +510,12 @@ class _CitasScreenState extends State<CitasScreen> {
                     ? _CitaAdminCard(
                         cita: cita,
                         onCambiarEstado: () => _mostrarMenuCambioEstado(context, cita),
+                        primaryColor: _primaryColor,
                       )
-                    : _CitaClienteCard(cita: cita);
+                    : _CitaClienteCard(
+                        cita: cita,
+                        primaryColor: _primaryColor,
+                      );
               },
             ),
           ),
@@ -459,7 +548,10 @@ class _CitasScreenState extends State<CitasScreen> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Iniciar sesión'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor,
+              ),
+              child: const Text('Iniciar sesión', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -471,8 +563,12 @@ class _CitasScreenState extends State<CitasScreen> {
 // Widget para cliente
 class _CitaClienteCard extends StatelessWidget {
   final Cita cita;
+  final Color primaryColor;
   
-  const _CitaClienteCard({required this.cita});
+  const _CitaClienteCard({
+    required this.cita,
+    required this.primaryColor,
+  });
   
   @override
   Widget build(BuildContext context) {
@@ -493,9 +589,10 @@ class _CitaClienteCard extends StatelessWidget {
                 children: [
                   Text(
                     cita.servicioNombre ?? 'Servicio',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: primaryColor,
                     ),
                   ),
                   Container(
@@ -526,7 +623,7 @@ class _CitaClienteCard extends StatelessWidget {
               // Fecha y hora
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                  Icon(Icons.calendar_today, size: 14, color: primaryColor),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -545,7 +642,7 @@ class _CitaClienteCard extends StatelessWidget {
               // Optometra asignado
               Row(
                 children: [
-                  const Icon(Icons.person, size: 14, color: Colors.grey),
+                  Icon(Icons.person, size: 14, color: primaryColor),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -562,7 +659,7 @@ class _CitaClienteCard extends StatelessWidget {
               if (cita.metodoPago != null)
                 Row(
                   children: [
-                    const Icon(Icons.payment, size: 14, color: Colors.grey),
+                    Icon(Icons.payment, size: 14, color: primaryColor),
                     const SizedBox(width: 4),
                     Text(
                       _capitalize(cita.metodoPago!),
@@ -602,9 +699,10 @@ class _CitaClienteCard extends StatelessWidget {
                   children: [
                     Text(
                       cita.servicioNombre ?? 'Cita',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: primaryColor,
                       ),
                     ),
                     Container(
@@ -639,18 +737,21 @@ class _CitaClienteCard extends StatelessWidget {
                   icon: Icons.calendar_today,
                   label: 'Fecha y Hora',
                   value: '${cita.fechaFormateada} ${cita.horaFormateada}',
+                  iconColor: primaryColor,
                 ),
                 
                 _DetalleItem(
                   icon: Icons.person,
                   label: 'Optometra',
                   value: cita.empleadoNombre ?? 'No asignado',
+                  iconColor: primaryColor,
                 ),
                 
                 _DetalleItem(
                   icon: Icons.medical_services,
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'Servicio',
+                  iconColor: primaryColor,
                 ),
                 
                 if (cita.metodoPago != null)
@@ -658,6 +759,7 @@ class _CitaClienteCard extends StatelessWidget {
                     icon: Icons.payment,
                     label: 'Método de Pago',
                     value: _capitalize(cita.metodoPago!),
+                    iconColor: primaryColor,
                   ),
                 
                 if (cita.duracion != null)
@@ -665,6 +767,7 @@ class _CitaClienteCard extends StatelessWidget {
                     icon: Icons.timer,
                     label: 'Duración',
                     value: '${cita.duracion} minutos',
+                    iconColor: primaryColor,
                   ),
                 
                 if (cita.notas != null && cita.notas!.isNotEmpty)
@@ -713,7 +816,10 @@ class _CitaClienteCard extends StatelessWidget {
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text('Cerrar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                    ),
+                    child: const Text('Cerrar', style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 
@@ -742,11 +848,11 @@ class _CitaClienteCard extends StatelessWidget {
               backgroundColor: Colors.red,
             ),
             onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo de confirmación
-              Navigator.pop(context); // Cerrar detalles de la cita
+              Navigator.pop(context);
+              Navigator.pop(context);
               
               final citasProvider = Provider.of<CitasProvider>(context, listen: false);
-              final result = await citasProvider.actualizarEstadoCita(cita.id, 5); // 5 = cancelada
+              final result = await citasProvider.actualizarEstadoCita(cita.id, 5);
               
               if (result['success'] == true && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -776,10 +882,12 @@ class _CitaClienteCard extends StatelessWidget {
 class _CitaAdminCard extends StatelessWidget {
   final Cita cita;
   final VoidCallback onCambiarEstado;
+  final Color primaryColor;
   
   const _CitaAdminCard({
     required this.cita,
     required this.onCambiarEstado,
+    required this.primaryColor,
   });
   
   @override
@@ -798,13 +906,14 @@ class _CitaAdminCard extends StatelessWidget {
               children: [
                 Text(
                   'Cita #${cita.id}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: primaryColor,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
+                  icon: Icon(Icons.edit, size: 20, color: primaryColor),
                   onPressed: onCambiarEstado,
                   tooltip: 'Cambiar estado',
                 ),
@@ -844,7 +953,7 @@ class _CitaAdminCard extends StatelessWidget {
             // Información del cliente
             Row(
               children: [
-                const Icon(Icons.person, size: 14, color: Colors.grey),
+                Icon(Icons.person, size: 14, color: primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -860,7 +969,7 @@ class _CitaAdminCard extends StatelessWidget {
             // Servicio y optometra
             Row(
               children: [
-                const Icon(Icons.medical_services, size: 14, color: Colors.grey),
+                Icon(Icons.medical_services, size: 14, color: primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -875,7 +984,7 @@ class _CitaAdminCard extends StatelessWidget {
             
             Row(
               children: [
-                const Icon(Icons.person, size: 14, color: Colors.grey),
+                Icon(Icons.person, size: 14, color: primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -891,7 +1000,7 @@ class _CitaAdminCard extends StatelessWidget {
             // Fecha y hora
             Row(
               children: [
-                const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                Icon(Icons.calendar_today, size: 14, color: primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -906,14 +1015,14 @@ class _CitaAdminCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${cita.duracion} min',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Colors.blue,
+                        color: primaryColor,
                       ),
                     ),
                   ),
@@ -926,7 +1035,7 @@ class _CitaAdminCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.payment, size: 14, color: Colors.grey),
+                    Icon(Icons.payment, size: 14, color: primaryColor),
                     const SizedBox(width: 4),
                     Text(
                       _capitalize(cita.metodoPago!),
@@ -943,12 +1052,12 @@ class _CitaAdminCard extends StatelessWidget {
                 onPressed: () {
                   _mostrarDetallesCompletos(context, cita);
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Ver detalles'),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 16),
+                    Text('Ver detalles', style: TextStyle(color: primaryColor)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward, size: 16, color: primaryColor),
                   ],
                 ),
               ),
@@ -984,9 +1093,10 @@ class _CitaAdminCard extends StatelessWidget {
                   children: [
                     Text(
                       'Cita #${cita.id}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: primaryColor,
                       ),
                     ),
                     Container(
@@ -1021,6 +1131,7 @@ class _CitaAdminCard extends StatelessWidget {
                   label: 'Cliente',
                   value: cita.clienteNombre ?? 'No disponible',
                   icon: Icons.person,
+                  iconColor: primaryColor,
                 ),
                 
                 _DetalleItem(
@@ -1032,6 +1143,7 @@ class _CitaAdminCard extends StatelessWidget {
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'No disponible',
                   icon: Icons.medical_services,
+                  iconColor: primaryColor,
                 ),
                 
                 _DetalleItem(
@@ -1043,6 +1155,7 @@ class _CitaAdminCard extends StatelessWidget {
                   label: 'Optometra',
                   value: cita.empleadoNombre ?? 'No asignado',
                   icon: Icons.person,
+                  iconColor: primaryColor,
                 ),
                 
                 _DetalleItem(
@@ -1054,6 +1167,7 @@ class _CitaAdminCard extends StatelessWidget {
                   label: 'Fecha y Hora',
                   value: '${cita.fechaFormateada} ${cita.horaFormateada}',
                   icon: Icons.calendar_today,
+                  iconColor: primaryColor,
                 ),
                 
                 if (cita.duracion != null)
@@ -1061,6 +1175,7 @@ class _CitaAdminCard extends StatelessWidget {
                     label: 'Duración',
                     value: '${cita.duracion} minutos',
                     icon: Icons.timer,
+                    iconColor: primaryColor,
                   ),
                 
                 if (cita.metodoPago != null)
@@ -1068,6 +1183,7 @@ class _CitaAdminCard extends StatelessWidget {
                     label: 'Método de Pago',
                     value: _capitalize(cita.metodoPago!),
                     icon: Icons.payment,
+                    iconColor: primaryColor,
                   ),
                 
                 if (cita.notas != null && cita.notas!.isNotEmpty)
@@ -1106,8 +1222,8 @@ class _CitaAdminCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade50,
-                          foregroundColor: Colors.blue,
+                          backgroundColor: primaryColor.withOpacity(0.1),
+                          foregroundColor: primaryColor,
                         ),
                         onPressed: onCambiarEstado,
                         child: const Text('Cambiar Estado'),
@@ -1119,7 +1235,10 @@ class _CitaAdminCard extends StatelessWidget {
                         onPressed: () {
                           Navigator.pop(context);
                         },
-                        child: const Text('Cerrar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                        ),
+                        child: const Text('Cerrar', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                   ],
@@ -1140,11 +1259,13 @@ class _DetalleItem extends StatelessWidget {
   final String label;
   final String value;
   final IconData? icon;
+  final Color? iconColor;
   
   const _DetalleItem({
     required this.label,
     required this.value,
     this.icon,
+    this.iconColor = Colors.grey,
   });
   
   @override
@@ -1157,7 +1278,7 @@ class _DetalleItem extends StatelessWidget {
           if (icon != null) ...[
             Row(
               children: [
-                Icon(icon, size: 16, color: Colors.grey),
+                Icon(icon, size: 16, color: iconColor),
                 const SizedBox(width: 8),
                 Text(
                   label,
