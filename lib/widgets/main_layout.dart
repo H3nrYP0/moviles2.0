@@ -164,18 +164,7 @@ class _MainLayoutState extends State<MainLayout> {
       appBar: AppBar(
         title: Row(
           children: [
-            if (_userName != null) ...[
-              Icon(Icons.person, size: 20, color: Colors.white.withOpacity(0.9)),
-              const SizedBox(width: 8),
-              Text(
-                _userName!,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ] else if (_selectedIndex == 0 || _selectedIndex == 1) ...[
+            if (_selectedIndex == 0 || _selectedIndex == 1) ...[
               Icon(Icons.visibility, size: 20, color: Colors.white.withOpacity(0.9)),
               const SizedBox(width: 8),
               Text(
