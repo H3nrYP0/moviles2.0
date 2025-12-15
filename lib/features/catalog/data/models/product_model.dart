@@ -6,6 +6,7 @@ class Product {
   final String? descripcion;
   final int categoriaId;
   final int marcaId;
+  final String? imagenUrl;
   
   Product({
     required this.id,
@@ -15,6 +16,7 @@ class Product {
     this.descripcion,
     required this.categoriaId,
     required this.marcaId,
+    this.imagenUrl
   });
   
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class Product {
       descripcion: json['descripcion'],
       categoriaId: json['categoria_id'] ?? json['categoria_producto_id'] ?? 0,
       marcaId: json['marca_id'] ?? 0,
+      imagenUrl: json['imagen_principal'] ?? json['imagen_url'],
     );
   }
 }

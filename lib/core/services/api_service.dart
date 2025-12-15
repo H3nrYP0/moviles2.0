@@ -39,7 +39,8 @@ class ApiService {
       final usuarios = await getUsuarios();
 
       for (var usuario in usuarios) {
-        if (usuario['correo'] == email && usuario['contrasenia'] == password) {
+        if (usuario['correo'] == email &&
+            usuario['contrasenia'] == password) {
           _log('✅ Login successful for: ${usuario['nombre']}');
           return {
             'success': true,
@@ -123,6 +124,7 @@ class ApiService {
   }
 
   // ==================== ACTUALIZAR CONTRASEÑA ====================
+
   Future<Map<String, dynamic>> updateUserPassword({
     required int userId,
     required String newPassword,
@@ -141,7 +143,8 @@ class ApiService {
         }),
       );
 
-      _log('Response: ${response.statusCode} - ${response.body}', type: 'DEBUG');
+      _log('Response: ${response.statusCode} - ${response.body}',
+          type: 'DEBUG');
 
       if (response.statusCode == 200) {
         return {
@@ -497,6 +500,32 @@ class ApiService {
     } catch (e) {
       _log('Error createCita: $e', type: 'ERROR');
       throw Exception('Error al crear cita: $e');
+    }
+  }
+
+  // ==========================================================
+  //  🔥 NUEVO MÉTODO (AÑADIDO, NADA MÁS)
+  // ==========================================================
+
+  Future<List<dynamic>> getProductosConImagenes() async {
+    _log('GET productos con imágenes');
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://optica-api-vad8.onrender.com/productos-imagenes'),
+      );
+
+      _log('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+
+      throw Exception('Error al obtener productos con imágenes');
+    } catch (e) {
+      _log('Error getProductosConImagenes: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
     }
   }
 }

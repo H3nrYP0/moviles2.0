@@ -29,7 +29,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CatalogProvider>(context, listen: false)
-        .loadProductsByCategory(widget.categoryId);
+          .loadProductsByCategory(widget.categoryId);
     });
   }
 
@@ -39,7 +39,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
       children: [
         Column(
           children: [
-            // Barra de búsqueda personalizada (opcional)
+            // Barra de búsqueda
             if (_showSearch)
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -56,7 +56,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                           _showSearch = false;
                           _searchController.clear();
                           Provider.of<CatalogProvider>(context, listen: false)
-                            .loadProductsByCategory(widget.categoryId);
+                              .loadProductsByCategory(widget.categoryId);
                         });
                       },
                     ),
@@ -66,12 +66,12 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                   ),
                   onChanged: (value) {
                     Provider.of<CatalogProvider>(context, listen: false)
-                      .searchProducts(value);
+                        .searchProducts(value);
                   },
                 ),
               ),
-            
-            // Botón de búsqueda flotante
+
+            // Botón para mostrar búsqueda
             if (!_showSearch)
               Align(
                 alignment: Alignment.topRight,
@@ -87,7 +87,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                   ),
                 ),
               ),
-            
+
             Expanded(
               child: Consumer<CatalogProvider>(
                 builder: (context, catalogProvider, child) {
@@ -104,7 +104,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () {
-                              catalogProvider.loadProductsByCategory(widget.categoryId);
+                              catalogProvider.loadProductsByCategory(
+                                  widget.categoryId);
                             },
                             child: const Text('Reintentar'),
                           ),
@@ -118,11 +119,13 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.inventory, size: 64, color: Colors.grey),
+                          const Icon(Icons.inventory,
+                              size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
                           const Text(
                             'No hay productos en esta categoría',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -142,10 +145,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             ),
           ],
         ),
-        
-        // Botón de regresar personalizado
+
+        // Botón de regresar
         Positioned(
-          top: 70, // Debajo del AppBar
+          top: 70,
           left: 10,
           child: CustomBackButton(
             onPressed: () {
@@ -159,7 +162,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
 
   Widget _buildProductsList(List<Product> products) {
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 70, left: 16, right: 16, bottom: 16), // Espacio para el botón
+      padding:
+          const EdgeInsets.only(top: 70, left: 16, right: 16, bottom: 16),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
@@ -184,7 +188,8 @@ class _ProductCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ProductDetailScreen(product: product),
+              builder: (context) =>
+                  ProductDetailScreen(product: product),
             ),
           );
         },
@@ -193,19 +198,27 @@ class _ProductCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // IMAGEN DEL PRODUCTO (MODIFICADO)
               Container(
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(8),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/product_placeholder.png'),
-                    fit: BoxFit.cover,
-                  ),
+                  image: product.imagenUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(product.imagenUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : const DecorationImage(
+                          image: AssetImage(
+                              'assets/product_placeholder.png'),
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +243,8 @@ class _ProductCard extends StatelessWidget {
                       ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           '\$${product.precioVenta.toStringAsFixed(2)}',
@@ -244,7 +258,9 @@ class _ProductCard extends StatelessWidget {
                           'Stock: ${product.stock}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: product.stock > 0 ? Colors.blue : Colors.red,
+                            color: product.stock > 0
+                                ? Colors.blue
+                                : Colors.red,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -254,7 +270,8 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              const Icon(Icons.arrow_forward_ios,
+                  size: 16, color: Colors.grey),
             ],
           ),
         ),
