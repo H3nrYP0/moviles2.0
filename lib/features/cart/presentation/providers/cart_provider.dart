@@ -148,4 +148,48 @@ class CartProvider extends ChangeNotifier {
       }).toList(),
     };
   }
+  
+  // Métodos seguros para actualizar cantidad
+  void safeUpdateQuantity(int productId, int newQuantity) {
+    final index = _items.indexWhere((item) => item.product.id == productId);
+    if (index >= 0) {
+      // Evitar que sea menor que 1
+      if (newQuantity < 1) {
+        _items.removeAt(index);
+      } 
+      // Evitar que exceda el stock
+      else if (newQuantity > _items[index].product.stock) {
+        // No hacer nada o mostrar error
+        return;
+      }
+      else {
+        _items[index].quantity = newQuantity;
+      }
+      notifyListeners();
+    }
+  }
+  
+  void incrementQuantity(int productId) {
+    final index = _items.indexWhere((item) => item.product.id == productId);
+    if (index >= 0) {
+      if (_items[index].quantity < _items[index].product.stock) {
+        _items[index].quantity++;
+        notifyListeners();
+      }
+    }
+  }
+  
+  void decrementQuantity(int productId) {
+    final index = _items.indexWhere((item) => item.product.id == productId);
+    if (index >= 0) {
+      if (_items[index].quantity > 1) {
+        _items[index].quantity--;
+        notifyListeners();
+      } else {
+        // Si es 1, eliminar del carrito (opcional) o mantener en 1
+        // _items.removeAt(index);
+        // notifyListeners();
+      }
+    }
+  }
 }
