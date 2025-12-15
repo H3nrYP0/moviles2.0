@@ -15,7 +15,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   RecoveryStep _currentStep = RecoveryStep.email;
   String _email = '';
 
-
   // Controllers
   final _emailController = TextEditingController();
   final List<TextEditingController> _codeControllers =
@@ -93,7 +92,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
 
     if (result['success'] == true) {
       setState(() {
-
         _currentStep = RecoveryStep.newPassword;
         _success = 'Código verificado';
       });
@@ -122,6 +120,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         ),
         backgroundColor:
             result['success'] == true ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -158,7 +157,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
 
     FocusScope.of(context).unfocus();
 
-    // ✔ Implementación correcta
     final result = await RecoveryService.changePassword(
       newPassword: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
@@ -207,34 +205,79 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
+      appBar: AppBar(
+        title: const Text(
+          'Recuperar contraseña',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF1a237e)),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_error!,
-                    style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 20),
+            
+            // Logo/Eyes Settings
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    height: 60,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      image: const DecorationImage(
+                        image: NetworkImage('https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Eyes Settings',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1a237e),
+                    ),
+                  ),
+                ],
               ),
-
-            if (_success != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_success!,
-                    style: const TextStyle(color: Colors.green)),
-              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Indicador de pasos
+            _buildStepIndicator(),
+            
+            const SizedBox(height: 30),
+            
+            if (_error != null) _buildErrorMessage(),
+            if (_success != null) _buildSuccessMessage(),
+            
+            const SizedBox(height: 20),
 
             if (_currentStep == RecoveryStep.email)
               _buildEmailStep(),
@@ -250,23 +293,190 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     );
   }
 
+  Widget _buildStepIndicator() {
+    final List<String> steps = ['Email', 'Código', 'Nueva contraseña'];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Paso ${_currentStep.index + 1} de 3',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(3, (index) {
+            final isActive = index <= _currentStep.index;
+            return Expanded(
+              child: Container(
+                height: 4,
+                margin: EdgeInsets.only(
+                  right: index < 2 ? 8 : 0,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF1a237e) : const Color(0xFFe0e0e0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(3, (index) {
+            return Text(
+              steps[index],
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: index == _currentStep.index 
+                    ? FontWeight.w600 
+                    : FontWeight.normal,
+                color: index == _currentStep.index 
+                    ? const Color(0xFF1a237e) 
+                    : const Color(0xFF999999),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _error!,
+              style: TextStyle(
+                color: Colors.red.shade800,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessMessage() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _success!,
+              style: TextStyle(
+                color: Colors.green.shade800,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmailStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Ingresa tu correo',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _emailController,
-          decoration: const InputDecoration(labelText: 'Correo electrónico'),
+        const Text(
+          'Recupera tu contraseña',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _sendRecoveryCode,
-          child: _isLoading
-              ? const CircularProgressIndicator()
-              : const Text('Enviar código'),
+        const SizedBox(height: 8),
+        const Text(
+          'Ingresa tu correo electrónico para recibir un código de verificación',
+          style: TextStyle(
+            color: Color(0xFF666666),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 30),
+        
+        TextFormField(
+          controller: _emailController,
+          decoration: InputDecoration(
+            labelText: 'Correo electrónico',
+            labelStyle: const TextStyle(color: Color(0xFF555555)),
+            prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFf8f9fa),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 30),
+        
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _sendRecoveryCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1a237e),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 2,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Enviar código',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
         ),
       ],
     );
@@ -276,44 +486,127 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Ingresa el código',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-
+        const Text(
+          'Verificación',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ingresa el código de 6 dígitos enviado a $_email',
+          style: const TextStyle(
+            color: Color(0xFF666666),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 30),
+        
+        // Campo de código
+        Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(6, (i) {
+              return Container(
+                width: 50,
+                height: 50,
+                margin: EdgeInsets.only(right: i < 5 ? 12 : 0),
+                child: TextField(
+                  controller: _codeControllers[i],
+                  focusNode: _codeFocusNodes[i],
+                  maxLength: 1,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _onCodeChanged(i, v),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF1a237e), width: 2),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFf8f9fa),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        
+        const SizedBox(height: 30),
+        
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _verifyCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1a237e),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 2,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Verificar código',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
+        ),
+        
+        const SizedBox(height: 20),
+        
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(6, (i) {
-            return SizedBox(
-              width: 40,
-              child: TextField(
-                controller: _codeControllers[i],
-                focusNode: _codeFocusNodes[i],
-                maxLength: 1,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                onChanged: (v) => _onCodeChanged(i, v),
-                decoration: const InputDecoration(counterText: ''),
+          children: [
+            const Text(
+              '¿No recibiste el código? ',
+              style: TextStyle(color: Color(0xFF666666)),
+            ),
+            TextButton(
+              onPressed: _isLoading ? null : _resendCode,
+              child: const Text(
+                'Reenviar',
+                style: TextStyle(
+                  color: Color(0xFF1a237e),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            );
-          }),
+            ),
+          ],
         ),
-
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _verifyCode,
-          child: _isLoading
-              ? const CircularProgressIndicator()
-              : const Text('Verificar'),
-        ),
-
-        TextButton(
-          onPressed: _isLoading ? null : _resendCode,
-          child: const Text('Reenviar código'),
-        ),
-
-        TextButton(
-          onPressed: _goToPreviousStep,
-          child: const Text('Volver'),
+        
+        Center(
+          child: TextButton(
+            onPressed: _goToPreviousStep,
+            child: const Text(
+              'Volver a correo',
+              style: TextStyle(color: Color(0xFF666666)),
+            ),
+          ),
         ),
       ],
     );
@@ -323,55 +616,157 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Nueva contraseña',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-
-        TextField(
+        const Text(
+          'Nueva contraseña',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Crea una nueva contraseña segura',
+          style: TextStyle(
+            color: Color(0xFF666666),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 30),
+        
+        // Nueva contraseña
+        TextFormField(
           controller: _passwordController,
           obscureText: _obscurePassword,
           decoration: InputDecoration(
-            labelText: 'Contraseña nueva',
+            labelText: 'Nueva contraseña',
+            labelStyle: const TextStyle(color: Color(0xFF555555)),
+            prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFf8f9fa),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             suffixIcon: IconButton(
               icon: Icon(
-                  _obscurePassword ? Icons.visibility : Icons.visibility_off),
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                color: const Color(0xFF666666),
+              ),
               onPressed: () => setState(() {
                 _obscurePassword = !_obscurePassword;
               }),
             ),
           ),
+          style: const TextStyle(fontSize: 16),
         ),
-
-        const SizedBox(height: 15),
-
-        TextField(
+        
+        const SizedBox(height: 20),
+        
+        // Confirmar contraseña
+        TextFormField(
           controller: _confirmPasswordController,
           obscureText: _obscureConfirmPassword,
           decoration: InputDecoration(
             labelText: 'Confirmar contraseña',
+            labelStyle: const TextStyle(color: Color(0xFF555555)),
+            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1a237e)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFf8f9fa),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword
-                  ? Icons.visibility
-                  : Icons.visibility_off),
+              icon: Icon(
+                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                color: const Color(0xFF666666),
+              ),
               onPressed: () => setState(() {
                 _obscureConfirmPassword = !_obscureConfirmPassword;
               }),
             ),
           ),
+          style: const TextStyle(fontSize: 16),
         ),
-
+        
+        const SizedBox(height: 16),
+        
+        // Información de seguridad
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFf0f7ff),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFd0e3ff)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Color(0xFF1a237e)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'La contraseña debe tener al menos 6 caracteres',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF1a237e)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 30),
+        
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _changePassword,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1a237e),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 2,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Cambiar contraseña',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
+        ),
+        
         const SizedBox(height: 20),
-
-        ElevatedButton(
-          onPressed: _isLoading ? null : _changePassword,
-          child: _isLoading
-              ? const CircularProgressIndicator()
-              : const Text('Cambiar contraseña'),
-        ),
-
-        TextButton(
-          onPressed: _goToPreviousStep,
-          child: const Text('Volver'),
+        
+        Center(
+          child: TextButton(
+            onPressed: _goToPreviousStep,
+            child: const Text(
+              'Volver a código',
+              style: TextStyle(color: Color(0xFF666666)),
+            ),
+          ),
         ),
       ],
     );

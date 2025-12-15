@@ -19,19 +19,68 @@ class LoginScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            const SizedBox(height: 40), // Más espacio en la parte superior
+            
+            // Logo/Imagen del ojo (agregar esto)
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                image: const DecorationImage(
+                  image: NetworkImage('https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
+            
+            const Text(
+              'Eyes Settings',
+              style: TextStyle(
+                fontSize: 28, // Más grande
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1a237e), // Azul oscuro
+              ),
+            ),
+            const SizedBox(height: 20),
+            
             const Text(
               'Iniciar sesión',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22, // Un poco más pequeño que el título
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            
             const Text(
               'Accede a tu cuenta para continuar',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Color(0xFF666666), // Gris más oscuro
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
-            _LoginForm(onSuccess: onSuccess), // Pasar el callback al formulario
+            
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _LoginForm(onSuccess: onSuccess),
+              ),
+            ),
           ],
         ),
       ),
@@ -97,31 +146,53 @@ class __LoginFormState extends State<_LoginForm> {
       key: _formKey,
       child: Column(
         children: [
-          // Email
+          // Email - estilo mejorado
           TextFormField(
             controller: _emailController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Correo electrónico',
-              prefixIcon: Icon(Icons.email),
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              labelStyle: const TextStyle(color: Color(0xFF555555)),
+              prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
           // Contraseña
           TextFormField(
             controller: _passwordController,
             decoration: InputDecoration(
               labelText: 'Contraseña',
-              prefixIcon: const Icon(Icons.lock),
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              labelStyle: const TextStyle(color: Color(0xFF555555)),
+              prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: const Color(0xFF666666),
                 ),
                 onPressed: () {
                   setState(() {
@@ -133,8 +204,9 @@ class __LoginFormState extends State<_LoginForm> {
             obscureText: _obscurePassword,
             validator: Validators.validatePassword,
             onFieldSubmitted: (_) => _login(context),
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           
           // Recordarme y recuperar contraseña
           Row(
@@ -149,8 +221,12 @@ class __LoginFormState extends State<_LoginForm> {
                         _rememberMe = value ?? false;
                       });
                     },
+                    activeColor: const Color(0xFF1a237e), // Color azul para el checkbox
                   ),
-                  const Text('Recordarme'),
+                  const Text(
+                    'Recordarme',
+                    style: TextStyle(color: Color(0xFF555555)),
+                  ),
                 ],
               ),
               TextButton(
@@ -163,22 +239,27 @@ class __LoginFormState extends State<_LoginForm> {
                     ),
                   );
                 },
-                child: const Text('¿Olvidaste tu contraseña?'),
+                child: const Text(
+                  '¿Olvidaste tu contraseña?',
+                  style: TextStyle(color: Color(0xFF1a237e)),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 30),
           
-          // Botón de login
+          // Botón de login - estilo mejorado
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _login(context),
               style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1a237e), // Azul oscuro
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                elevation: 2,
               ),
               child: authProvider.isLoading
                   ? const SizedBox(
@@ -191,28 +272,46 @@ class __LoginFormState extends State<_LoginForm> {
                     )
                   : const Text(
                       'Iniciar sesión',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Enlace a registro
-          TextButton(
-            onPressed: () {
-              // Esto se maneja desde MainLayout, no necesitamos navegación aquí
-              // Simplemente mostramos un mensaje
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Usa el menú para registrarte'),
-                  duration: Duration(seconds: 2),
+          // Línea divisoria o texto alternativo
+          const Divider(thickness: 1, height: 20),
+          const SizedBox(height: 10),
+          
+          // Enlaces adicionales
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '¿No tienes cuenta? ',
+                style: TextStyle(color: Color(0xFF666666)),
+              ),
+              TextButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Usa el menú para registrarte'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Regístrate aquí',
+                  style: TextStyle(
+                    color: Color(0xFF1a237e),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              );
-            },
-            child: const Text(
-              '¿No tienes cuenta? Regístrate',
-              style: TextStyle(color: Colors.blue),
-            ),
+              ),
+            ],
           ),
         ],
       ),

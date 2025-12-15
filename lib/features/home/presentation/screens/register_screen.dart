@@ -4,7 +4,12 @@ import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatelessWidget {
-  const RegisterScreen({super.key});
+  final VoidCallback? onSuccess;
+  
+  const RegisterScreen({
+    super.key,
+    this.onSuccess,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,18 +19,102 @@ class RegisterScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            const Text(
-              'Crear cuenta',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            
+            // Botón de volver en la parte superior izquierda
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF1a237e)),
+                  onPressed: () {
+                    // En el MainLayout, necesitamos cambiar el índice seleccionado
+                    // Volver al índice 0 (Home) o al índice 2 (Login)
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                    
+                    // También podemos usar un callback si el MainLayout lo proporciona
+                    if (onSuccess != null) {
+                      onSuccess!();
+                    }
+                  },
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
+            
+            const SizedBox(height: 20),
+            
+            // Logo/Imagen del ojo
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                image: const DecorationImage(
+                  image: NetworkImage('https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
             const Text(
-              'Regístrate para realizar pedidos y agendar citas',
-              style: TextStyle(color: Colors.grey),
+              'Eyes Settings',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            const Text(
+              'Registrarse',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            const Text(
+              'Crea una cuenta para disfrutar de nuestros servicios',
+              style: TextStyle(
+                color: Color(0xFF666666),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
-            _RegisterForm(),
+            
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _RegisterForm(onSuccess: onSuccess),
+              ),
+            ),
           ],
         ),
       ),
@@ -34,6 +123,10 @@ class RegisterScreen extends StatelessWidget {
 }
 
 class _RegisterForm extends StatefulWidget {
+  final VoidCallback? onSuccess;
+  
+  const _RegisterForm({this.onSuccess});
+
   @override
   State<_RegisterForm> createState() => __RegisterFormState();
 }
@@ -82,14 +175,17 @@ class __RegisterFormState extends State<_RegisterForm> {
           ),
         );
         
-        // Navegar a home después de registro exitoso
-        await Future.delayed(const Duration(seconds: 1));
-        
         // Limpiar formulario
         _nameController.clear();
         _emailController.clear();
         _passwordController.clear();
         _confirmPasswordController.clear();
+        
+        // Notificar al MainLayout que el registro fue exitoso
+        // Esto hará que el MainLayout actualice el estado
+        if (widget.onSuccess != null) {
+          widget.onSuccess!();
+        }
         
       } else {
         // Mostrar error
@@ -104,6 +200,23 @@ class __RegisterFormState extends State<_RegisterForm> {
     }
   }
 
+  // Función para navegar a la pantalla de login
+  void _navigateToLogin(BuildContext context) {
+    // En el MainLayout, necesitamos cambiar al índice 2 (LoginScreen)
+    // Pero como estamos dentro del Navigator anidado, usamos el callback
+    if (widget.onSuccess != null) {
+      widget.onSuccess!();
+    }
+    
+    // También mostrar un mensaje
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Redirigiendo a inicio de sesión'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -112,44 +225,140 @@ class __RegisterFormState extends State<_RegisterForm> {
       key: _formKey,
       child: Column(
         children: [
-          // Nombre completo
+          // Nombre completo con indicador de obligatorio (ahora a la izquierda)
+          Row(
+            children: [
+              Text(
+                '*',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Nombre completo:',
+                style: TextStyle(
+                  color: Color(0xFF555555),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre completo',
-              prefixIcon: Icon(Icons.person),
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: InputDecoration(
+              hintText: 'Ingresa tu nombre completo',
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.person, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             validator: Validators.validateName,
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Email
+          // Email con indicador de obligatorio (ahora a la izquierda)
+          Row(
+            children: [
+              Text(
+                '*',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Correo electrónico:',
+                style: TextStyle(
+                  color: Color(0xFF555555),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
-              prefixIcon: Icon(Icons.email),
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: InputDecoration(
+              hintText: 'ejemplo@correo.com',
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Contraseña
+          // Contraseña con indicador de obligatorio (ahora a la izquierda)
+          Row(
+            children: [
+              Text(
+                '*',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Contraseña:',
+                style: TextStyle(
+                  color: Color(0xFF555555),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _passwordController,
             decoration: InputDecoration(
-              labelText: 'Contraseña',
-              prefixIcon: const Icon(Icons.lock),
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              hintText: 'Mínimo 6 caracteres',
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: const Color(0xFF666666),
                 ),
                 onPressed: () {
                   setState(() {
@@ -160,20 +369,53 @@ class __RegisterFormState extends State<_RegisterForm> {
             ),
             obscureText: _obscurePassword,
             validator: Validators.validatePassword,
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Confirmar contraseña
+          // Confirmar contraseña con indicador de obligatorio (ahora a la izquierda)
+          Row(
+            children: [
+              Text(
+                '*',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Confirmar contraseña:',
+                style: TextStyle(
+                  color: Color(0xFF555555),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _confirmPasswordController,
             decoration: InputDecoration(
-              labelText: 'Confirmar contraseña',
-              prefixIcon: const Icon(Icons.lock_outline),
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              hintText: 'Repite tu contraseña',
+              hintStyle: const TextStyle(color: Colors.grey),
+              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1a237e)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFf8f9fa),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                  color: const Color(0xFF666666),
                 ),
                 onPressed: () {
                   setState(() {
@@ -192,23 +434,45 @@ class __RegisterFormState extends State<_RegisterForm> {
               }
               return null;
             },
+            style: const TextStyle(fontSize: 16),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           
           // Información de seguridad
-          const Row(
-            children: [
-              Icon(Icons.info_outline, size: 16, color: Colors.grey),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'La contraseña debe tener al menos 6 caracteres',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFf0f7ff),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFd0e3ff)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 16, color: Color(0xFF1a237e)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'La contraseña debe tener al menos 6 caracteres',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF1a237e)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '* Campos obligatorios',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 30),
           
           // Botón de registro
           SizedBox(
@@ -216,10 +480,12 @@ class __RegisterFormState extends State<_RegisterForm> {
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _register(context),
               style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1a237e),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                elevation: 2,
               ),
               child: authProvider.isLoading
                   ? const SizedBox(
@@ -231,22 +497,36 @@ class __RegisterFormState extends State<_RegisterForm> {
                       ),
                     )
                   : const Text(
-                      'Crear cuenta',
-                      style: TextStyle(fontSize: 16),
+                      'Registrarse',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Enlace a login
-          TextButton(
-            onPressed: () {
-              // TODO: Navegar a login (esto se maneja desde MainLayout)
-            },
-            child: const Text(
-              '¿Ya tienes cuenta? Inicia sesión',
-              style: TextStyle(color: Colors.blue),
-            ),
+          // Enlace a login - Ahora funcional
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '¿Ya tienes cuenta? ',
+                style: TextStyle(color: Color(0xFF666666)),
+              ),
+              TextButton(
+                onPressed: () => _navigateToLogin(context),
+                child: const Text(
+                  'Inicia sesión aquí',
+                  style: TextStyle(
+                    color: Color(0xFF1a237e),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
