@@ -943,48 +943,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     
                     const SizedBox(height: 20),
                     
-                    // ============ INFO DE HORARIOS ============
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _primaryColor.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _primaryColor.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info, size: 16, color: _primaryColor),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Información de Horarios',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '• Lunes a Viernes: 6:00 AM - 4:00 PM\n'
-                            '• Sábados: 8:00 AM - 2:00 PM\n'
-                            '• Domingos: Cerrado\n'
-                            '• Duración de citas: 30-120 minutos\n'
-                            '• Los horarios se ajustan según la duración del servicio\n'
-                            '• Confirmaremos su cita por correo',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
                     
                     // ============ BOTÓN PARA CREAR CITA ============
                     SizedBox(
