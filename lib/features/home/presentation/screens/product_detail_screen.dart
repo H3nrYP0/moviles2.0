@@ -394,50 +394,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-                  
-                  if (!isAuthenticated) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade100),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info_outline, 
-                                   color: hasStock ? Colors.blue : Colors.grey, 
-                                   size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Acción requerida',
-                                style: TextStyle(
-                                  color: Colors.blue.shade800,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            hasStock
-                                ? 'Haz clic en el botón para ir directamente a iniciar sesión'
-                                : 'Producto sin stock disponible',
-                            style: TextStyle(
-                              color: hasStock ? Colors.blue.shade800 : Colors.grey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  
                   const SizedBox(height: 40),
                 ],
               ),
