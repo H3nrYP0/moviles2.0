@@ -67,10 +67,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
     
-    if (user?.clienteId != null) {
+    if (user != null) {
       setState(() => _isLoading = true);
       
-      final result = await _apiService.getClienteById(user!.clienteId!);
+      // PRIMERO: Intentar obtener cliente por usuario_id usando el nuevo método
+      final result = await _apiService.getClienteByUsuarioId(user.id);
       
       if (result['success'] == true && mounted) {
         setState(() {
@@ -79,8 +80,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading = false;
         });
       } else {
-        setState(() => _isLoading = false);
-        _prepareNewCliente(user);
+        // SI FALLA: Intentar por cliente_id directo (para compatibilidad)
+        if (user.clienteId != null) {
+          final resultById = await _apiService.getClienteById(user.clienteId!);
+          
+          if (resultById['success'] == true && mounted) {
+            setState(() {
+              _clienteData = resultById['cliente'];
+              _loadFormData();
+              _isLoading = false;
+            });
+          } else {
+            setState(() => _isLoading = false);
+            _prepareNewCliente(user);
+          }
+        } else {
+          setState(() => _isLoading = false);
+          _prepareNewCliente(user);
+        }
       }
     } else {
       _prepareNewCliente(user);
@@ -236,31 +253,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       Map<String, dynamic> result;
       
-      if (user.clienteId != null) {
-        // Actualizar cliente existente
+      // PRIMERO: Intentar obtener cliente existente por usuario_id
+      final clienteResult = await _apiService.getClienteByUsuarioId(user.id);
+      
+      if (clienteResult['success'] == true && clienteResult['cliente'] != null) {
+        // ACTUALIZAR cliente existente
+        final clienteId = clienteResult['cliente']['id'];
+        print('✅ Cliente encontrado, ID: $clienteId. Actualizando...');
+        
         result = await _apiService.updateCliente(
-          clienteId: user.clienteId!,
+          clienteId: clienteId,
           datos: clienteData,
         );
-      } else {
-        // Crear nuevo cliente
-        result = await _apiService.createCliente(
-          nombre: '${_nombreController.text.trim()} ${_apellidoController.text.trim()}',
-          correo: _correoController.text.trim(),
-          usuarioId: user.id,
-        );
         
-        if (result['success'] == true) {
-          final clienteId = result['cliente_id'];
+        // Actualizar clienteId en el usuario si no lo tenía
+        if (user.clienteId == null) {
           await StorageService.saveClienteId(clienteId);
           authProvider.updateClienteId(clienteId);
-          
-          // Actualizar con datos completos
-          final updateResult = await _apiService.updateCliente(
-            clienteId: clienteId,
+        }
+      } else {
+        // SEGUNDO: Si no se encuentra por usuario_id, intentar por cliente_id directo
+        if (user.clienteId != null) {
+          print('⚠️ No encontrado por usuario_id. Intentando por cliente_id: ${user.clienteId}');
+          result = await _apiService.updateCliente(
+            clienteId: user.clienteId!,
             datos: clienteData,
           );
-          result = updateResult;
+        } else {
+          // TERCERO: Si no existe cliente, crear uno nuevo
+          print('⚠️ No hay cliente existente. Creando nuevo...');
+          result = await _apiService.createCliente(
+            nombre: '${_nombreController.text.trim()} ${_apellidoController.text.trim()}',
+            correo: _correoController.text.trim(),
+            usuarioId: user.id,
+          );
+          
+          if (result['success'] == true) {
+            final clienteId = result['cliente_id'];
+            await StorageService.saveClienteId(clienteId);
+            authProvider.updateClienteId(clienteId);
+            
+            // Actualizar con datos completos
+            final updateResult = await _apiService.updateCliente(
+              clienteId: clienteId,
+              datos: clienteData,
+            );
+            result = updateResult;
+          }
         }
       }
       
@@ -330,7 +369,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _selectedMunicipio,
+              // CORRECCIÓN: Verificar si el valor es nulo o vacío
+              value: _selectedMunicipio == null || _selectedMunicipio!.isEmpty 
+                  ? null 
+                  : _selectedMunicipio,
               isExpanded: true,
               hint: const Padding(
                 padding: EdgeInsets.only(left: 16),

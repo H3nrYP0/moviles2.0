@@ -46,6 +46,7 @@ class ApiService {
           return {
             'success': true,
             'usuario': usuario,
+            'cliente_id': usuario['cliente_id'],  // ← AGREGAR ESTA LÍNEA
           };
         }
       }
@@ -810,4 +811,90 @@ Future<Map<String, dynamic>> updatePedidoComprobante({
     };
   }
 }
+
+Future<Map<String, dynamic>> getUsuarioCompleto(int usuarioId) async {
+  _log('GET usuario completo: $usuarioId', type: 'INFO');
+
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiEndpoints.baseUrl}/usuarios/$usuarioId/completo'),
+      headers: {
+        'Accept': 'application/json',
+      },
+    );
+
+    _log('Response status: ${response.statusCode}', type: 'DEBUG');
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      if (data['success'] == true) {
+        return {
+          'success': true,
+          'usuario': data['data']['usuario'],
+          'cliente': data['data']['cliente'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'Error al obtener usuario',
+        };
+      }
+    } else {
+      return {
+        'success': false,
+        'error': 'Error HTTP ${response.statusCode}',
+      };
+    }
+  } catch (e) {
+    _log('Error getUsuarioCompleto: $e', type: 'ERROR');
+    return {
+      'success': false,
+      'error': 'Error de conexión: $e',
+    };
+  }
+}
+
+Future<Map<String, dynamic>> getClienteByUsuarioId(int usuarioId) async {
+  _log('GET cliente por usuario: $usuarioId', type: 'INFO');
+
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiEndpoints.baseUrl}/clientes/usuario/$usuarioId'),
+      headers: {
+        'Accept': 'application/json',
+      },
+    );
+
+    _log('Response status: ${response.statusCode}', type: 'DEBUG');
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      if (data['success'] == true) {
+        return {
+          'success': true,
+          'cliente': data['cliente'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'Cliente no encontrado',
+        };
+      }
+    } else {
+      return {
+        'success': false,
+        'error': 'Error HTTP ${response.statusCode}',
+      };
+    }
+  } catch (e) {
+    _log('Error getClienteByUsuarioId: $e', type: 'ERROR');
+    return {
+      'success': false,
+      'error': 'Error de conexión: $e',
+    };
+  }
+}
+
 }

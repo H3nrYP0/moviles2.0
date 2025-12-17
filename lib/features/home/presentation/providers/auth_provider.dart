@@ -89,22 +89,21 @@ class AuthProvider extends ChangeNotifier {
       
       if (result['success'] == true) {
         final usuarioData = result['usuario'];
-        _user = User.fromJson(usuarioData);
         
-        // Obtener clienteId si existe
-        final clienteId = await StorageService.getClienteId();
+        // Obtener clienteId del resultado del login
+        final int? clienteIdFromLogin = result['cliente_id'] != null 
+          ? (result['cliente_id'] is int ? result['cliente_id'] : int.tryParse(result['cliente_id'].toString()))
+          : null;
         
-        // Actualizar user con clienteId si existe
-        if (clienteId != null) {
-          _user = User(
-            id: _user!.id,
-            nombre: _user!.nombre,
-            correo: _user!.correo,
-            rolId: _user!.rolId,
-            estado: _user!.estado,
-            clienteId: clienteId,
-          );
-        }
+        // Crear usuario con clienteId si viene del backend
+        _user = User(
+          id: usuarioData['id'] is int ? usuarioData['id'] : int.parse(usuarioData['id'].toString()),
+          nombre: usuarioData['nombre'] ?? '',
+          correo: usuarioData['correo'] ?? '',
+          rolId: usuarioData['rol_id'] is int ? usuarioData['rol_id'] : int.parse(usuarioData['rol_id'].toString()),
+          estado: usuarioData['estado'] ?? true,
+          clienteId: clienteIdFromLogin,
+        );
         
         // Guardar en storage
         await StorageService.saveLoginData(
@@ -142,7 +141,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // 1. Registrar usuario
+      // Registrar usuario - el backend ya crea cliente automáticamente
       final result = await _apiService.registerUser(
         nombre: nombre,
         correo: correo,
@@ -151,62 +150,38 @@ class AuthProvider extends ChangeNotifier {
       
       if (result['success'] == true) {
         final usuarioData = result['usuario'];
-        _user = User.fromJson(usuarioData);
         
-        // 2. Crear cliente automáticamente
-        final clienteResult = await _apiService.createCliente(
-          nombre: nombre,
-          correo: correo,
-          usuarioId: _user!.id,
+        // El backend ya devuelve el usuario con cliente_id incluido
+        final int? clienteId = result['cliente_id'] != null 
+          ? (result['cliente_id'] is int ? result['cliente_id'] : int.tryParse(result['cliente_id'].toString()))
+          : null;
+        
+        _user = User(
+          id: usuarioData['id'] is int ? usuarioData['id'] : int.parse(usuarioData['id'].toString()),
+          nombre: usuarioData['nombre'] ?? '',
+          correo: usuarioData['correo'] ?? '',
+          rolId: usuarioData['rol_id'] is int ? usuarioData['rol_id'] : int.parse(usuarioData['rol_id'].toString()),
+          estado: usuarioData['estado'] ?? true,
+          clienteId: clienteId,
         );
         
-        if (clienteResult['success'] == true) {
-          // Guardar clienteId en storage y user
-          final clienteId = clienteResult['cliente_id'];
-          _user = User(
-            id: _user!.id,
-            nombre: _user!.nombre,
-            correo: _user!.correo,
-            rolId: _user!.rolId,
-            estado: _user!.estado,
-            clienteId: clienteId,
-          );
-          
-          await StorageService.saveLoginData(
-            _user!.correo,
-            _user!.nombre,
-            _user!.rolId,
-            _user!.id,
-            clienteId: clienteId,
-          );
-          
-          _error = '';
-          _isLoading = false;
-          notifyListeners();
-          
-          return {
-            'success': true,
-            'message': 'Registro exitoso. Cliente creado automáticamente.',
-          };
-        } else {
-          // Si falla crear cliente, al menos guardar usuario
-          await StorageService.saveLoginData(
-            _user!.correo,
-            _user!.nombre,
-            _user!.rolId,
-            _user!.id,
-          );
-          
-          _error = 'Usuario registrado pero error al crear perfil de cliente';
-          _isLoading = false;
-          notifyListeners();
-          
-          return {
-            'success': true,
-            'message': 'Usuario registrado. Por favor complete su perfil de cliente.',
-            'warning': 'Necesita completar perfil para hacer pedidos',
-          };
-        }
+        // Guardar en storage - el cliente_id ya viene del backend
+        await StorageService.saveLoginData(
+          _user!.correo,
+          _user!.nombre,
+          _user!.rolId,
+          _user!.id,
+          clienteId: _user!.clienteId,
+        );
+        
+        _error = '';
+        _isLoading = false;
+        notifyListeners();
+        
+        return {
+          'success': true,
+          'message': result['message'] ?? 'Registro exitoso',
+        };
       } else {
         _error = result['error'] ?? 'Error en el registro';
         _isLoading = false;
