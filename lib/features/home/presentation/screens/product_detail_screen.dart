@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../catalog/data/models/product_model.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
+import 'package:optica_app/features/home/presentation/screens/login_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -14,35 +15,45 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  int _quantity = 1; // Contador para cantidad de productos
+  int _quantity = 1;
 
-  // Método para agregar al carrito (verifica autenticación)
-  void _addToCart(BuildContext context) {
+  // ========================================
+  // VERSIÓN QUE SÍ LLEVA AL LOGIN DIRECTAMENTE
+  // ========================================
+  void _handleAddToCart(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    // Verificar si el usuario está autenticado
+    
     if (!authProvider.isAuthenticated) {
-      // Mostrar mensaje de que necesita iniciar sesión
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Debes iniciar sesión para agregar al carrito'),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'Iniciar sesión',
-            textColor: Colors.white,
-            onPressed: () {
-              // Aquí podrías navegar a la pantalla de login
-              // Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(
+            onSuccess: () {
+              // Después de login, volver al producto AUTOMÁTICAMENTE
+              Navigator.pop(context); // Cerrar login
+              
+              // Agregar automáticamente al carrito
+              final cartProvider = Provider.of<CartProvider>(context, listen: false);
+              cartProvider.addToCart(widget.product, quantity: _quantity);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ ${_quantity} ${widget.product.nombre} agregado al carrito'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
+            onBackPressed: () => Navigator.pop(context),
           ),
         ),
       );
       return;
     }
+    
+    // 2. Usuario autenticado - proceder normalmente
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
-    // Verificar si hay stock disponible
     if (widget.product.stock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -54,7 +65,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    // Verificar que la cantidad no exceda el stock disponible
     if (_quantity > widget.product.stock) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -66,10 +76,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    // Agregar al carrito con la cantidad específica
     cartProvider.addToCart(widget.product, quantity: _quantity);
 
-    // Mostrar confirmación
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -93,7 +101,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
     );
 
-    // Resetear la cantidad después de agregar
     setState(() {
       _quantity = 1;
     });
@@ -106,7 +113,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final hasStock = widget.product.stock > 0;
 
     return Scaffold(
-      // APP BAR CON BOTÓN DE VOLVER Y TÍTULO
       appBar: AppBar(
         title: Text(
           widget.product.nombre,
@@ -131,15 +137,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ========================================
-            // 1. IMAGEN PRINCIPAL DEL PRODUCTO
-            // ========================================
             Container(
               height: 320,
               color: Colors.grey.shade50,
               child: Stack(
                 children: [
-                  // Imagen principal
                   Center(
                     child: widget.product.imagenUrl != null && widget.product.imagenUrl!.isNotEmpty
                         ? Container(
@@ -167,20 +169,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           )
                         : _buildPlaceholderImage(),
                   ),
-                  
                 ],
               ),
             ),
             
-            // ========================================
-            // 2. INFORMACIÓN DETALLADA DEL PRODUCTO
-            // ========================================
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nombre y precio destacados
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +218,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  // Descripción (si existe)
                   if (widget.product.descripcion != null && widget.product.descripcion!.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -261,9 +257,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     const SizedBox(height: 24),
                   ],
                   
-                  // ========================================
-                  // 3. SELECTOR DE CANTIDAD (+ y -)
-                  // ========================================
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -285,7 +278,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Botón -
                             Container(
                               width: 50,
                               height: 50,
@@ -314,7 +306,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ),
                             
-                            // Cantidad actual
                             Column(
                               children: [
                                 Text(
@@ -334,7 +325,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ],
                             ),
                             
-                            // Botón +
                             Container(
                               width: 50,
                               height: 50,
@@ -372,18 +362,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // ========================================
-                  // 4. BOTÓN AGREGAR AL CARRITO
-                  // ========================================
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: isAuthenticated && hasStock && _quantity > 0
-                          ? () => _addToCart(context)
-                          : null,
+                      onPressed: () => _handleAddToCart(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isAuthenticated && hasStock && _quantity > 0
+                        backgroundColor: hasStock && _quantity > 0
                             ? const Color.fromARGB(255, 30, 58, 138) 
                             : Colors.grey.shade400,
                         foregroundColor: Colors.white,
@@ -392,12 +377,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         elevation: 2,
                       ),
-                      icon: const Icon(Icons.shopping_cart_checkout, size: 22),
+                      icon: Icon(
+                        isAuthenticated ? Icons.shopping_cart_checkout : Icons.login,
+                        size: 22,
+                      ),
                       label: Text(
-                        !isAuthenticated
-                            ? 'INICIA SESIÓN PARA COMPRAR'
-                            : !hasStock
-                                ? 'PRODUCTO AGOTADO'
+                        !hasStock
+                            ? 'PRODUCTO AGOTADO'
+                            : !isAuthenticated
+                                ? 'INICIAR SESIÓN PARA AGREGAR'
                                 : 'AGREGAR $_quantity AL CARRITO',
                         style: const TextStyle(
                           fontSize: 16,
@@ -407,29 +395,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   
-                  // ========================================
-                  // 5. MENSAJE PARA USUARIOS NO AUTENTICADOS
-                  // ========================================
                   if (!isAuthenticated) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade100),
+                        border: Border.all(color: Colors.blue.shade100),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Para agregar productos al carrito, necesitas iniciar sesión',
-                              style: TextStyle(
-                                color: Colors.orange.shade800,
-                                fontSize: 14,
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, 
+                                   color: hasStock ? Colors.blue : Colors.grey, 
+                                   size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Acción requerida',
+                                style: TextStyle(
+                                  color: Colors.blue.shade800,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            hasStock
+                                ? 'Haz clic en el botón para ir directamente a iniciar sesión'
+                                : 'Producto sin stock disponible',
+                            style: TextStyle(
+                              color: hasStock ? Colors.blue.shade800 : Colors.grey,
+                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -437,7 +438,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ],
                   
-                  // Espacio final
                   const SizedBox(height: 40),
                 ],
               ),
@@ -448,7 +448,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // Placeholder si no hay imagen
   Widget _buildPlaceholderImage() {
     return Container(
       color: Colors.blue.shade50,

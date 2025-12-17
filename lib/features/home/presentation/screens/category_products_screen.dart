@@ -386,56 +386,6 @@ class _ProductCard extends StatelessWidget {
                           ],
                         ),
 
-                        // Stock con indicador visual
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: product.stock > 10
-                                ? Colors.green.shade50
-                                : product.stock > 0
-                                    ? Colors.orange.shade50
-                                    : Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: product.stock > 10
-                                  ? Colors.green.shade100
-                                  : product.stock > 0
-                                      ? Colors.orange.shade100
-                                      : Colors.red.shade100,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                product.stock > 10
-                                    ? Icons.check_circle
-                                    : product.stock > 0
-                                        ? Icons.warning
-                                        : Icons.cancel,
-                                size: 14,
-                                color: product.stock > 10
-                                    ? Colors.green
-                                    : product.stock > 0
-                                        ? Colors.orange
-                                        : Colors.red,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Stock: ${product.stock}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: product.stock > 10
-                                      ? Colors.green
-                                      : product.stock > 0
-                                          ? Colors.orange
-                                          : Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ],

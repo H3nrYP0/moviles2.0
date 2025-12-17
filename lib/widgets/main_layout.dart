@@ -22,24 +22,38 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
   
+  // Guardar el índice destino cuando se requiere autenticación
+  int? _pendingAuthIndex;
+  
   // Lista de pantallas como GETTER para poder usar context
   List<Widget> get _mainScreens => [
     const HomeScreen(),
     const CatalogScreen(),
     
-    // LoginScreen con callbacks
+    // LoginScreen con callbacks actualizados
     LoginScreen(
       onSuccess: () {
-        // Login exitoso → ir a Home
+        // Login exitoso
         _loadUserData();
-        _navigateToMainScreen(0);
+        
+        // Si había un índice pendiente, navegar a él
+        if (_pendingAuthIndex != null) {
+          final targetIndex = _pendingAuthIndex!;
+          _pendingAuthIndex = null;
+          _navigateToMainScreen(targetIndex);
+        } else {
+          // Si no había índice pendiente, ir a Home
+          _navigateToMainScreen(0);
+        }
       },
       onRegisterPressed: () {
         // Ir a Register (índice 3)
+        _pendingAuthIndex = null; // Limpiar índice pendiente
         _navigateToMainScreen(3);
       },
       onBackPressed: () {
         // Volver a Home (índice 0)
+        _pendingAuthIndex = null; // Limpiar índice pendiente
         _navigateToMainScreen(0);
       },
     ),
@@ -55,14 +69,17 @@ class _MainLayoutState extends State<MainLayout> {
             duration: Duration(seconds: 3),
           ),
         );
+        _pendingAuthIndex = null; // Limpiar índice pendiente
         _navigateToMainScreen(2); // Volver a Login
       },
       onBackPressed: () {
         // Volver a Home (índice 0)
+        _pendingAuthIndex = null; // Limpiar índice pendiente
         _navigateToMainScreen(0);
       },
       onLoginPressed: () {
         // Ir a Login (índice 2)
+        _pendingAuthIndex = null; // Limpiar índice pendiente
         _navigateToMainScreen(2);
       },
     ),
@@ -89,8 +106,6 @@ class _MainLayoutState extends State<MainLayout> {
   
   // Navigator key para manejar navegación anidada
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  // Guardar el índice destino cuando se requiere autenticación
-  int? _pendingAuthIndex;
 
   @override
   void initState() {
@@ -109,7 +124,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _onItemSelected(int index) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final requiresAuth = index >= 4 && index <= 7; // Ahora 4-7 requieren auth
+    final requiresAuth = index >= 4 && index <= 7; // Índices 4-7 requieren auth
     
     // Cerrar drawer primero
     if (Navigator.canPop(context)) {
@@ -120,35 +135,10 @@ class _MainLayoutState extends State<MainLayout> {
       // Guardar el índice destino para después del login
       _pendingAuthIndex = index;
       
-      // Abrir LoginScreen con espera de resultado
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(
-            onSuccess: () {
-              // Login exitoso - navegar al índice que quería el usuario
-              _loadUserData();
-              _navigateToMainScreen(_pendingAuthIndex ?? index);
-              _pendingAuthIndex = null;
-            },
-            onRegisterPressed: () {
-              // Ir a Register
-              Navigator.pop(context); // Cerrar Login
-              _navigateToMainScreen(3);
-            },
-            onBackPressed: () {
-              // Volver a Home
-              Navigator.pop(context); // Cerrar Login
-              _navigateToMainScreen(0);
-              _pendingAuthIndex = null;
-            },
-          ),
-        ),
-      ).then((_) {
-        // Cuando se cierra el LoginScreen sin éxito
-        _pendingAuthIndex = null;
-      });
+      // Navegar al LoginScreen (índice 2) dentro del mismo layout
+      _navigateToMainScreen(2);
     } else {
+      _pendingAuthIndex = null; // Limpiar cualquier índice pendiente
       _navigateToMainScreen(index);
     }
   }
@@ -212,7 +202,7 @@ class _MainLayoutState extends State<MainLayout> {
             },
           ),
         ),
-        actions: _buildAppBarActions(authProvider),
+        actions: _buildAppBarActions(),
       ),
       drawer: _buildDrawer(authProvider),
       body: Navigator(
@@ -226,14 +216,15 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  List<Widget> _buildAppBarActions(AuthProvider authProvider) {
+  List<Widget> _buildAppBarActions() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: true);
     final cartProvider = Provider.of<CartProvider>(context, listen: true);
     final itemCount = cartProvider.itemCount;
     
     List<Widget> actions = [];
     
-    // Icono del carrito si el usuario está autenticado
-    if (authProvider.isAuthenticated && _selectedIndex != 7) {
+    // Icono del carrito - AHORA FUNCIONA PARA USUARIOS NO AUTENTICADOS
+    if (_selectedIndex != 7) { // No mostrar en la pantalla del carrito
       actions.add(
         Container(
           margin: const EdgeInsets.only(right: 2),
@@ -244,13 +235,22 @@ class _MainLayoutState extends State<MainLayout> {
                 padding: const EdgeInsets.all(15),
                 child: IconButton(
                   icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                  onPressed: () => _onItemSelected(7),
+                  onPressed: () {
+                    if (authProvider.isAuthenticated) {
+                      // Usuario autenticado: ir al carrito
+                      _onItemSelected(7);
+                    } else {
+                      // Usuario no autenticado: guardar índice y llevar al login
+                      _pendingAuthIndex = 7;
+                      _navigateToMainScreen(2); // Ir a Login
+                    }
+                  },
                   tooltip: 'Ver carrito',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
               ),
-              if (itemCount > 0)
+              if (authProvider.isAuthenticated && itemCount > 0)
                 Positioned(
                   right: -2,
                   top: -2,
@@ -336,7 +336,7 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       ]);
     } else if (authProvider.isAuthenticated) {
-      // Avatar del usuario si está autenticado
+      // Avatar del usuario si está autenticado - AHORA FUNCIONA SIEMPRE
       actions.add(
         Container(
           margin: const EdgeInsets.only(right: 12),
@@ -401,7 +401,6 @@ class _MainLayoutState extends State<MainLayout> {
             selected: _selectedIndex == 1,
             primaryColor: primaryColor,
           ),
-          
           
           // Perfil
           _buildAuthDrawerItem(
@@ -471,6 +470,7 @@ class _MainLayoutState extends State<MainLayout> {
                   _userName = null;
                   _userEmail = null;
                   _selectedIndex = 0;
+                  _pendingAuthIndex = null;
                 });
                 Navigator.pop(context);
               },
@@ -491,7 +491,6 @@ class _MainLayoutState extends State<MainLayout> {
     bool selected = false,
   }) {
     final isAuthenticated = authProvider.isAuthenticated;
-    final isEnabled = isAuthenticated;
     
     return ListTile(
       leading: Container(
@@ -504,7 +503,7 @@ class _MainLayoutState extends State<MainLayout> {
           icon,
           color: selected 
               ? primaryColor 
-              : (isEnabled ? Colors.grey[700] : Colors.grey[400]),
+              : (isAuthenticated ? Colors.grey[700] : Colors.grey[400]),
           size: 22,
         ),
       ),
@@ -513,13 +512,13 @@ class _MainLayoutState extends State<MainLayout> {
         style: TextStyle(
           color: selected 
               ? primaryColor 
-              : (isEnabled ? Colors.grey[800] : Colors.grey[400]),
+              : (isAuthenticated ? Colors.grey[800] : Colors.grey[400]),
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),
       ),
       selected: selected,
-      onTap: isEnabled ? () => _onItemSelected(index) : null,
+      onTap: () => _onItemSelected(index), // SIEMPRE se puede hacer tap
       subtitle: !isAuthenticated
           ? Text(
               'Requiere inicio de sesión',
@@ -545,7 +544,6 @@ class _MainLayoutState extends State<MainLayout> {
     bool selected = false,
   }) {
     final isAuthenticated = authProvider.isAuthenticated;
-    final isEnabled = isAuthenticated;
     
     return ListTile(
       leading: Stack(
@@ -561,7 +559,7 @@ class _MainLayoutState extends State<MainLayout> {
               Icons.shopping_cart,
               color: selected 
                   ? primaryColor 
-                  : (isEnabled ? Colors.grey[700] : Colors.grey[400]),
+                  : (isAuthenticated ? Colors.grey[700] : Colors.grey[400]),
               size: 22,
             ),
           ),
@@ -598,7 +596,7 @@ class _MainLayoutState extends State<MainLayout> {
         style: TextStyle(
           color: selected 
               ? primaryColor 
-              : (isEnabled ? Colors.grey[800] : Colors.grey[400]),
+              : (isAuthenticated ? Colors.grey[800] : Colors.grey[400]),
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),
@@ -621,7 +619,7 @@ class _MainLayoutState extends State<MainLayout> {
             )
           : null,
       selected: selected,
-      onTap: isEnabled ? () => _onItemSelected(index) : null,
+      onTap: () => _onItemSelected(index), // SIEMPRE se puede hacer tap
       subtitle: !isAuthenticated
           ? Text(
               'Requiere inicio de sesión',
@@ -706,7 +704,6 @@ class _MainLayoutState extends State<MainLayout> {
     required int index,
     required Color primaryColor,
     bool selected = false,
-
   }) {
     return ListTile(
       leading: Container(

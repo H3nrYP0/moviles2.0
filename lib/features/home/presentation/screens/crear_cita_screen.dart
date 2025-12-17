@@ -616,12 +616,11 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         items: _empleadosList.map((empleado) {
                           final id = _parseId(empleado['id']);
                           final nombre = empleado['nombre']?.toString() ?? 'Optómetra';
-                          final cargo = empleado['cargo']?.toString() ?? '';
                           
                           return DropdownMenuItem<int>(
                             value: id,
                             child: Text(
-                              cargo.isNotEmpty ? '$nombre ($cargo)' : nombre,
+                              nombre,
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
