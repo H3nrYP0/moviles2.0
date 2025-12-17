@@ -673,20 +673,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildFormField(
-                          label: 'Nombre',
-                          controller: _nombreController,
-                          required: true,
-                          hintText: 'Tu nombre',
-                        ),
-                        
-                        _buildFormField(
-                          label: 'Apellido',
-                          controller: _apellidoController,
-                          required: true,
-                          hintText: 'Tu apellido',
-                        ),
-                        
                         _buildSelectField(
                           label: 'Tipo de documento',
                           options: _tiposDocumento,
@@ -700,6 +686,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           required: true,
                           keyboardType: TextInputType.number,
                           hintText: 'Ej: 123456789',
+                        ),
+
+
+                        _buildFormField(
+                          label: 'Nombre',
+                          controller: _nombreController,
+                          required: true,
+                          hintText: 'Tu nombre',
+                        ),
+                        
+                        _buildFormField(
+                          label: 'Apellido',
+                          controller: _apellidoController,
+                          required: true,
+                          hintText: 'Tu apellido',
                         ),
                         
                         // Fecha de nacimiento
@@ -1063,15 +1064,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Column(
                         children: [
                           _buildInfoItem(
-                            icon: Icons.person,
-                            label: 'Nombre completo',
-                            value: '${_nombreController.text} ${_apellidoController.text}',
-                          ),
-                          _buildInfoItem(
                             icon: Icons.credit_card,
                             label: 'Documento',
                             value: '${_selectedTipoDocumento ?? ''} ${_documentoController.text}',
                           ),
+                          _buildInfoItem(
+                            icon: Icons.person,
+                            label: 'Nombre completo',
+                            value: '${_nombreController.text} ${_apellidoController.text}',
+                          ),
+                          
                           _buildInfoItem(
                             icon: Icons.cake,
                             label: 'Fecha de nacimiento',

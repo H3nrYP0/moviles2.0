@@ -171,7 +171,7 @@ class _MainLayoutState extends State<MainLayout> {
         title: Row(
           children: [
             if (_selectedIndex == 0 || _selectedIndex == 1) ...[
-              Icon(Icons.visibility, size: 20, color: Colors.white.withOpacity(0.9)),
+              Icon(Icons.visibility, size: 15, color: Colors.white.withOpacity(0.9)),
               const SizedBox(width: 8),
               Text(
                 _titles[_selectedIndex],

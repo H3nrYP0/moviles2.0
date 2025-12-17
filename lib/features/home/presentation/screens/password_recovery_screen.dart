@@ -520,8 +520,8 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(6, (i) {
               return Container(
-                width: 50,
-                height: 50,
+                width: 45,
+                height: 45,
                 margin: EdgeInsets.only(right: i < 5 ? 12 : 0),
                 child: TextField(
                   controller: _codeControllers[i],
@@ -531,7 +531,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                   keyboardType: TextInputType.number,
                   onChanged: (v) => _onCodeChanged(i, v),
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
