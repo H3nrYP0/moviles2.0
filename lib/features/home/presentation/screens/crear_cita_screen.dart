@@ -820,13 +820,8 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         'No hay horas disponibles para este servicio en la fecha seleccionada.\n'
                         'Intente con otra fecha o seleccione otro servicio.'
                       ),
-<<<<<<< HEAD
-                    ),
-                    
-=======
                     
 
->>>>>>> validaciones
                     
 
                     const SizedBox(height: 20),

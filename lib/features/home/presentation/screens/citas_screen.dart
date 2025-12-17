@@ -641,12 +641,7 @@ class _CitaClienteCard extends StatelessWidget {
               ),
               
               const SizedBox(height: 8),
-<<<<<<< HEAD
-              
-
-=======
                     
->>>>>>> validaciones
             ],
           ),
         ),
@@ -734,11 +729,6 @@ class _CitaClienteCard extends StatelessWidget {
                   iconColor: primaryColor,
                 ),
                 
-<<<<<<< HEAD
-
-                
-=======
->>>>>>> validaciones
                 if (cita.duracion != null)
                   _DetalleItem(
                     icon: Icons.timer,
