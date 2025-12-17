@@ -641,19 +641,7 @@ class _CitaClienteCard extends StatelessWidget {
               ),
               
               const SizedBox(height: 8),
-              
-              // Método de pago si existe
-              if (cita.metodoPago != null)
-                Row(
-                  children: [
-                    Icon(Icons.payment, size: 14, color: primaryColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      _capitalize(cita.metodoPago!),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
+                    
             ],
           ),
         ),
@@ -740,14 +728,6 @@ class _CitaClienteCard extends StatelessWidget {
                   value: cita.servicioNombre ?? 'Servicio',
                   iconColor: primaryColor,
                 ),
-                
-                if (cita.metodoPago != null)
-                  _DetalleItem(
-                    icon: Icons.payment,
-                    label: 'Método de Pago',
-                    value: _capitalize(cita.metodoPago!),
-                    iconColor: primaryColor,
-                  ),
                 
                 if (cita.duracion != null)
                   _DetalleItem(
@@ -1122,21 +1102,12 @@ class _CitaAdminCard extends StatelessWidget {
                 ),
                 
                 _DetalleItem(
-                  label: 'Cliente ID',
-                  value: cita.clienteId.toString(),
-                ),
-                
-                _DetalleItem(
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'No disponible',
                   icon: Icons.medical_services,
                   iconColor: primaryColor,
                 ),
                 
-                _DetalleItem(
-                  label: 'Servicio ID',
-                  value: cita.servicioId.toString(),
-                ),
                 
                 _DetalleItem(
                   label: 'Optometra',
@@ -1145,10 +1116,6 @@ class _CitaAdminCard extends StatelessWidget {
                   iconColor: primaryColor,
                 ),
                 
-                _DetalleItem(
-                  label: 'Optometra ID',
-                  value: cita.empleadoId.toString(),
-                ),
                 
                 _DetalleItem(
                   label: 'Fecha y Hora',
@@ -1165,13 +1132,7 @@ class _CitaAdminCard extends StatelessWidget {
                     iconColor: primaryColor,
                   ),
                 
-                if (cita.metodoPago != null)
-                  _DetalleItem(
-                    label: 'Método de Pago',
-                    value: _capitalize(cita.metodoPago!),
-                    icon: Icons.payment,
-                    iconColor: primaryColor,
-                  ),
+
                 
                 if (cita.notas != null && cita.notas!.isNotEmpty)
                   Column(

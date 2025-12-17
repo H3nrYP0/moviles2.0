@@ -5,13 +5,13 @@ import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatelessWidget {
   final VoidCallback? onSuccess;
-  final VoidCallback? onBackPressed; // ESTE FALTA
+  final VoidCallback? onBackPressed;
   final VoidCallback? onLoginPressed;
   
   const RegisterScreen({
     super.key,
     this.onSuccess,
-    this.onBackPressed, // ESTE FALTA
+    this.onBackPressed,
     this.onLoginPressed,
   });
 
@@ -92,10 +92,10 @@ class RegisterScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: _RegisterForm(
-                onSuccess: onSuccess,
-                onLoginPressed: onLoginPressed,
-              ),
-
+                  onSuccess: onSuccess,
+                  onLoginPressed: onLoginPressed,
+                  onBackPressed: onBackPressed, // ✅ AÑADIR ESTO
+                ),
               ),
             ),
           ],
@@ -108,10 +108,12 @@ class RegisterScreen extends StatelessWidget {
 class _RegisterForm extends StatefulWidget {
   final VoidCallback? onSuccess;
   final VoidCallback? onLoginPressed;
+  final VoidCallback? onBackPressed; // ✅ AÑADIR ESTO
   
-    const _RegisterForm({
+  const _RegisterForm({
     this.onSuccess,
     this.onLoginPressed,
+    this.onBackPressed,
   });
 
   @override
@@ -153,22 +155,24 @@ class __RegisterFormState extends State<_RegisterForm> {
       );
       
       if (result['success'] == true) {
-        // Registro exitoso
+        // Registro exitoso - MOSTRAR MENSAJE Y VOLVER
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Registro exitoso'),
+            content: Text(result['message'] ?? '¡Registro exitoso!'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
         );
         
-        // Limpiar formulario
-        _nameController.clear();
-        _emailController.clear();
-        _passwordController.clear();
-        _confirmPasswordController.clear();
+        // ✅ LLAMAR AL CALLBACK DE ÉXITO (si existe)
+        if (widget.onSuccess != null) {
+          widget.onSuccess!();
+        }
         
-
+        // ✅ NAVEGAR DE REGRESO (igual que hace login_screen)
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       } else {
         // Mostrar error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +192,6 @@ class __RegisterFormState extends State<_RegisterForm> {
       widget.onLoginPressed!();
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

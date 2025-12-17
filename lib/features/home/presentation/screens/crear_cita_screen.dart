@@ -1,3 +1,4 @@
+
 // features/citas/presentation/screens/crear_cita_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,8 @@ import '../../../../core/services/storage_service.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../citas/presentation/providers/citas_provider.dart';
 import '../../../citas/data/models/cita_model.dart';
+import '../../../citas/data/models/servicio_model.dart';
+import '../../../citas/data/models/horas_model.dart'; // Añadir esta importación
 
 class CrearCitaScreen extends StatefulWidget {
   const CrearCitaScreen({super.key});
@@ -28,15 +31,10 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   // Listas de datos
   List<Map<String, dynamic>> _clientesList = [];
   List<Map<String, dynamic>> _empleadosList = [];
-  List<Map<String, dynamic>> _serviciosList = [];
+  List<Servicio> _serviciosList = []; // Cambiar a List<Servicio>
   
-  // Array fijo de horas disponibles
-  final List<String> _horasDisponibles = [
-    '06:00', '06:30', '07:00', '07:30', '08:00', '08:30',
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30',
-  ];
+  // Horas disponibles (ahora dinámicas)
+  List<String> _horasDisponibles = [];
   
   // Métodos de pago
   final List<String> _metodosPago = [
@@ -154,20 +152,15 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           await citasProvider.loadCitas();
         }
         
-        _serviciosList = citasProvider.servicios.map((servicio) {
-          return {
-            'id': servicio.id,
-            'nombre': servicio.nombre,
-            'duracion': servicio.duracionMin,
-            'precio': servicio.precio,
-            'descripcion': servicio.descripcion,
-          };
-        }).toList();
+        _serviciosList = citasProvider.servicios.toList();
         
         if (_serviciosList.isNotEmpty) {
           // Seleccionar primer servicio por defecto
           final servicio = _serviciosList[0];
-          _selectedServicioId = _parseId(servicio['id']);
+          _selectedServicioId = servicio.id;
+          
+          // Actualizar horas disponibles basadas en el servicio seleccionado
+          _actualizarHorasDisponibles(servicio);
         } else {
           _error = _error.isNotEmpty ? '$_error\nNo hay servicios disponibles' : 'No hay servicios disponibles';
         }
@@ -190,6 +183,27 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+  
+  // Actualizar horas disponibles según el servicio seleccionado
+  void _actualizarHorasDisponibles(Servicio? servicio) {
+    if (servicio == null || _selectedDate == null) {
+      _horasDisponibles = [];
+      return;
+    }
+    
+    final horas = HorarioService.generarHorasDisponibles(servicio, fecha: _selectedDate);
+    _horasDisponibles = horas.map((hora) => HorarioService.formatearHora(hora)).toList();
+    
+    // Si hay horas disponibles, seleccionar la primera
+    if (_horasDisponibles.isNotEmpty && _selectedTime == null) {
+      final primeraHora = _horasDisponibles[0];
+      final parts = primeraHora.split(':');
+      _selectedTime = TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
     }
   }
   
@@ -223,7 +237,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
     
     if (_selectedTime == null) {
-      _selectedTime = const TimeOfDay(hour: 9, minute: 0);
+      errores.add('Hora no seleccionada');
     }
 
     if (errores.isNotEmpty) {
@@ -243,11 +257,17 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     try {
       // Obtener duración del servicio seleccionado
       final servicioSeleccionado = _serviciosList.firstWhere(
-        (s) => _parseId(s['id']) == _selectedServicioId,
-        orElse: () => {'duracion': 30},
+        (s) => s.id == _selectedServicioId,
+        orElse: () => Servicio(
+          id: 0,
+          nombre: 'Servicio',
+          duracionMin: 30,
+          precio: 0,
+          estado: true,
+        ),
       );
       
-      final duracion = servicioSeleccionado['duracion'] ?? 30;
+      final duracion = servicioSeleccionado.duracionMin;
       
       // Crear objeto Cita
       final nuevaCita = Cita(
@@ -257,12 +277,12 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         empleadoId: _selectedEmpleadoId!,
         estadoCitaId: 1,
         metodoPago: _selectedMetodoPago,
-        fecha: DateTime(  // ← Solo fecha (sin hora)
+        fecha: DateTime(
           _selectedDate!.year,
           _selectedDate!.month,
           _selectedDate!.day,
         ),
-        hora: _selectedTime!,  // ← Ahora es obligatorio (no puede ser null)
+        hora: _selectedTime!,
         duracion: duracion,
         notas: null,
       );
@@ -340,14 +360,29 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     if (fechaSeleccionada != null) {
       setState(() {
         _selectedDate = fechaSeleccionada;
-        _selectedTime = null; // Resetear hora cuando cambia fecha
+        _selectedTime = null;
         _info = 'Fecha seleccionada: ${_formatearFecha(fechaSeleccionada)}';
         _error = '';
+        
+        // Actualizar horas disponibles según la nueva fecha
+        if (_selectedServicioId != null) {
+          final servicioSeleccionado = _serviciosList.firstWhere(
+            (s) => s.id == _selectedServicioId,
+            orElse: () => Servicio(
+              id: 0,
+              nombre: 'Servicio',
+              duracionMin: 30,
+              precio: 0,
+              estado: true,
+            ),
+          );
+          _actualizarHorasDisponibles(servicioSeleccionado);
+        }
       });
     }
   }
   
-  // SELECCIONAR HORA
+  // SELECCIONAR HORA (actualizada para usar horas dinámicas)
   void _seleccionarHora() {
     // Validar que haya fecha seleccionada primero
     if (_selectedDate == null) {
@@ -357,44 +392,100 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       return;
     }
     
+    // Validar que haya servicio seleccionado
+    if (_selectedServicioId == null) {
+      setState(() {
+        _error = 'Primero seleccione un servicio';
+      });
+      return;
+    }
+    
+    // Verificar si hay horas disponibles
+    if (_horasDisponibles.isEmpty) {
+      setState(() {
+        _error = 'No hay horas disponibles para esta fecha y servicio';
+      });
+      return;
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Seleccionar Hora'),
+        title: Text(
+          'Horas Disponibles (${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).duracionMin} min)',
+          style: const TextStyle(fontSize: 16),
+        ),
         content: SizedBox(
           width: double.maxFinite,
-          height: 350,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1.5,
-            ),
-            itemCount: _horasDisponibles.length,
-            itemBuilder: (context, index) {
-              final horaStr = _horasDisponibles[index];
-              final parts = horaStr.split(':');
-              final hora = TimeOfDay(
-                hour: int.parse(parts[0]),
-                minute: int.parse(parts[1]),
-              );
-              
-              return ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, hora);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: _primaryColor.withOpacity(0.1),
-                  foregroundColor: _primaryColor,
+          height: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Servicio: ${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).nombre}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: _primaryColor,
                 ),
-                child: Text(
-                  horaStr,
-                  style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Duración: ${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).duracionMin} minutos',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1.5,
+                  ),
+                  itemCount: _horasDisponibles.length,
+                  itemBuilder: (context, index) {
+                    final horaStr = _horasDisponibles[index];
+                    final parts = horaStr.split(':');
+                    final hora = TimeOfDay(
+                      hour: int.parse(parts[0]),
+                      minute: int.parse(parts[1]),
+                    );
+                    
+                    // Calcular hora de fin
+                    final servicio = _serviciosList.firstWhere((s) => s.id == _selectedServicioId);
+                    final horaFin = _calcularHoraFin(hora, servicio.duracionMin);
+                    
+                    return Tooltip(
+                      message: '${horaStr} - ${_formatearHora(horaFin)}',
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, hora);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: _primaryColor.withOpacity(0.1),
+                          foregroundColor: _primaryColor,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              horaStr,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '${servicio.duracionMin} min',
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
         actions: [
@@ -412,6 +503,20 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         });
       }
     });
+  }
+  
+  // Método auxiliar para calcular hora de fin
+  TimeOfDay _calcularHoraFin(TimeOfDay inicio, int duracionMin) {
+    int totalMinutos = (inicio.hour * 60 + inicio.minute) + duracionMin;
+    int horaFin = totalMinutos ~/ 60;
+    int minutoFin = totalMinutos % 60;
+    
+    return TimeOfDay(hour: horaFin, minute: minutoFin);
+  }
+  
+  // Método auxiliar para formatear hora
+  String _formatearHora(TimeOfDay hora) {
+    return '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}';
   }
   
   // FORMATO DE FECHA AMIGABLE
@@ -639,7 +744,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     
                     const SizedBox(height: 20),
                     
-                    // ============ CAMPO DE SERVICIO ============
+                    // ============ CAMPO DE SERVICIO (ACTUALIZADO) ============
                     Text(
                       'Seleccionar Servicio',
                       style: TextStyle(
@@ -666,22 +771,18 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                           ),
                         ),
                         items: _serviciosList.map((servicio) {
-                          final id = _parseId(servicio['id']);
-                          final nombre = servicio['nombre']?.toString() ?? 'Servicio';
-
-                          
                           return DropdownMenuItem<int>(
-                            value: id,
+                            value: servicio.id,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  nombre,
+                                  servicio.nombre,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 14),
                                 ),
-                               
+                                const SizedBox(height: 2),
                               ],
                             ),
                           );
@@ -689,6 +790,22 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedServicioId = value;
+                            _selectedTime = null;
+                            
+                            // Actualizar horas disponibles según el nuevo servicio
+                            if (value != null && _selectedDate != null) {
+                              final servicioSeleccionado = _serviciosList.firstWhere(
+                                (s) => s.id == value,
+                                orElse: () => Servicio(
+                                  id: 0,
+                                  nombre: 'Servicio',
+                                  duracionMin: 30,
+                                  precio: 0,
+                                  estado: true,
+                                ),
+                              );
+                              _actualizarHorasDisponibles(servicioSeleccionado);
+                            }
                           });
                         },
                         validator: (value) {
@@ -697,45 +814,16 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                               : null;
                         },
                       ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // ============ CAMPO DE MÉTODO DE PAGO ============
-                    Text(
-                      'Método de Pago',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+
+                    if (_selectedServicioId != null && _horasDisponibles.isEmpty && _selectedDate != null)
+                      _buildMensajeError(
+                        'No hay horas disponibles para este servicio en la fecha seleccionada.\n'
+                        'Intente con otra fecha o seleccione otro servicio.'
                       ),
-                    ),
-                    const SizedBox(height: 8),
                     
-                    DropdownButtonFormField<String>(
-                      value: _selectedMetodoPago,
-                      decoration: InputDecoration(
-                        labelText: 'Método de Pago',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.payment, color: _primaryColor),
-                        filled: true,
-                        fillColor: Colors.white,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: _primaryColor, width: 2),
-                        ),
-                      ),
-                      items: _metodosPago.map((metodo) {
-                        return DropdownMenuItem<String>(
-                          value: metodo,
-                          child: Text(metodo),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedMetodoPago = value;
-                        });
-                      },
-                    ),
+
                     
+
                     const SizedBox(height: 20),
                     
                     // ============ CAMPOS DE FECHA Y HORA ============
@@ -792,10 +880,16 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         
                         const SizedBox(width: 16),
                         
-                        // HORA
+                        // HORA (con información de duración)
                         Expanded(
                           child: InkWell(
-                            onTap: _seleccionarHora,
+                            onTap: _selectedServicioId == null 
+                                ? () {
+                                    setState(() {
+                                      _error = 'Primero seleccione un servicio';
+                                    });
+                                  }
+                                : _seleccionarHora,
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -812,13 +906,27 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: Text(
-                                      _selectedTime != null
-                                          ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
-                                          : 'Seleccionar hora',
-                                      style: TextStyle(
-                                        color: _selectedTime != null ? Colors.black : Colors.grey,
-                                      ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedTime != null
+                                              ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
+                                              : 'Seleccionar hora',
+                                          style: TextStyle(
+                                            color: _selectedTime != null ? Colors.black : Colors.grey,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        if (_selectedServicioId != null && _selectedTime != null)
+                                          Text(
+                                            '${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).duracionMin} min',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                   Icon(
@@ -864,7 +972,8 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                             '• Lunes a Viernes: 6:00 AM - 4:00 PM\n'
                             '• Sábados: 8:00 AM - 2:00 PM\n'
                             '• Domingos: Cerrado\n'
-                            '• Duración de citas: 30-60 minutos\n'
+                            '• Duración de citas: 30-120 minutos\n'
+                            '• Los horarios se ajustan según la duración del servicio\n'
                             '• Confirmaremos su cita por correo',
                             style: TextStyle(
                               fontSize: 12,
@@ -882,9 +991,11 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: (_isLoading || _selectedClienteId == null) ? null : _crearCita,
+                        onPressed: (_isLoading || _selectedClienteId == null || _horasDisponibles.isEmpty) ? null : _crearCita,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _selectedClienteId == null ? Colors.grey : _primaryColor,
+                          backgroundColor: (_selectedClienteId == null || _horasDisponibles.isEmpty) 
+                              ? Colors.grey 
+                              : _primaryColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -906,7 +1017,11 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                 ],
                               )
                             : Text(
-                                _selectedClienteId == null ? 'Falta perfil de cliente' : 'Agendar Cita',
+                                _selectedClienteId == null 
+                                    ? 'Falta perfil de cliente'
+                                    : _horasDisponibles.isEmpty
+                                        ? 'Sin horas disponibles'
+                                        : 'Agendar Cita',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
