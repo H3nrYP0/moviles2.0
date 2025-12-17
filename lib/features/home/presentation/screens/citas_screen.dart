@@ -641,8 +641,12 @@ class _CitaClienteCard extends StatelessWidget {
               ),
               
               const SizedBox(height: 8),
+<<<<<<< HEAD
               
 
+=======
+                    
+>>>>>>> validaciones
             ],
           ),
         ),
@@ -730,8 +734,11 @@ class _CitaClienteCard extends StatelessWidget {
                   iconColor: primaryColor,
                 ),
                 
+<<<<<<< HEAD
 
                 
+=======
+>>>>>>> validaciones
                 if (cita.duracion != null)
                   _DetalleItem(
                     icon: Icons.timer,
@@ -1105,21 +1112,12 @@ class _CitaAdminCard extends StatelessWidget {
                 ),
                 
                 _DetalleItem(
-                  label: 'Cliente ID',
-                  value: cita.clienteId.toString(),
-                ),
-                
-                _DetalleItem(
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'No disponible',
                   icon: Icons.medical_services,
                   iconColor: primaryColor,
                 ),
                 
-                _DetalleItem(
-                  label: 'Servicio ID',
-                  value: cita.servicioId.toString(),
-                ),
                 
                 _DetalleItem(
                   label: 'Optometra',
@@ -1128,10 +1126,6 @@ class _CitaAdminCard extends StatelessWidget {
                   iconColor: primaryColor,
                 ),
                 
-                _DetalleItem(
-                  label: 'Optometra ID',
-                  value: cita.empleadoId.toString(),
-                ),
                 
                 _DetalleItem(
                   label: 'Fecha y Hora',
@@ -1148,13 +1142,7 @@ class _CitaAdminCard extends StatelessWidget {
                     iconColor: primaryColor,
                   ),
                 
-                if (cita.metodoPago != null)
-                  _DetalleItem(
-                    label: 'Método de Pago',
-                    value: _capitalize(cita.metodoPago!),
-                    icon: Icons.payment,
-                    iconColor: primaryColor,
-                  ),
+
                 
                 if (cita.notas != null && cita.notas!.isNotEmpty)
                   Column(

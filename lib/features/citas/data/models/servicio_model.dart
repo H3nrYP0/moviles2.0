@@ -1,3 +1,4 @@
+
 // lib/features/citas/data/models/servicio_model.dart
 class Servicio {
   final int id;
@@ -36,5 +37,15 @@ class Servicio {
       'descripcion': descripcion,
       'estado': estado,
     };
+  }
+  
+  // Nuevo método para obtener intervalo de tiempo según duración
+  int get intervaloMinutos {
+    if (duracionMin >= 120) {
+      return 30; // Para servicios largos, ofrecer cada 30 min
+    } else if (duracionMin >= 60) {
+      return 20; // Para servicios de 60-119 min
+    }
+    return 15; // Para servicios cortos (15 min)
   }
 }

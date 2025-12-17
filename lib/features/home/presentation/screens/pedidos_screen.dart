@@ -561,14 +561,7 @@ class _PedidoClienteCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Pedido #${pedido.id}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
-                    ),
-                  ),
+                  
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -776,14 +769,7 @@ class _PedidoClienteCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Pedido #${pedido.id}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
-                    ),
+                    
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -1243,16 +1229,6 @@ class _PedidoAdminCard extends StatelessWidget {
                   value: pedidosProvider.getClienteNombre(pedido.clienteId),
                   icon: Icons.person,
                   iconColor: primaryColor,
-                ),
-                
-                _DetalleItem(
-                  label: 'Cliente ID',
-                  value: pedido.clienteId.toString(),
-                ),
-                
-                _DetalleItem(
-                  label: 'Usuario ID',
-                  value: pedido.usuarioId.toString(),
                 ),
                 
                 _DetalleItem(
