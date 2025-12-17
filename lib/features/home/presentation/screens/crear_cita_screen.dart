@@ -709,32 +709,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         color: Colors.grey.shade700,
                       ),
                     ),
-                    const SizedBox(height: 8),
                     
-                    DropdownButtonFormField<String>(
-                      value: _selectedMetodoPago,
-                      decoration: InputDecoration(
-                        labelText: 'Método de Pago',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.payment, color: _primaryColor),
-                        filled: true,
-                        fillColor: Colors.white,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: _primaryColor, width: 2),
-                        ),
-                      ),
-                      items: _metodosPago.map((metodo) {
-                        return DropdownMenuItem<String>(
-                          value: metodo,
-                          child: Text(metodo),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedMetodoPago = value;
-                        });
-                      },
-                    ),
                     
                     const SizedBox(height: 20),
                     

@@ -642,18 +642,7 @@ class _CitaClienteCard extends StatelessWidget {
               
               const SizedBox(height: 8),
               
-              // Método de pago si existe
-              if (cita.metodoPago != null)
-                Row(
-                  children: [
-                    Icon(Icons.payment, size: 14, color: primaryColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      _capitalize(cita.metodoPago!),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
+
             ],
           ),
         ),
@@ -741,13 +730,7 @@ class _CitaClienteCard extends StatelessWidget {
                   iconColor: primaryColor,
                 ),
                 
-                if (cita.metodoPago != null)
-                  _DetalleItem(
-                    icon: Icons.payment,
-                    label: 'Método de Pago',
-                    value: _capitalize(cita.metodoPago!),
-                    iconColor: primaryColor,
-                  ),
+
                 
                 if (cita.duracion != null)
                   _DetalleItem(
