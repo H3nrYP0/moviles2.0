@@ -238,7 +238,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
         title: Text(
           authProvider.isAdmin 
             ? 'Panel de Pedidos (Admin)' 
-            : 'Mis Pedidos'
+            : ''
         ),
         backgroundColor: _primaryColor,
         actions: [
@@ -366,11 +366,13 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.shopping_bag, size: 80, color: _primaryColor),
+                    Icon(Icons.shopping_bag, size: 80, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
                     Text(
                       authProvider.isAdmin ? 'No hay pedidos' : 'No tienes pedidos',
-                      style: TextStyle(fontSize: 18, color: _primaryColor),
+                      style: const TextStyle(fontSize: 18, 
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -391,16 +393,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                         ),
                         child: const Text('Limpiar filtro', style: TextStyle(color: Colors.white)),
                       )
-                    else if (!authProvider.isAdmin)
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
-                        ),
-                        child: const Text('Ir al catálogo', style: TextStyle(color: Colors.white)),
-                      ),
+ 
                   ],
                 ),
               ),

@@ -244,7 +244,7 @@ class _CitasScreenState extends State<CitasScreen> {
         title: Text(
           authProvider.isAdmin 
             ? 'Panel de Citas (Admin)' 
-            : 'Mis Citas'
+            : ''
         ),
         backgroundColor: _primaryColor,
         actions: [
@@ -384,11 +384,13 @@ class _CitasScreenState extends State<CitasScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.event_note, size: 80, color: _primaryColor),
+                    Icon(Icons.event_note, size: 80, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
                     Text(
                       authProvider.isAdmin ? 'No hay citas' : 'No tienes citas',
-                      style: TextStyle(fontSize: 18, color: _primaryColor),
+                      style: TextStyle(fontSize: 18, 
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -409,21 +411,6 @@ class _CitasScreenState extends State<CitasScreen> {
                         ),
                         child: const Text('Limpiar filtro', style: TextStyle(color: Colors.white)),
                       )
-                    else if (!authProvider.isAdmin)
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CrearCitaScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
-                        ),
-                        child: const Text('Agendar Cita', style: TextStyle(color: Colors.white)),
-                      ),
                   ],
                 ),
               ),
