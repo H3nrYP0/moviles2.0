@@ -20,6 +20,21 @@ class Product {
   });
   
   factory Product.fromJson(Map<String, dynamic> json) {
+    // 🔥 LEER EL CAMPO 'imagenes' (lista) Y EXTRAER LA PRIMERA URL
+    String? primeraImagen;
+    if (json['imagenes'] != null && json['imagenes'] is List) {
+      final imagenesList = json['imagenes'] as List;
+      if (imagenesList.isNotEmpty) {
+        // Cada elemento puede ser un mapa con 'url' o un string directo
+        final primera = imagenesList.first;
+        if (primera is Map && primera.containsKey('url')) {
+          primeraImagen = primera['url'] as String?;
+        } else if (primera is String) {
+          primeraImagen = primera;
+        }
+      }
+    }
+    
     return Product(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       nombre: json['nombre'] ?? '',
@@ -30,7 +45,7 @@ class Product {
       descripcion: json['descripcion'],
       categoriaId: json['categoria_id'] ?? json['categoria_producto_id'] ?? 0,
       marcaId: json['marca_id'] ?? 0,
-      imagenUrl: json['imagen_principal'] ?? json['imagen_url'],
+      imagenUrl: primeraImagen, // Usar la primera imagen encontrada
     );
   }
 }

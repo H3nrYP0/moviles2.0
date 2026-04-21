@@ -27,45 +27,35 @@ class CartProvider extends ChangeNotifier {
   List<CartItem> get items => List.unmodifiable(_items);
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
   double get totalAmount => _items.fold(0, (sum, item) => sum + item.subtotal);
-  double get subtotal => totalAmount; // Alias para consistencia
+  double get subtotal => totalAmount;
   String? get selectedDeliveryMethod => _selectedDeliveryMethod;
   String? get selectedPaymentMethod => _selectedPaymentMethod;
   String? get deliveryAddress => _deliveryAddress;
   bool get isProcessing => _isProcessing;
   
-  // Validar si está listo para checkout
   bool get isReadyForCheckout {
     if (_selectedDeliveryMethod == null || _selectedPaymentMethod == null) {
       return false;
     }
-    
     if (_selectedDeliveryMethod == 'domicilio' && 
         (_deliveryAddress == null || _deliveryAddress!.isEmpty)) {
       return false;
     }
-    
     return true;
   }
   
-  // Validar stock de productos
   bool validateStock() {
     for (var item in _items) {
-      if (item.quantity > item.product.stock) {
-        return false;
-      }
+      if (item.quantity > item.product.stock) return false;
     }
     return true;
   }
   
-  // Métodos del carrito - MODIFICADO PARA ACEPTAR CANTIDAD
   void addToCart(Product product, {int quantity = 1}) {
     final existingIndex = _items.indexWhere((item) => item.product.id == product.id);
-    
     if (existingIndex >= 0) {
-      // Si ya existe, sumar la cantidad
       _items[existingIndex].quantity += quantity;
     } else {
-      // Si no existe, agregar nuevo item
       _items.add(CartItem(product: product, quantity: quantity));
     }
     notifyListeners();
@@ -96,18 +86,15 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Obtener la cantidad de un producto específico
   int getQuantityForProduct(int productId) {
     final index = _items.indexWhere((item) => item.product.id == productId);
     return index >= 0 ? _items[index].quantity : 0;
   }
   
-  // Verificar si un producto ya está en el carrito
   bool isProductInCart(int productId) {
     return _items.any((item) => item.product.id == productId);
   }
   
-  // Métodos para opciones del pedido
   void selectDeliveryMethod(String method) {
     _selectedDeliveryMethod = method;
     if (method == 'tienda') {
@@ -131,38 +118,38 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Preparar datos para la API
+  // ==========================================================
+  // 🔥 MÉTODO CORREGIDO para enviar datos al backend
+  // ==========================================================
   Map<String, dynamic> toOrderData(int clienteId, int usuarioId) {
+    // Preparar dirección (nunca enviar null, enviar string vacío si no hay)
+    String direccion = '';
+    if (_selectedDeliveryMethod == 'domicilio' && _deliveryAddress != null && _deliveryAddress!.isNotEmpty) {
+      direccion = _deliveryAddress!;
+    }
+    
     return {
       'cliente_id': clienteId,
-      'usuario_id': usuarioId,
-      'total': totalAmount,
       'metodo_pago': _selectedPaymentMethod,
       'metodo_entrega': _selectedDeliveryMethod,
-      'direccion_entrega': _deliveryAddress,
-      'estado': 'pendiente',
+      'direccion_entrega': direccion, // ← nunca null, siempre string
       'items': _items.map((item) => {
         'producto_id': item.product.id,
         'cantidad': item.quantity,
         'precio_unitario': item.product.precioVenta,
       }).toList(),
     };
+    // NOTA: NO se envía 'usuario_id' ni 'estado' ni 'total' (el backend calcula el total desde los items)
   }
   
-  // Métodos seguros para actualizar cantidad
   void safeUpdateQuantity(int productId, int newQuantity) {
     final index = _items.indexWhere((item) => item.product.id == productId);
     if (index >= 0) {
-      // Evitar que sea menor que 1
       if (newQuantity < 1) {
         _items.removeAt(index);
-      } 
-      // Evitar que exceda el stock
-      else if (newQuantity > _items[index].product.stock) {
-        // No hacer nada o mostrar error
+      } else if (newQuantity > _items[index].product.stock) {
         return;
-      }
-      else {
+      } else {
         _items[index].quantity = newQuantity;
       }
       notifyListeners();
@@ -185,10 +172,6 @@ class CartProvider extends ChangeNotifier {
       if (_items[index].quantity > 1) {
         _items[index].quantity--;
         notifyListeners();
-      } else {
-        // Si es 1, eliminar del carrito (opcional) o mantener en 1
-        // _items.removeAt(index);
-        // notifyListeners();
       }
     }
   }

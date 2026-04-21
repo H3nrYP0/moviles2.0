@@ -63,6 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  // 🔥 MODIFICADO: Usa getMiPerfilCliente() en lugar de getClienteByUsuarioId
   Future<void> _loadClienteData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
@@ -70,8 +71,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user != null) {
       setState(() => _isLoading = true);
       
-      // PRIMERO: Intentar obtener cliente por usuario_id usando el nuevo método
-      final result = await _apiService.getClienteByUsuarioId(user.id);
+      // PRIMERO: Intentar obtener el perfil del cliente autenticado (requiere token)
+      final result = await _apiService.getMiPerfilCliente();
       
       if (result['success'] == true && mounted) {
         setState(() {
@@ -80,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading = false;
         });
       } else {
-        // SI FALLA: Intentar por cliente_id directo (para compatibilidad)
+        // SI FALLA: Intentar por cliente_id directo (para compatibilidad con usuarios que ya tenían clienteId)
         if (user.clienteId != null) {
           final resultById = await _apiService.getClienteById(user.clienteId!);
           
@@ -196,6 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 🔥 MODIFICADO: Elimina dependencia de getClienteByUsuarioId
   Future<void> _saveClienteData() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -253,34 +255,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       Map<String, dynamic> result;
       
-      // PRIMERO: Intentar obtener cliente existente por usuario_id
-      final clienteResult = await _apiService.getClienteByUsuarioId(user.id);
+      // PRIMERO: Intentar obtener el perfil actual (para saber si ya existe cliente)
+      final perfilResult = await _apiService.getMiPerfilCliente();
       
-      if (clienteResult['success'] == true && clienteResult['cliente'] != null) {
-        // ACTUALIZAR cliente existente
-        final clienteId = clienteResult['cliente']['id'];
-        print('✅ Cliente encontrado, ID: $clienteId. Actualizando...');
+      if (perfilResult['success'] == true && perfilResult['cliente'] != null) {
+        // Cliente existente: actualizar
+        final clienteId = perfilResult['cliente']['id'];
+        print('✅ Cliente encontrado via perfil, ID: $clienteId. Actualizando...');
         
         result = await _apiService.updateCliente(
           clienteId: clienteId,
           datos: clienteData,
         );
         
-        // Actualizar clienteId en el usuario si no lo tenía
-        if (user.clienteId == null) {
+        // Asegurar que el clienteId esté guardado en el usuario (por si acaso)
+        if (user.clienteId == null || user.clienteId != clienteId) {
           await StorageService.saveClienteId(clienteId);
           authProvider.updateClienteId(clienteId);
         }
       } else {
-        // SEGUNDO: Si no se encuentra por usuario_id, intentar por cliente_id directo
+        // No se encontró perfil: intentar con clienteId del usuario si existe
         if (user.clienteId != null) {
-          print('⚠️ No encontrado por usuario_id. Intentando por cliente_id: ${user.clienteId}');
+          print('⚠️ No se encontró perfil. Intentando actualizar por cliente_id: ${user.clienteId}');
           result = await _apiService.updateCliente(
             clienteId: user.clienteId!,
             datos: clienteData,
           );
         } else {
-          // TERCERO: Si no existe cliente, crear uno nuevo
+          // No existe cliente: crear uno nuevo
           print('⚠️ No hay cliente existente. Creando nuevo...');
           result = await _apiService.createCliente(
             nombre: '${_nombreController.text.trim()} ${_apellidoController.text.trim()}',
@@ -293,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await StorageService.saveClienteId(clienteId);
             authProvider.updateClienteId(clienteId);
             
-            // Actualizar con datos completos
+            // Actualizar con datos completos (ya que createCliente solo crea con datos básicos)
             final updateResult = await _apiService.updateCliente(
               clienteId: clienteId,
               datos: clienteData,
@@ -369,7 +371,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              // CORRECCIÓN: Verificar si el valor es nulo o vacío
               value: _selectedMunicipio == null || _selectedMunicipio!.isEmpty 
                   ? null 
                   : _selectedMunicipio,
@@ -687,7 +688,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           keyboardType: TextInputType.number,
                           hintText: 'Ej: 123456789',
                         ),
-
 
                         _buildFormField(
                           label: 'Nombre',
@@ -1158,7 +1158,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(8),
-                          
                         ),
                         child: ListTile(
                           leading: Container(

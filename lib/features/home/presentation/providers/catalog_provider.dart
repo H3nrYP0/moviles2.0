@@ -1,4 +1,3 @@
-// features/home/presentation/providers/catalog_provider.dart
 import 'package:flutter/material.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../catalog/data/models/category_model.dart';
@@ -13,7 +12,7 @@ class CatalogProvider extends ChangeNotifier {
   bool _isLoading = false;
   int? _currentCategoryId;
   
-  // Cache de imágenes ya cargadas
+  // Cache de imágenes ya cargadas (ya no se usa para categorías, pero lo dejo por si acaso)
   final Map<int, String> _imagenesCache = {};
   
   List<Category> get categories => List.unmodifiable(_categories);
@@ -23,7 +22,7 @@ class CatalogProvider extends ChangeNotifier {
   int? get currentCategoryId => _currentCategoryId;
   
   // ==========================================================
-  //  CATEGORÍAS
+  //  CATEGORÍAS (SIN IMÁGENES - VERSIÓN SIMPLIFICADA)
   // ==========================================================
   
   Future<void> loadCategories() async {
@@ -32,8 +31,12 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // Usar el nuevo método que carga categorías CON imágenes
-      _categories = await _apiService.getCategoriasConImagenes();
+      // 🔥 Cambio: usar getCategorias() en lugar de getCategoriasConImagenes()
+      final categoriasJson = await _apiService.getCategorias();
+      _categories = categoriasJson
+          .map((json) => Category.fromJson(json))
+          .where((categoria) => categoria.estado)
+          .toList();
       _error = '';
     } catch (e) {
       _error = 'Error al cargar categorías: $e';
@@ -45,7 +48,7 @@ class CatalogProvider extends ChangeNotifier {
   }
   
   // ==========================================================
-  //  PRODUCTOS
+  //  PRODUCTOS (usando getProductos)
   // ==========================================================
   
   Future<void> loadProductsByCategory(int categoryId) async {
@@ -56,16 +59,13 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await _apiService.getProductosConImagenes();
-      
+      final response = await _apiService.getProductos();
       final allProducts = response
-        .map((json) => Product.fromJson(json))
-        .toList();
-      
+          .map((json) => Product.fromJson(json))
+          .toList();
       _products = allProducts
-        .where((product) => product.categoriaId == categoryId)
-        .toList();
-        
+          .where((product) => product.categoriaId == categoryId)
+          .toList();
       _error = '';
     } catch (e) {
       _error = 'Error al cargar productos: $e';
@@ -88,24 +88,20 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await _apiService.getProductosConImagenes();
-      
+      final response = await _apiService.getProductos();
       final allProducts = response
-        .map((json) => Product.fromJson(json))
-        .toList();
-      
+          .map((json) => Product.fromJson(json))
+          .toList();
       var filteredProducts = allProducts
-        .where((product) => 
-          product.nombre.toLowerCase().contains(query.toLowerCase()) ||
-          (product.descripcion?.toLowerCase() ?? '').contains(query.toLowerCase()))
-        .toList();
-      
+          .where((product) => 
+            product.nombre.toLowerCase().contains(query.toLowerCase()) ||
+            (product.descripcion?.toLowerCase() ?? '').contains(query.toLowerCase()))
+          .toList();
       if (_currentCategoryId != null) {
         filteredProducts = filteredProducts
-          .where((product) => product.categoriaId == _currentCategoryId)
-          .toList();
+            .where((product) => product.categoriaId == _currentCategoryId)
+            .toList();
       }
-      
       _products = filteredProducts;
       _error = '';
     } catch (e) {
@@ -131,34 +127,9 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Cargar imagen específica si no se cargó antes
+  // Este método ya no se usa para categorías, pero lo dejamos por si acaso
   Future<String?> loadCategoryImageIfNeeded(int categoryId) async {
-    if (_imagenesCache.containsKey(categoryId)) {
-      return _imagenesCache[categoryId];
-    }
-    
-    try {
-      final result = await _apiService.getImagenCategoria(categoryId);
-      
-      if (result['success'] == true && result['imagen'] != null) {
-        final imagenUrl = result['imagen']['url'];
-        if (imagenUrl != null && imagenUrl.isNotEmpty) {
-          _imagenesCache[categoryId] = imagenUrl;
-          
-          // Actualizar la categoría en la lista
-          final index = _categories.indexWhere((c) => c.id == categoryId);
-          if (index >= 0) {
-            _categories[index] = _categories[index].copyWithImage(imagenUrl);
-            notifyListeners();
-          }
-          
-          return imagenUrl;
-        }
-      }
-    } catch (e) {
-      print('Error cargando imagen para categoría $categoryId: $e');
-    }
-    
+    // No hacemos nada porque no tenemos imágenes de categorías
     return null;
   }
 }

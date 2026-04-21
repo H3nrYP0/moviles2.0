@@ -91,7 +91,8 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadPedidos(int usuarioId, {bool isAdmin = false}) async {
+  // 🔥 MODIFICADO: ahora recibe clienteId en lugar de usuarioId
+  Future<void> loadPedidos(int clienteId, {bool isAdmin = false}) async {
     _isLoading = true;
     _error = '';
     _hasError = false;
@@ -100,13 +101,13 @@ class PedidosProvider extends ChangeNotifier {
 
     try {
       if (isAdmin) {
-        // ADMIN: obtener todos los pedidos
+        // ADMIN: obtener todos los pedidos (sin filtrar por usuario)
         final response = await _apiService.getAllPedidos();
 
-        // Eliminamos la verificación 'response is List'
         _allPedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
-        _pedidos = _allPedidos.where((p) => p.usuarioId == usuarioId).toList();
+        // En modo admin, mostramos todos los pedidos (no filtramos por usuarioId)
+        _pedidos = List.from(_allPedidos);
 
         _allPedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
         _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
@@ -115,15 +116,14 @@ class PedidosProvider extends ChangeNotifier {
 
         _hasError = false;
       } else {
-        // CLIENTE: solo sus pedidos
-        final response = await _apiService.getPedidosByUsuario(usuarioId);
+        // CLIENTE: solo sus pedidos usando el endpoint correcto
+        final response = await _apiService.getPedidosByCliente(clienteId);
 
-        // Eliminamos la verificación 'response is List'
         _pedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
         _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
 
-        _allPedidos = _pedidos;
+        _allPedidos = List.from(_pedidos);
 
         await _cargarNombresClientes(_pedidos);
 
@@ -140,8 +140,8 @@ class PedidosProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshPedidos(int usuarioId) async {
-    await loadPedidos(usuarioId, isAdmin: _isAdminMode);
+  Future<void> refreshPedidos(int clienteId) async {
+    await loadPedidos(clienteId, isAdmin: _isAdminMode);
   }
 
   Map<String, dynamic> get estadisticasAdmin {
@@ -189,7 +189,7 @@ class PedidosProvider extends ChangeNotifier {
         final updated = Pedido(
           id: p.id,
           clienteId: p.clienteId,
-          usuarioId: p.usuarioId,
+          usuarioId: p.usuarioId, // se mantiene por compatibilidad, pero backend no lo usa
           total: p.total,
           metodoPago: p.metodoPago,
           metodoEntrega: p.metodoEntrega,

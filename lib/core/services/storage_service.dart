@@ -2,6 +2,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
 class StorageService {
+  static const String _tokenKey = 'auth_token';
+
   static Future<SharedPreferences> get _instance async =>
       SharedPreferences.getInstance();
 
@@ -13,7 +15,8 @@ class StorageService {
     String name,
     int rolId,
     int userId, {
-    int? clienteId, // opcional
+    int? clienteId,
+    String? token, // 👈 NUEVO: token JWT opcional
   }) async {
     final prefs = await _instance;
 
@@ -25,6 +28,10 @@ class StorageService {
 
     if (clienteId != null) {
       await prefs.setInt(AppConstants.clienteIdKey, clienteId);
+    }
+
+    if (token != null) {
+      await prefs.setString(_tokenKey, token);
     }
   }
 
@@ -40,6 +47,25 @@ class StorageService {
     await prefs.remove(AppConstants.userRolKey);
     await prefs.remove(AppConstants.userIdKey);
     await prefs.remove(AppConstants.clienteIdKey);
+    await prefs.remove(_tokenKey); // 👈 NUEVO: borrar token
+  }
+
+  /// ================================
+  /// TOKEN JWT
+  /// ================================
+  static Future<void> saveToken(String token) async {
+    final prefs = await _instance;
+    await prefs.setString(_tokenKey, token);
+  }
+
+  static Future<String?> getToken() async {
+    final prefs = await _instance;
+    return prefs.getString(_tokenKey);
+  }
+
+  static Future<void> deleteToken() async {
+    final prefs = await _instance;
+    await prefs.remove(_tokenKey);
   }
 
   /// ================================

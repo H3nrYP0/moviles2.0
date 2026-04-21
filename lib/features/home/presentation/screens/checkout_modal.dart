@@ -168,7 +168,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
       // 2. Crear pedido (con o sin comprobante)
       final result = await widget.apiService.createPedidoConComprobante(
         pedidoData: orderData,
-        comprobanteUrl: _comprobanteUrlSubido,
+        comprobanteUrl: _comprobanteUrlSubido, // puede ser null, el método lo maneja
       );
 
       if (result['success'] == true) {

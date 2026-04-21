@@ -1,4 +1,3 @@
-// features/home/presentation/providers/auth_provider.dart
 import 'package:flutter/material.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/storage_service.dart';
@@ -52,8 +51,10 @@ class AuthProvider extends ChangeNotifier {
         final rol = await StorageService.getUserRol();
         final id = await StorageService.getUserId();
         final clienteId = await StorageService.getClienteId();
+        final token = await StorageService.getToken();
         
-        if (email != null && name != null && rol != null && id != null) {
+        // Verificar que tengamos token y datos básicos
+        if (token != null && email != null && name != null && rol != null && id != null) {
           _user = User(
             id: id,
             nombre: name,
@@ -64,7 +65,7 @@ class AuthProvider extends ChangeNotifier {
           );
           _error = '';
         } else {
-          // Datos incompletos, cerrar sesión
+          // Datos incompletos o sin token, cerrar sesión
           await logout();
         }
       } else {
@@ -89,29 +90,33 @@ class AuthProvider extends ChangeNotifier {
       
       if (result['success'] == true) {
         final usuarioData = result['usuario'];
+        final token = result['token'] as String;
         
-        // Obtener clienteId del resultado del login
-        final int? clienteIdFromLogin = result['cliente_id'] != null 
-          ? (result['cliente_id'] is int ? result['cliente_id'] : int.tryParse(result['cliente_id'].toString()))
-          : null;
+        // El cliente_id NO viene en el login, hay que obtenerlo aparte
+        final int? clienteId = await _apiService.getCurrentClienteId();
         
-        // Crear usuario con clienteId si viene del backend
+        // Crear usuario con el clienteId obtenido (puede ser null si no es cliente)
         _user = User(
-          id: usuarioData['id'] is int ? usuarioData['id'] : int.parse(usuarioData['id'].toString()),
+          id: usuarioData['id'] is int 
+              ? usuarioData['id'] 
+              : int.parse(usuarioData['id'].toString()),
           nombre: usuarioData['nombre'] ?? '',
           correo: usuarioData['correo'] ?? '',
-          rolId: usuarioData['rol_id'] is int ? usuarioData['rol_id'] : int.parse(usuarioData['rol_id'].toString()),
-          estado: usuarioData['estado'] ?? true,
-          clienteId: clienteIdFromLogin,
+          rolId: usuarioData['rol_id'] is int 
+              ? usuarioData['rol_id'] 
+              : int.parse(usuarioData['rol_id'].toString()),
+          estado: true,
+          clienteId: clienteId, // Puede ser null si el usuario no es cliente (ej. admin)
         );
         
-        // Guardar en storage
+        // Guardar en storage (incluye token y clienteId si existe)
         await StorageService.saveLoginData(
           _user!.correo,
           _user!.nombre,
           _user!.rolId,
           _user!.id,
           clienteId: _user!.clienteId,
+          token: token,
         );
         
         _isLoading = false;
@@ -131,6 +136,9 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
+  // ⚠️ REGISTRO TEMPORALMENTE DESACTIVADO - NUEVO FLUJO CON CÓDIGO
+  // Se implementará en Fase 6 usando:
+  // POST /auth/register  y  POST /auth/verify-register
   Future<Map<String, dynamic>> register({
     required String nombre,
     required String correo,
@@ -141,57 +149,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // Registrar usuario - el backend ya crea cliente automáticamente
       final result = await _apiService.registerUser(
         nombre: nombre,
         correo: correo,
         contrasenia: contrasenia,
       );
       
-      if (result['success'] == true) {
-        final usuarioData = result['usuario'];
-        
-        // El backend ya devuelve el usuario con cliente_id incluido
-        final int? clienteId = result['cliente_id'] != null 
-          ? (result['cliente_id'] is int ? result['cliente_id'] : int.tryParse(result['cliente_id'].toString()))
-          : null;
-        
-        _user = User(
-          id: usuarioData['id'] is int ? usuarioData['id'] : int.parse(usuarioData['id'].toString()),
-          nombre: usuarioData['nombre'] ?? '',
-          correo: usuarioData['correo'] ?? '',
-          rolId: usuarioData['rol_id'] is int ? usuarioData['rol_id'] : int.parse(usuarioData['rol_id'].toString()),
-          estado: usuarioData['estado'] ?? true,
-          clienteId: clienteId,
-        );
-        
-        // Guardar en storage - el cliente_id ya viene del backend
-        await StorageService.saveLoginData(
-          _user!.correo,
-          _user!.nombre,
-          _user!.rolId,
-          _user!.id,
-          clienteId: _user!.clienteId,
-        );
-        
-        _error = '';
-        _isLoading = false;
-        notifyListeners();
-        
-        return {
-          'success': true,
-          'message': result['message'] ?? 'Registro exitoso',
-        };
-      } else {
-        _error = result['error'] ?? 'Error en el registro';
-        _isLoading = false;
-        notifyListeners();
-        
-        return {
-          'success': false,
-          'error': _error,
-        };
-      }
+      // Como el método registerUser ya retorna error por defecto,
+      // esto siempre fallará hasta que implementemos el flujo completo.
+      _error = result['error'] ?? 'El registro requiere verificación por código. Próximamente.';
+      _isLoading = false;
+      notifyListeners();
+      
+      return {
+        'success': false,
+        'error': _error,
+      };
     } catch (e) {
       _error = 'Error de conexión: $e';
       _isLoading = false;
@@ -205,7 +178,7 @@ class AuthProvider extends ChangeNotifier {
   }
   
   Future<void> logout() async {
-    await StorageService.clearLoginData();
+    await StorageService.clearLoginData(); // Ya borra token también
     _user = null;
     _error = '';
     notifyListeners();
@@ -219,6 +192,7 @@ class AuthProvider extends ChangeNotifier {
       'rol': await StorageService.getUserRol(),
       'id': await StorageService.getUserId(),
       'clienteId': await StorageService.getClienteId(),
+      'hasToken': (await StorageService.getToken()) != null,
     };
   }
 }
