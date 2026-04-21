@@ -120,7 +120,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _telefonoEmergenciaController.text = _clienteData!['telefono_emergencia']?.toString() ?? '';
       
       // Cargar municipio seleccionado
-      _selectedMunicipio = _clienteData!['municipio']?.toString();
+      String? municipioRaw = _clienteData!['municipio']?.toString();
+      _selectedMunicipio = municipioRaw?.toUpperCase(); // Convertir a mayúsculas
       
       // Manejar fecha de nacimiento
       if (_clienteData!['fecha_nacimiento'] != null) {
