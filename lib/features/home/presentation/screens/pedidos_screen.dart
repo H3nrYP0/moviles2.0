@@ -48,8 +48,21 @@ class _PedidosScreenState extends State<PedidosScreen> {
     final pedidosProvider = context.read<PedidosProvider>();
     
     if (authProvider.isAuthenticated && authProvider.user != null) {
+      final clienteId = authProvider.user!.clienteId;
+      if (clienteId == null) {
+        // El usuario no tiene cliente asociado (posiblemente admin o perfil incompleto)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se encontró información de cliente. Completa tu perfil.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
       await pedidosProvider.loadPedidos(
-        authProvider.user!.id,
+        clienteId,
         isAdmin: authProvider.isAdmin,
       );
     }
@@ -60,7 +73,9 @@ class _PedidosScreenState extends State<PedidosScreen> {
     final pedidosProvider = context.read<PedidosProvider>();
     
     if (authProvider.isAuthenticated && authProvider.user != null) {
-      await pedidosProvider.refreshPedidos(authProvider.user!.id);
+      final clienteId = authProvider.user!.clienteId;
+      if (clienteId == null) return;
+      await pedidosProvider.refreshPedidos(clienteId);
     }
   }
 
