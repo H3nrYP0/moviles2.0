@@ -32,20 +32,20 @@ class ApiEndpoints {
   static const String pedidos = '$baseUrl/pedidos';
   static String pedidoById(int id) => '$baseUrl/pedidos/$id';
   
-  // ✅ Endpoint CORRECTO para pedidos de un cliente
+  // Endpoint correcto para pedidos de un cliente
   static String pedidosByCliente(int clienteId) => '$baseUrl/pedidos/cliente/$clienteId';
   
   // ⚠️ DEPRECATED: El backend NO tiene /pedidos/usuario/{usuarioId}
-  // Mantenido solo para no romper compilación, pero no debe usarse.
   @Deprecated('Usar pedidosByCliente(clienteId) en su lugar')
   static String pedidosByUsuario(int usuarioId) => '$baseUrl/pedidos/usuario/$usuarioId';
   
   // ==========================================================
   // 📅 CITAS Y AGENDA
   // ==========================================================
-  static const String citas = '$baseUrl/citas';
+  static const String citas = '$baseUrl/citas';               // Admin: todas las citas
+  static const String clienteCitas = '$baseUrl/cliente/citas'; // Cliente: sus propias citas (GET)
   static const String servicios = '$baseUrl/servicios';
-  static const String empleados = '$baseUrl/empleados';
+  static const String empleados = '$baseUrl/empleados';       // Admin: requiere permiso
   static const String clientes = '$baseUrl/clientes';
   static const String horario = '$baseUrl/horario';
   static const String estadoCita = '$baseUrl/estado-cita';

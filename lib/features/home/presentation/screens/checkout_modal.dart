@@ -6,6 +6,7 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
+import '../../../citas/data/services/api_colombia_service.dart'; // ← nuevo
 
 class CheckoutModal extends StatefulWidget {
   final CartProvider cartProvider;
@@ -24,19 +25,29 @@ class CheckoutModal extends StatefulWidget {
 }
 
 class _CheckoutModalState extends State<CheckoutModal> {
-  final TextEditingController _addressController = TextEditingController();
+  // Controladores para los campos de dirección
+  final TextEditingController _direccionController = TextEditingController();
+  final TextEditingController _barrioController = TextEditingController();
+  final TextEditingController _codigoPostalController = TextEditingController();
+
+  // Para el dropdown de municipios
+  List<String> _municipios = [];
+  bool _cargandoMunicipios = true;
+
+  // Variables locales para mantener el valor seleccionado (se sincronizan con el provider)
+  String? _selectedMunicipio;
+
   bool _showQRCode = false;
   bool _isProcessing = false;
   bool _isUploadingComprobante = false;
-  
+
   // Variables para archivos
   String? _filePath;
   List<int>? _fileBytes;
   String? _fileName;
-  
   String? _comprobanteUrlSubido;
   String? _errorComprobante;
-  
+
   // Estados del flujo
   bool _pedidoConfirmado = false;
   bool _mostrarSeccionComprobante = false;
@@ -44,20 +55,71 @@ class _CheckoutModalState extends State<CheckoutModal> {
   // URL del QR
   final String qrImageUrl = 'https://res.cloudinary.com/drhhthuqq/image/upload/v1765784067/qr_rs4oqq.jpg';
 
+  // Mapa de códigos postales (opcional, para autocompletar)
+  final Map<String, String> _codigosPostales = {
+    'MEDELLÍN': '050001',
+    'BELLO': '051001',
+    'ENVIGADO': '055420',
+    'ITAGÜÍ': '055410',
+    'SABANETA': '055450',
+    'LA ESTRELLA': '055430',
+    'CALDAS': '055411',
+    'COPACABANA': '051540',
+    'GIRARDOTA': '053080',
+    'BARBOSA': '050420',
+    'RIONEGRO': '056156',
+    'MARINILLA': '054640',
+    // agrega más según necesites
+  };
+
   @override
   void initState() {
     super.initState();
-    if (widget.cartProvider.deliveryAddress != null) {
-      _addressController.text = widget.cartProvider.deliveryAddress!;
-    }
+    // Cargar valores existentes del provider
+    _direccionController.text = widget.cartProvider.deliveryAddress ?? '';
+    _selectedMunicipio = widget.cartProvider.municipioEntrega;
+    _barrioController.text = widget.cartProvider.barrioEntrega ?? '';
+    _codigoPostalController.text = widget.cartProvider.codigoPostalEntrega ?? '';
     _showQRCode = widget.cartProvider.selectedPaymentMethod == 'transferencia';
     _mostrarSeccionComprobante = _showQRCode;
+
+    // Cargar municipios desde la API
+    _cargarMunicipios();
+  }
+
+  Future<void> _cargarMunicipios() async {
+    final municipios = await ApiColombiaService.getMunicipiosAntioquia();
+    setState(() {
+      _municipios = municipios;
+      _cargandoMunicipios = false;
+    });
   }
 
   @override
   void dispose() {
-    _addressController.dispose();
+    _direccionController.dispose();
+    _barrioController.dispose();
+    _codigoPostalController.dispose();
     super.dispose();
+  }
+
+  void _updateDeliveryInfo() {
+    widget.cartProvider.setDeliveryAddress(_direccionController.text);
+    widget.cartProvider.setMunicipioEntrega(_selectedMunicipio);
+    widget.cartProvider.setBarrioEntrega(_barrioController.text);
+    widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
+    // El departamento se fija en 'ANTIOQUIA' en el provider cuando se selecciona domicilio
+    if (widget.cartProvider.selectedDeliveryMethod == 'domicilio') {
+      widget.cartProvider.setDepartamentoEntrega('ANTIOQUIA');
+    }
+  }
+
+  void _autocompletarCodigoPostal(String? municipio) {
+    if (municipio != null && _codigosPostales.containsKey(municipio.toUpperCase())) {
+      final codigo = _codigosPostales[municipio.toUpperCase()]!;
+      _codigoPostalController.text = codigo;
+      widget.cartProvider.setCodigoPostalEntrega(codigo);
+    }
   }
 
   // SELECCIONAR ARCHIVO
@@ -68,10 +130,8 @@ class _CheckoutModalState extends State<CheckoutModal> {
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
         allowMultiple: false,
       );
-
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        
         setState(() {
           if (kIsWeb) {
             _fileBytes = file.bytes;
@@ -85,7 +145,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
           _comprobanteUrlSubido = null;
           _errorComprobante = null;
         });
-        
         _showSnackbar('✅ Archivo seleccionado: ${file.name}', isError: false);
       }
     } catch (e) {
@@ -95,37 +154,30 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
   // SUBIR COMPROBANTE A CLOUDINARY
   Future<void> _uploadComprobante() async {
-    final hasFile = (kIsWeb && _fileBytes != null && _fileName != null) || 
-                    (!kIsWeb && _filePath != null);
-
+    final hasFile = (kIsWeb && _fileBytes != null && _fileName != null) ||
+        (!kIsWeb && _filePath != null);
     if (!hasFile) {
       setState(() => _errorComprobante = 'Selecciona un archivo primero');
       return;
     }
-
     setState(() {
       _isUploadingComprobante = true;
       _errorComprobante = null;
     });
-
     try {
       final uploadResult = await CloudinaryService.uploadImage(
         filePath: _filePath,
         bytes: _fileBytes,
         fileName: _fileName,
       );
-      
       if (uploadResult['success'] == true) {
         setState(() {
           _comprobanteUrlSubido = uploadResult['url'];
           _errorComprobante = null;
         });
-        
         _showSnackbar('✅ Comprobante subido exitosamente', isError: false);
       } else {
-        setState(() {
-          _errorComprobante = uploadResult['error'] ?? 'Error al subir archivo';
-        });
+        setState(() => _errorComprobante = uploadResult['error'] ?? 'Error al subir archivo');
         _showSnackbar('❌ Error: ${uploadResult['error']}', isError: true);
       }
     } catch (e) {
@@ -136,61 +188,35 @@ class _CheckoutModalState extends State<CheckoutModal> {
     }
   }
 
-  // CONFIRMAR Y CREAR PEDIDO (flujo unificado)
+  // CONFIRMAR Y CREAR PEDIDO
   Future<void> _confirmAndCreateOrder() async {
     if (!widget.cartProvider.isReadyForCheckout) {
       _showSnackbar('Completa toda la información requerida', isError: true);
       return;
     }
-
     if (!widget.cartProvider.validateStock()) {
       _showSnackbar('Algunos productos no tienen suficiente stock', isError: true);
       return;
     }
-
-    // Validación específica para transferencia
     if (_showQRCode && _comprobanteUrlSubido == null) {
       setState(() => _errorComprobante = 'Debes subir el comprobante primero');
       return;
     }
-
     setState(() => _isProcessing = true);
-
     try {
       final user = widget.authProvider.user!;
-
-      // 1. Preparar datos del pedido
-      final orderData = widget.cartProvider.toOrderData(
-        user.clienteId!,
-        user.id,
-      );
-
-      // 2. Crear pedido (con o sin comprobante)
+      final orderData = widget.cartProvider.toOrderData(user.clienteId!, user.id);
       final result = await widget.apiService.createPedidoConComprobante(
         pedidoData: orderData,
-        comprobanteUrl: _comprobanteUrlSubido, // puede ser null, el método lo maneja
+        comprobanteUrl: _comprobanteUrlSubido,
       );
-
       if (result['success'] == true) {
         final pedidoId = result['pedido_id'] ?? 'N/A';
-        
-        // 1. Mostrar mensaje de éxito
         _showSnackbar('✅ Pedido #$pedidoId creado exitosamente!', isError: false);
-        
-        // 2. Vaciar carrito
         widget.cartProvider.clearCart();
-        
-        // 3. ESPERAR 1 segundo y cerrar TODO
         await Future.delayed(const Duration(seconds: 1));
-        
-        // 4. TRUCO SIMPLE: Usar Navigator.of(context, rootNavigator: true)
-        // Esto cierra todo, no solo el modal
-        Navigator.of(context, rootNavigator: true).popUntil((route) {
-          // Esto cierra hasta encontrar la ruta raíz
-          return route.isFirst;
-        });
-        
-        return; // Salir del método
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        return;
       } else {
         _showSnackbar('❌ Error al crear pedido: ${result['error']}', isError: true);
       }
@@ -211,18 +237,11 @@ class _CheckoutModalState extends State<CheckoutModal> {
     );
   }
 
-  // Validar si el botón debe estar activado
   bool get _isConfirmButtonEnabled {
     if (!widget.cartProvider.isReadyForCheckout) return false;
     if (!widget.cartProvider.validateStock()) return false;
     if (_isProcessing || _isUploadingComprobante) return false;
-    
-    // Si es transferencia, debe tener comprobante subido
-    if (_showQRCode) {
-      return _comprobanteUrlSubido != null;
-    }
-    
-    // Si es efectivo, solo necesita datos básicos
+    if (_showQRCode) return _comprobanteUrlSubido != null;
     return true;
   }
 
@@ -245,55 +264,39 @@ class _CheckoutModalState extends State<CheckoutModal> {
               children: [
                 const Text(
                   'Finalizar Compra',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color.fromARGB(255, 30, 58, 138),
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color.fromARGB(255, 30, 58, 138)),
                 ),
-                if (!_pedidoConfirmado) // Solo mostrar cerrar si no está confirmado
+                if (!_pedidoConfirmado)
                   IconButton(
                     icon: const Icon(Icons.close, size: 24),
                     onPressed: () => Navigator.pop(context),
                   ),
               ],
             ),
-
             const SizedBox(height: 20),
 
             // RESUMEN
             _buildSummarySection(),
-
             const SizedBox(height: 20),
 
             // MÉTODO DE ENTREGA
             _buildDeliverySection(),
-
             const SizedBox(height: 16),
 
             // DIRECCIÓN (si es domicilio)
             if (widget.cartProvider.selectedDeliveryMethod == 'domicilio')
               _buildAddressSection(),
-
             const SizedBox(height: 16),
 
             // MÉTODO DE PAGO
             _buildPaymentSection(),
-
             const SizedBox(height: 16),
 
-            // QR CODE (si es transferencia)
             if (_showQRCode && _mostrarSeccionComprobante) _buildQRCodeSection(),
-
-            // SECCIÓN SUBIR COMPROBANTE (solo para transferencia)
-            if (_showQRCode && _mostrarSeccionComprobante)
-              _buildUploadComprobanteSection(),
-
+            if (_showQRCode && _mostrarSeccionComprobante) _buildUploadComprobanteSection(),
             const SizedBox(height: 24),
 
-            // BOTÓN CONFIRMAR PEDIDO (ÚNICO BOTÓN)
             _buildConfirmButton(),
-            
             const SizedBox(height: 20),
           ],
         ),
@@ -311,60 +314,23 @@ class _CheckoutModalState extends State<CheckoutModal> {
       ),
       child: Column(
         children: [
-          const Text(
-            'Resumen del Pedido',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey,
-            ),
-          ),
+          const Text('Resumen del Pedido', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
           const SizedBox(height: 12),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Subtotal (${widget.cartProvider.items.length} productos)',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                '\$${widget.cartProvider.subtotal.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('Subtotal (${widget.cartProvider.items.length} productos)', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text('\$${widget.cartProvider.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ],
           ),
-          
           const SizedBox(height: 8),
-          
           const Divider(height: 1, color: Colors.grey),
           const SizedBox(height: 8),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Total a pagar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                '\$${widget.cartProvider.totalAmount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.green,
-                ),
-              ),
+              const Text('Total a pagar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey)),
+              Text('\$${widget.cartProvider.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.green)),
             ],
           ),
         ],
@@ -376,14 +342,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Método de entrega',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey,
-          ),
-        ),
+        const Text('Método de entrega', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -394,8 +353,14 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 isSelected: widget.cartProvider.selectedDeliveryMethod == 'tienda',
                 onTap: () {
                   widget.cartProvider.selectDeliveryMethod('tienda');
-                  _addressController.clear();
-                  setState(() {});
+                  // Limpiar todos los campos de dirección
+                  _direccionController.clear();
+                  _barrioController.clear();
+                  _codigoPostalController.clear();
+                  setState(() {
+                    _selectedMunicipio = null;
+                  });
+                  _updateDeliveryInfo();
                 },
               ),
             ),
@@ -407,7 +372,13 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 isSelected: widget.cartProvider.selectedDeliveryMethod == 'domicilio',
                 onTap: () {
                   widget.cartProvider.selectDeliveryMethod('domicilio');
-                  setState(() {});
+                  setState(() {
+                    _selectedMunicipio = widget.cartProvider.municipioEntrega;
+                    _barrioController.text = widget.cartProvider.barrioEntrega ?? '';
+                    _codigoPostalController.text = widget.cartProvider.codigoPostalEntrega ?? '';
+                    _direccionController.text = widget.cartProvider.deliveryAddress ?? '';
+                  });
+                  _updateDeliveryInfo();
                 },
               ),
             ),
@@ -421,22 +392,76 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Dirección de entrega',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _addressController,
+        const Text('Dirección de entrega', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+
+        // Departamento fijo
+        TextFormField(
+          initialValue: 'ANTIOQUIA',
+          readOnly: true,
           decoration: const InputDecoration(
-            hintText: 'Ingresa tu dirección completa',
+            labelText: 'Departamento',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
+        ),
+        const SizedBox(height: 12),
+
+        // Municipio (dropdown desde API)
+        if (_cargandoMunicipios)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: LinearProgressIndicator())
+        else
+          DropdownButtonFormField<String>(
+            value: _selectedMunicipio,
+            hint: const Text('Selecciona un municipio'),
+            isExpanded: true,
+            items: _municipios.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+            onChanged: (value) {
+              setState(() => _selectedMunicipio = value);
+              widget.cartProvider.setMunicipioEntrega(value);
+              _autocompletarCodigoPostal(value);
+            },
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        const SizedBox(height: 12),
+
+        // Barrio
+        TextField(
+          controller: _barrioController,
+          decoration: const InputDecoration(
+            hintText: 'Barrio',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          onChanged: (value) => widget.cartProvider.setBarrioEntrega(value),
+        ),
+        const SizedBox(height: 12),
+
+        // Código postal
+        TextField(
+          controller: _codigoPostalController,
+          decoration: const InputDecoration(
+            hintText: 'Código postal',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (value) => widget.cartProvider.setCodigoPostalEntrega(value),
+        ),
+        const SizedBox(height: 12),
+
+        // Dirección línea
+        TextField(
+          controller: _direccionController,
+          decoration: const InputDecoration(
+            hintText: 'Dirección completa (calle, número, etc.)',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          maxLines: 2,
           onChanged: (value) => widget.cartProvider.setDeliveryAddress(value),
         ),
       ],
@@ -447,14 +472,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Método de pago',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey,
-          ),
-        ),
+        const Text('Método de pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -505,19 +523,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '💰 Pago por transferencia',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.blue,
-            ),
-          ),
+          const Text('💰 Pago por transferencia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.blue)),
           const SizedBox(height: 8),
-          const Text(
-            'Realiza la transferencia a la siguiente cuenta bancaria:',
-            style: TextStyle(fontSize: 13),
-          ),
+          const Text('Realiza la transferencia a la siguiente cuenta bancaria:', style: TextStyle(fontSize: 13)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
@@ -536,10 +544,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            '📱 Escanea este código QR para pagar rápido:',
-            style: TextStyle(fontSize: 13),
-          ),
+          const Text('📱 Escanea este código QR para pagar rápido:', style: TextStyle(fontSize: 13)),
           const SizedBox(height: 12),
           Center(
             child: Container(
@@ -550,13 +555,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Image.network(
                 qrImageUrl,
@@ -564,36 +563,17 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 height: 150,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
+                  return Center(child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null));
                 },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 150,
-                    height: 150,
-                    color: Colors.grey[100],
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.qr_code_2, size: 80, color: Colors.blue),
-                        SizedBox(height: 8),
-                        Text(
-                          'Código QR de pago',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 150,
+                  height: 150,
+                  color: Colors.grey[100],
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [Icon(Icons.qr_code_2, size: 80, color: Colors.blue), SizedBox(height: 8), Text('Código QR de pago', style: TextStyle(fontSize: 12, color: Colors.grey))],
+                  ),
+                ),
               ),
             ),
           ),
@@ -609,15 +589,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
               children: [
                 Icon(Icons.warning_amber, color: Colors.orange, size: 20),
                 SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '⚠️ IMPORTANTE: Después de pagar, sube el comprobante abajo.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text('⚠️ IMPORTANTE: Después de pagar, sube el comprobante abajo.', style: TextStyle(fontSize: 12, color: Colors.orange))),
               ],
             ),
           ),
@@ -627,9 +599,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
   }
 
   Widget _buildUploadComprobanteSection() {
-    final hasFile = (kIsWeb && _fileBytes != null && _fileName != null) || 
-                    (!kIsWeb && _filePath != null);
-    
+    final hasFile = (kIsWeb && _fileBytes != null && _fileName != null) || (!kIsWeb && _filePath != null);
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(top: 16),
@@ -645,25 +615,13 @@ class _CheckoutModalState extends State<CheckoutModal> {
             children: [
               const Icon(Icons.cloud_upload, color: Colors.green, size: 24),
               const SizedBox(width: 8),
-              const Text(
-                'Subir comprobante de pago',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.green,
-                ),
-              ),
+              const Text('Subir comprobante de pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.green)),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Selecciona una foto o captura de pantalla del comprobante de transferencia.',
-            style: TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-          
+          const Text('Selecciona una foto o captura de pantalla del comprobante de transferencia.', style: TextStyle(fontSize: 13, color: Colors.grey)),
           const SizedBox(height: 16),
-          
-          // ARCHIVO SELECCIONADO
+
           if (hasFile && _fileName != null)
             Container(
               padding: const EdgeInsets.all(12),
@@ -674,36 +632,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.insert_drive_file, color: Colors.green),
-                  ),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.insert_drive_file, color: Colors.green)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _fileName!,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text(_fileName!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 2),
-                        Text(
-                          kIsWeb ? 'Listo para subir' : 'Archivo local',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
+                        Text(kIsWeb ? 'Listo para subir' : 'Archivo local', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                       ],
                     ),
                   ),
@@ -721,8 +658,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 ],
               ),
             ),
-          
-          // MENSAJE DE ERROR
+
           if (_errorComprobante != null && _comprobanteUrlSubido == null)
             Container(
               margin: const EdgeInsets.only(top: 8),
@@ -736,22 +672,12 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 children: [
                   const Icon(Icons.error_outline, color: Colors.red, size: 20),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorComprobante!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
+                  Expanded(child: Text(_errorComprobante!, style: const TextStyle(color: Colors.red, fontSize: 13))),
                 ],
               ),
             ),
-          
           const SizedBox(height: 16),
-          
-          // BOTÓN SELECCIONAR
+
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -761,48 +687,32 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 backgroundColor: Colors.blue.shade50,
                 foregroundColor: Colors.blue.shade800,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: Colors.blue.shade200),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.blue.shade200)),
               ),
               onPressed: _pickFile,
             ),
           ),
-          
-          // BOTÓN SUBIR
+
           if (hasFile && _comprobanteUrlSubido == null) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: _isUploadingComprobante
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
                     : const Icon(Icons.cloud_upload, size: 20),
-                label: Text(
-                  _isUploadingComprobante ? 'Subiendo...' : 'Subir comprobante',
-                ),
+                label: Text(_isUploadingComprobante ? 'Subiendo...' : 'Subir comprobante'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: _isUploadingComprobante ? null : _uploadComprobante,
               ),
             ),
           ],
-          
-          // COMPROBANTE SUBIDO
+
           if (_comprobanteUrlSubido != null) ...[
             const SizedBox(height: 12),
             Container(
@@ -814,33 +724,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(Icons.check, color: Colors.white, size: 24),
-                  ),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)), child: const Icon(Icons.check, color: Colors.white, size: 24)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '✅ Comprobante subido exitosamente',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.green,
-                          ),
-                        ),
+                        const Text('✅ Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
                         const SizedBox(height: 4),
-                        Text(
-                          'URL: ${_comprobanteUrlSubido!.substring(0, 50)}...',
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Text('URL: ${_comprobanteUrlSubido!.substring(0, 50)}...', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -854,9 +746,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
   }
 
   Widget _buildConfirmButton() {
-    // Texto del botón según el estado
     String buttonText;
-    
     if (_showQRCode && _comprobanteUrlSubido == null) {
       buttonText = 'SUBE EL COMPROBANTE PRIMERO';
     } else if (_isProcessing) {
@@ -866,7 +756,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
     } else {
       buttonText = 'CONFIRMAR PEDIDO CON EFECTIVO';
     }
-    
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -875,23 +764,12 @@ class _CheckoutModalState extends State<CheckoutModal> {
           : ElevatedButton(
               onPressed: _isConfirmButtonEnabled ? _confirmAndCreateOrder : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isConfirmButtonEnabled
-                    ? const Color.fromARGB(255, 30, 58, 138)
-                    : Colors.grey.shade400,
+                backgroundColor: _isConfirmButtonEnabled ? const Color.fromARGB(255, 30, 58, 138) : Colors.grey.shade400,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 3,
               ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
+              child: Text(buttonText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
             ),
     );
   }
@@ -903,12 +781,7 @@ class _DeliveryOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _DeliveryOption({
-    required this.icon,
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _DeliveryOption({required this.icon, required this.title, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -920,28 +793,13 @@ class _DeliveryOption extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? Colors.blue.shade50 : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: isSelected ? Colors.blue : Colors.grey.shade300, width: isSelected ? 2 : 1),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: isSelected ? Colors.blue : Colors.grey.shade600,
-            ),
+            Icon(icon, size: 30, color: isSelected ? Colors.blue : Colors.grey.shade600),
             const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.blue : Colors.grey.shade700,
-              ),
-            ),
+            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? Colors.blue : Colors.grey.shade700)),
           ],
         ),
       ),
@@ -955,12 +813,7 @@ class _PaymentOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _PaymentOption({
-    required this.icon,
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _PaymentOption({required this.icon, required this.title, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -972,28 +825,13 @@ class _PaymentOption extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.green : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: isSelected ? Colors.green : Colors.grey.shade300, width: isSelected ? 2 : 1),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: isSelected ? Colors.green : Colors.grey.shade600,
-            ),
+            Icon(icon, size: 30, color: isSelected ? Colors.green : Colors.grey.shade600),
             const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.green : Colors.grey.shade700,
-              ),
-            ),
+            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? Colors.green : Colors.grey.shade700)),
           ],
         ),
       ),

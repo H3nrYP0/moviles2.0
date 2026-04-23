@@ -12,9 +12,6 @@ class CatalogProvider extends ChangeNotifier {
   bool _isLoading = false;
   int? _currentCategoryId;
   
-  // Cache de imágenes ya cargadas (ya no se usa para categorías, pero lo dejo por si acaso)
-  final Map<int, String> _imagenesCache = {};
-  
   List<Category> get categories => List.unmodifiable(_categories);
   List<Product> get products => List.unmodifiable(_products);
   String get error => _error;

@@ -1,12 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../../../../core/constants/api_endpoints.dart';
-import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/api_service.dart';
 import '../../data/models/cita_model.dart';
 import '../../data/models/servicio_model.dart';
 
 class CitasProvider extends ChangeNotifier {
+  final ApiService _apiService = ApiService();
 
   // ===================== DATOS =====================
   List<Cita> _citas = [];
@@ -29,7 +27,6 @@ class CitasProvider extends ChangeNotifier {
   List<Servicio> get servicios => List.from(_servicios);
   List<Map<String, dynamic>> get empleados => List.from(_empleados);
   List<Map<String, dynamic>> get clientes => List.from(_clientes);
-
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasError => _error.isNotEmpty;
@@ -56,18 +53,29 @@ class CitasProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================== LOAD PRINCIPAL =====================
+  // ===================== CARGA PRINCIPAL =====================
   Future<void> loadCitas() async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
+      // Cargar datos auxiliares (servicios siempre, clientes/empleados si admin)
       await _loadServicios();
-      await _loadEmpleados();
-      await _loadClientes();
-      await _loadAllCitas();
-      await _filtrarCitasCliente();
+      if (_isAdminMode) {
+        await Future.wait([
+          _loadEmpleados(),
+          _loadClientes(),
+        ]);
+      }
+
+      // Cargar citas según modo
+      if (_isAdminMode) {
+        await _loadAllCitasAdmin();
+        _citas = List.from(_allCitas);
+      } else {
+        await _loadMisCitas();
+      }
     } catch (e) {
       _error = 'Error al cargar datos: $e';
     } finally {
@@ -76,120 +84,108 @@ class CitasProvider extends ChangeNotifier {
     }
   }
 
-  // ===================== LOADERS =====================
+  Future<void> refreshCitas() async {
+    await loadCitas();
+  }
+
+  // ===================== LOADERS PRIVADOS =====================
   Future<void> _loadServicios() async {
     try {
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.servicios),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        _servicios = data
-            .map((e) => Servicio.fromJson(e))
-            .where((s) => s.estado == true)
-            .toList();
-      }
-    } catch (_) {
+      final data = await _apiService.getServicios();
+      _servicios = data
+          .map((e) => Servicio.fromJson(e))
+          .where((s) => s.estado == true)
+          .toList();
+    } catch (e) {
       _servicios = [];
+      print('Error cargando servicios: $e');
     }
   }
 
   Future<void> _loadEmpleados() async {
     try {
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.empleados),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        _empleados = data
-            .where((e) => e['estado'] == true || e['estado'] == 'true')
-            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-            .toList();
-      }
-    } catch (_) {
+      final data = await _apiService.getEmpleados();
+      _empleados = data
+          .where((e) => e['estado'] == true || e['estado'] == 'true')
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (e) {
       _empleados = [];
+      print('Error cargando empleados: $e');
     }
   }
 
   Future<void> _loadClientes() async {
     try {
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.clientes),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        _clientes = data
-            .where((c) => c['estado'] == true || c['estado'] == 'true')
-            .map<Map<String, dynamic>>((c) => Map<String, dynamic>.from(c))
-            .toList();
-      }
-    } catch (_) {
-      _clientes = [];
-    }
-  }
-
-  Future<void> _loadAllCitas() async {
-    try {
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.citas),
-        headers: {'Accept': 'application/json'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List) {
-          _allCitas = [];
-          for (var jsonItem in data) {
-            try {
-              final cita = Cita.fromJson(jsonItem);
-              
-              // Enriquecer con nombres
-              cita.empleadoNombre = getEmpleadoNombre(cita.empleadoId);
-              cita.servicioNombre = getServicioNombre(cita.servicioId);
-              cita.clienteNombre = getClienteNombre(cita.clienteId);
-              cita.estadoNombre = _getNombreEstadoPorId(cita.estadoCitaId);
-              
-              _allCitas.add(cita);
-            } catch (e) {
-              print('⚠️ Error procesando cita: $e');
-            }
-          }
-          
-          _allCitas.sort((a, b) {
-            // Ordenar por fecha y hora combinadas
-            final fechaHoraA = DateTime(a.fecha.year, a.fecha.month, a.fecha.day, a.hora.hour, a.hora.minute);
-            final fechaHoraB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day, b.hora.hour, b.hora.minute);
-            return fechaHoraB.compareTo(fechaHoraA); // Más recientes primero
-          });
-          print('✅ Todas las citas cargadas: ${_allCitas.length}');
-        }
-      } else {
-        print('❌ Error HTTP al cargar citas: ${response.statusCode}');
-      }
+      final data = await _apiService.getClientes();
+      _clientes = data
+          .where((c) => c['estado'] == true || c['estado'] == 'true')
+          .map<Map<String, dynamic>>((c) => Map<String, dynamic>.from(c))
+          .toList();
     } catch (e) {
-      print('❌ Error cargando citas: $e');
-      _allCitas = [];
+      _clientes = [];
+      print('Error cargando clientes: $e');
     }
   }
 
-  Future<void> _filtrarCitasCliente() async {
-    if (_isAdminMode) {
+  Future<void> _loadMisCitas() async {
+    try {
+      final data = await _apiService.getMisCitas();
+      _allCitas = await _enriquecerCitas(data);
+      // En modo cliente, no se filtran más (ya vienen solo las suyas)
       _citas = List.from(_allCitas);
-      return;
-    }
-
-    final clienteId = await StorageService.getClienteId();
-    if (clienteId != null) {
-      _citas = _allCitas.where((c) => c.clienteId == clienteId).toList();
-    } else {
+      print('✅ Mis citas cargadas: ${_citas.length}');
+    } catch (e) {
+      print('❌ Error cargando mis citas: $e');
+      _allCitas = [];
       _citas = [];
     }
+  }
+
+  Future<void> _loadAllCitasAdmin() async {
+    try {
+      final data = await _apiService.getAllCitas();
+      _allCitas = await _enriquecerCitas(data);
+      _citas = List.from(_allCitas);
+      // Ordenar por fecha descendente
+      _allCitas.sort((a, b) {
+        final fechaA = DateTime(a.fecha.year, a.fecha.month, a.fecha.day, a.hora.hour, a.hora.minute);
+        final fechaB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day, b.hora.hour, b.hora.minute);
+        return fechaB.compareTo(fechaA);
+      });
+      print('✅ Todas las citas cargadas (admin): ${_allCitas.length}');
+    } catch (e) {
+      print('❌ Error cargando todas las citas: $e');
+      _allCitas = [];
+      _citas = [];
+    }
+  }
+
+  // Enriquecer lista de citas con nombres (empleado, servicio, cliente, estado)
+  Future<List<Cita>> _enriquecerCitas(List<dynamic> citasJson) async {
+    List<Cita> citas = [];
+    for (var json in citasJson) {
+      try {
+        final cita = Cita.fromJson(json);
+        // Si el backend no devuelve los nombres, los asignamos desde nuestras listas
+        if (cita.empleadoNombre == null || cita.empleadoNombre!.isEmpty) {
+          cita.empleadoNombre = getEmpleadoNombre(cita.empleadoId);
+        }
+        if (cita.servicioNombre == null || cita.servicioNombre!.isEmpty) {
+          cita.servicioNombre = getServicioNombre(cita.servicioId);
+        }
+        if (cita.clienteNombre == null || cita.clienteNombre!.isEmpty) {
+          cita.clienteNombre = getClienteNombre(cita.clienteId);
+        }
+        if (cita.estadoNombre == null || cita.estadoNombre!.isEmpty) {
+          cita.estadoNombre = _getNombreEstadoPorId(cita.estadoCitaId);
+        }
+        citas.add(cita);
+      } catch (e) {
+        print('⚠️ Error procesando cita: $e');
+      }
+    }
+    return citas;
   }
 
   // ===================== CRUD =====================
@@ -198,18 +194,13 @@ class CitasProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiEndpoints.citas),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cita.toApiJson()),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      final result = await _apiService.createCita(cita.toApiJson());
+      if (result['success'] == true) {
         await loadCitas();
         return {'success': true};
+      } else {
+        return {'success': false, 'error': result['error'] ?? 'Error al crear la cita'};
       }
-
-      return {'success': false, 'error': response.body};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     } finally {
@@ -220,17 +211,12 @@ class CitasProvider extends ChangeNotifier {
 
   Future<Map<String, dynamic>> actualizarEstadoCita(int id, int estadoId) async {
     try {
-      final response = await http.put(
-        Uri.parse('${ApiEndpoints.citas}/$id'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'estado_cita_id': estadoId}),
-      );
-
-      if (response.statusCode == 200) {
+      final result = await _apiService.updateCitaEstado(id, estadoId);
+      if (result['success'] == true) {
         await loadCitas();
         return {'success': true};
       }
-      return {'success': false};
+      return {'success': false, 'error': result['error'] ?? 'Error al actualizar estado'};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
@@ -248,39 +234,34 @@ class CitasProvider extends ChangeNotifier {
     }
   }
 
-  String getEmpleadoNombre(int id) =>
-      _empleados.firstWhere(
-        (e) => e['id'] == id,
-        orElse: () => {'nombre': 'Empleado #$id'},
-      )['nombre'];
+  String getEmpleadoNombre(int id) {
+    final empleado = _empleados.firstWhere(
+      (e) => e['id'] == id,
+      orElse: () => {'nombre': 'Empleado #$id'},
+    );
+    return empleado['nombre'];
+  }
 
-  String getServicioNombre(int id) =>
-      _servicios.firstWhere(
-        (s) => s.id == id,
-        orElse: () => Servicio(
-          id: 0,
-          nombre: 'Servicio',
-          duracionMin: 30,
-          precio: 0,
-          estado: true,
-        ),
-      ).nombre;
+  String getServicioNombre(int id) {
+    final servicio = _servicios.firstWhere(
+      (s) => s.id == id,
+      orElse: () => Servicio(id: 0, nombre: 'Servicio', duracionMin: 30, precio: 0, estado: true),
+    );
+    return servicio.nombre;
+  }
 
   String getClienteNombre(int id) {
-    final c = _clientes.firstWhere(
+    final cliente = _clientes.firstWhere(
       (c) => c['id'] == id,
       orElse: () => {},
     );
-    return '${c['nombre'] ?? ''} ${c['apellido'] ?? ''}'.trim().isEmpty
-        ? 'Cliente #$id'
-        : '${c['nombre']} ${c['apellido']}';
+    final nombreCompleto = '${cliente['nombre'] ?? ''} ${cliente['apellido'] ?? ''}'.trim();
+    return nombreCompleto.isEmpty ? 'Cliente #$id' : nombreCompleto;
   }
 
-  // ===================== UTILS =====================
+  // ===================== UTILIDADES =====================
   void clearError() {
     _error = '';
     notifyListeners();
   }
-
-  Future<void> refreshCitas() async => loadCitas();
 }

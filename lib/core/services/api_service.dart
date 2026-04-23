@@ -81,9 +81,6 @@ class ApiService {
     }
   }
 
-  // ==========================================================
-  //  PERFIL CLIENTE (autenticado) - NUEVO MÉTODO
-  // ==========================================================
   Future<Map<String, dynamic>> getMiPerfilCliente() async {
     _log('GET mi perfil cliente', type: 'INFO');
     try {
@@ -104,7 +101,7 @@ class ApiService {
   }
 
   // ==========================================================
-  //  REGISTRO (requiere flujo de código, se modificará después)
+  //  REGISTRO (nuevo flujo con código)
   // ==========================================================
   Future<Map<String, dynamic>> registerUser({
     required String nombre,
@@ -145,7 +142,43 @@ class ApiService {
   }
 
   // ==========================================================
-  //  CLIENTES (con token)
+  //  CLIENTES (admin)
+  // ==========================================================
+  Future<List<dynamic>> getClientes() async {
+    _log('GET clientes from: ${ApiEndpoints.clientes}');
+    try {
+      final headers = await _getHeaders(); // requiere token
+      final response = await http.get(Uri.parse(ApiEndpoints.clientes), headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Error al obtener clientes: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getClientes: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  EMPLEADOS (admin)
+  // ==========================================================
+  Future<List<dynamic>> getEmpleados() async {
+    _log('GET empleados from: ${ApiEndpoints.empleados}');
+    try {
+      final headers = await _getHeaders(); // requiere token
+      final response = await http.get(Uri.parse(ApiEndpoints.empleados), headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Error al obtener empleados: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getEmpleados: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  CRUD CLIENTE (crear, actualizar, obtener)
   // ==========================================================
   Future<Map<String, dynamic>> createCliente({
     required String nombre,
@@ -260,10 +293,7 @@ class ApiService {
     _log('GET mapa de clientes', type: 'INFO');
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse(ApiEndpoints.clientes),
-        headers: headers,
-      );
+      final response = await http.get(Uri.parse(ApiEndpoints.clientes), headers: headers);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final Map<int, String> clientesMap = {};
@@ -383,7 +413,7 @@ class ApiService {
   // ==========================================================
   //  CITAS
   // ==========================================================
-  Future<bool> createCita(Map<String, dynamic> citaData) async {
+  Future<Map<String, dynamic>> createCita(Map<String, dynamic> citaData) async {
     _log('CREATE cita', type: 'INFO');
     try {
       final headers = await _getHeaders();
@@ -392,9 +422,41 @@ class ApiService {
         headers: headers,
         body: json.encode(citaData),
       );
-      return response.statusCode == 201 || response.statusCode == 200;
+      final success = response.statusCode == 201 || response.statusCode == 200;
+      if (success) {
+        return {'success': true};
+      } else {
+        String errorMsg;
+        try {
+          final errorData = json.decode(response.body);
+          errorMsg = errorData['error'] ?? 'Error ${response.statusCode}';
+        } catch (_) {
+          errorMsg = 'Error ${response.statusCode}: ${response.body}';
+        }
+        return {'success': false, 'error': errorMsg};
+      }
     } catch (e) {
-      throw Exception('Error al crear cita: $e');
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateCitaEstado(int citaId, int estadoId) async {
+    _log('UPDATE estado de cita $citaId a $estadoId', type: 'INFO');
+    try {
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse('${ApiEndpoints.citas}/$citaId'),
+        headers: headers,
+        body: json.encode({'estado_cita_id': estadoId}),
+      );
+      if (response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        final errorData = json.decode(response.body);
+        return {'success': false, 'error': errorData['error'] ?? 'Error ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Error de conexión: $e'};
     }
   }
 
@@ -491,6 +553,90 @@ class ApiService {
       }
     } catch (e) {
       return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  // ==========================================================
+  //  SERVICIOS (público)
+  // ==========================================================
+  Future<List<dynamic>> getServicios() async {
+    _log('GET servicios from: ${ApiEndpoints.servicios}');
+    try {
+      final headers = await _getHeaders(withToken: false);
+      final response = await http.get(Uri.parse(ApiEndpoints.servicios), headers: headers);
+      if (response.statusCode == 200) return json.decode(response.body);
+      throw Exception('Error al obtener servicios: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getServicios: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  DISPONIBILIDAD MÚLTIPLE (público)
+  // ==========================================================
+  Future<Map<String, dynamic>> getHorasDisponiblesMultiple({
+    required int servicioId,
+    required String fecha,
+    int intervaloMinutos = 30,
+  }) async {
+    _log('GET disponibilidad multiple para servicio $servicioId en $fecha');
+    try {
+      final headers = await _getHeaders(withToken: false);
+      final url = Uri.parse(
+        '${ApiEndpoints.verificarDisponibilidadMultiple}?servicio_id=$servicioId&fecha=$fecha&intervalo_minutos=$intervaloMinutos'
+      );
+      final response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        _log('Error ${response.statusCode}: ${response.body}', type: 'ERROR');
+        return {'horas_disponibles': []};
+      }
+    } catch (e) {
+      _log('Error getHorasDisponiblesMultiple: $e', type: 'ERROR');
+      return {'horas_disponibles': []};
+    }
+  }
+
+  // ==========================================================
+  //  MIS CITAS (cliente autenticado)
+  // ==========================================================
+  Future<List<dynamic>> getMisCitas() async {
+    _log('GET mis citas from: ${ApiEndpoints.clienteCitas}');
+    try {
+      final headers = await _getHeaders(); // con token
+      final response = await http.get(Uri.parse(ApiEndpoints.clienteCitas), headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Error al obtener mis citas: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getMisCitas: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  TODAS LAS CITAS (solo admin)
+  // ==========================================================
+  Future<List<dynamic>> getAllCitas() async {
+    _log('GET all citas from: ${ApiEndpoints.citas}');
+    try {
+      final headers = await _getHeaders(); // con token
+      final response = await http.get(Uri.parse(ApiEndpoints.citas), headers: headers);
+      if (response.statusCode == 200) {
+        // El endpoint /citas devuelve paginado: {data: [...], total, page, ...}
+        final data = json.decode(response.body);
+        if (data is Map && data.containsKey('data')) {
+          return data['data'] as List;
+        }
+        return data as List;
+      }
+      throw Exception('Error al obtener citas: ${response.statusCode}');
+    } catch (e) {
+      _log('Error getAllCitas: $e', type: 'ERROR');
+      throw Exception('Error de conexión: $e');
     }
   }
 }

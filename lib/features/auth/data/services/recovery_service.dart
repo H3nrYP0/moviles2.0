@@ -4,13 +4,9 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/api_endpoints.dart';
-import '../../../../core/services/eyes_setting_email_service.dart';
 
 class RecoveryService {
-  static final ApiService _apiService = ApiService();
-  
   // ==================== PASO 1: VERIFICAR EMAIL ====================
   // Ahora usa el endpoint POST /auth/forgot-password (público)
   static Future<Map<String, dynamic>> checkEmailExists(String email) async {
@@ -24,7 +20,7 @@ class RecoveryService {
         body: json.encode({'correo': email}),
       );
       
-      final data = json.decode(response.body);
+      json.decode(response.body);
       
       // El backend siempre responde con {success: true, message: "Si el correo existe, recibirás un código"}
       // No nos da información directa de si existe, pero podemos confiar en que si el email está registrado,

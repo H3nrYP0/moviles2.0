@@ -26,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _telefonoController = TextEditingController();
   final _correoController = TextEditingController();
   final _direccionController = TextEditingController();
+  final _barrioController = TextEditingController();
+  final _codigoPostalController = TextEditingController();
   final _ocupacionController = TextEditingController();
   final _documentoController = TextEditingController();
   final _telefonoEmergenciaController = TextEditingController();
@@ -60,6 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _documentoController.dispose();
     _telefonoEmergenciaController.dispose();
     _fechaNacimientoController.dispose();
+    _barrioController.dispose();
+    _codigoPostalController.dispose();
     super.dispose();
   }
 
@@ -118,6 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _direccionController.text = _clienteData!['direccion']?.toString() ?? '';
       _ocupacionController.text = _clienteData!['ocupacion']?.toString() ?? '';
       _telefonoEmergenciaController.text = _clienteData!['telefono_emergencia']?.toString() ?? '';
+      _barrioController.text = _clienteData!['barrio']?.toString() ?? '';
+      _codigoPostalController.text = _clienteData!['codigo_postal']?.toString() ?? '';
       
       // Cargar municipio seleccionado
       String? municipioRaw = _clienteData!['municipio']?.toString();
@@ -238,6 +244,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'telefono': _telefonoController.text.trim(),
       'correo': _correoController.text.trim(),
       'departamento': 'ANTIOQUIA', // Fijo
+      'barrio': _barrioController.text.trim(),
+      'codigo_postal': _codigoPostalController.text.trim(),
       'municipio': _selectedMunicipio,
       'direccion': _direccionController.text.trim().isNotEmpty 
           ? _direccionController.text.trim() 
@@ -793,6 +801,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           maxLines: 2,
                           hintText: 'Tu dirección completa',
                         ),
+
+                        _buildFormField(
+                          label: 'Barrio',
+                          controller: _barrioController,
+                          hintText: 'Ej: El Poblado',
+                        ),
+                        _buildFormField(
+                          label: 'Código postal',
+                          controller: _codigoPostalController,
+                          keyboardType: TextInputType.number,
+                          hintText: 'Ej: 050001',
+                        ),
                         
                         _buildFormField(
                           label: 'Ocupación',
@@ -1099,6 +1119,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.location_on,
                             label: 'Dirección',
                             value: _direccionController.text,
+                          ),
+                          _buildInfoItem(
+                            icon: Icons.location_city,
+                            label: 'Barrio',
+                            value: _barrioController.text,
+                          ),
+                          _buildInfoItem(
+                            icon: Icons.location_on,
+                            label: 'Código postal',
+                            value: _codigoPostalController.text,
                           ),
                           _buildInfoItem(
                             icon: Icons.work,

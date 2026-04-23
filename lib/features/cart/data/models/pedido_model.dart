@@ -9,10 +9,15 @@ class Pedido {
   final String metodoPago;
   final String metodoEntrega;
   final String? direccionEntrega;
+  // NUEVOS CAMPOS
+  final String? departamentoEntrega;
+  final String? municipioEntrega;
+  final String? barrioEntrega;
+  final String? codigoPostalEntrega;
   final String estado;
   final String fechaCreacion;
   final List<PedidoItem> items;
-  
+
   Pedido({
     required this.id,
     required this.clienteId,
@@ -21,11 +26,15 @@ class Pedido {
     required this.metodoPago,
     required this.metodoEntrega,
     this.direccionEntrega,
+    this.departamentoEntrega,
+    this.municipioEntrega,
+    this.barrioEntrega,
+    this.codigoPostalEntrega,
     required this.estado,
     required this.fechaCreacion,
     required this.items,
   });
-  
+
   factory Pedido.fromJson(Map<String, dynamic> json) {
     return Pedido(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
@@ -37,6 +46,11 @@ class Pedido {
       metodoPago: json['metodo_pago'] ?? json['metodoPago'] ?? 'efectivo',
       metodoEntrega: json['metodo_entrega'] ?? json['metodoEntrega'] ?? 'tienda',
       direccionEntrega: json['direccion_entrega'] ?? json['direccionEntrega'],
+      // NUEVOS CAMPOS
+      departamentoEntrega: json['departamento_entrega'],
+      municipioEntrega: json['municipio_entrega'],
+      barrioEntrega: json['barrio_entrega'],
+      codigoPostalEntrega: json['codigo_postal_entrega'],
       estado: json['estado'] ?? 'pendiente',
       fechaCreacion: json['fecha_creacion'] ?? json['fechaCreacion'] ?? DateTime.now().toString(),
       items: (json['items'] as List?)?.map((item) => PedidoItem.fromJson(item)).toList() ?? [],
