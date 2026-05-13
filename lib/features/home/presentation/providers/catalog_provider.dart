@@ -129,4 +129,30 @@ class CatalogProvider extends ChangeNotifier {
     // No hacemos nada porque no tenemos imágenes de categorías
     return null;
   }
+
+// ==========================================================
+//  PRODUCTOS DESTACADOS (usando getProductos)
+// ==========================================================
+List<Product> _featuredProducts = [];
+List<Product> get featuredProducts => List.unmodifiable(_featuredProducts);
+
+Future<void> loadFeaturedProducts() async {
+  _isLoading = true;
+  _error = '';
+  notifyListeners();
+
+  try {
+    final data = await _apiService.getProductos();
+    final allProducts = data.map((json) => Product.fromJson(json)).toList();
+    // Tomamos los primeros 6 productos como "destacados"
+    _featuredProducts = allProducts.take(6).toList();
+    _error = '';
+  } catch (e) {
+    _error = 'Error al cargar productos destacados: $e';
+    _featuredProducts = [];
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 }

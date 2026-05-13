@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';   // Importa el tema centralizado
 
 class CustomBackButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -8,8 +9,8 @@ class CustomBackButton extends StatelessWidget {
   const CustomBackButton({
     super.key,
     required this.onPressed,
-    this.backgroundColor = const Color.fromARGB(255, 30, 58, 138),
-    this.iconColor = const Color.fromARGB(255, 255, 255, 255),
+    this.backgroundColor = AppTheme.primaryColor,
+    this.iconColor = AppTheme.surfaceColor,
   });
   
   @override
@@ -20,7 +21,7 @@ class CustomBackButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(80),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppTheme.black.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

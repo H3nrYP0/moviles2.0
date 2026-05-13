@@ -6,7 +6,8 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
-import '../../../citas/data/services/api_colombia_service.dart'; // ← nuevo
+import '../../../citas/data/services/api_colombia_service.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CheckoutModal extends StatefulWidget {
   final CartProvider cartProvider;
@@ -25,37 +26,30 @@ class CheckoutModal extends StatefulWidget {
 }
 
 class _CheckoutModalState extends State<CheckoutModal> {
-  // Controladores para los campos de dirección
   final TextEditingController _direccionController = TextEditingController();
   final TextEditingController _barrioController = TextEditingController();
   final TextEditingController _codigoPostalController = TextEditingController();
 
-  // Para el dropdown de municipios
   List<String> _municipios = [];
   bool _cargandoMunicipios = true;
 
-  // Variables locales para mantener el valor seleccionado (se sincronizan con el provider)
   String? _selectedMunicipio;
 
   bool _showQRCode = false;
   bool _isProcessing = false;
   bool _isUploadingComprobante = false;
 
-  // Variables para archivos
   String? _filePath;
   List<int>? _fileBytes;
   String? _fileName;
   String? _comprobanteUrlSubido;
   String? _errorComprobante;
 
-  // Estados del flujo
   bool _pedidoConfirmado = false;
   bool _mostrarSeccionComprobante = false;
 
-  // URL del QR
   final String qrImageUrl = 'https://res.cloudinary.com/drhhthuqq/image/upload/v1765784067/qr_rs4oqq.jpg';
 
-  // Mapa de códigos postales (opcional, para autocompletar)
   final Map<String, String> _codigosPostales = {
     'MEDELLÍN': '050001',
     'BELLO': '051001',
@@ -69,21 +63,17 @@ class _CheckoutModalState extends State<CheckoutModal> {
     'BARBOSA': '050420',
     'RIONEGRO': '056156',
     'MARINILLA': '054640',
-    // agrega más según necesites
   };
 
   @override
   void initState() {
     super.initState();
-    // Cargar valores existentes del provider
     _direccionController.text = widget.cartProvider.deliveryAddress ?? '';
     _selectedMunicipio = widget.cartProvider.municipioEntrega;
     _barrioController.text = widget.cartProvider.barrioEntrega ?? '';
     _codigoPostalController.text = widget.cartProvider.codigoPostalEntrega ?? '';
     _showQRCode = widget.cartProvider.selectedPaymentMethod == 'transferencia';
     _mostrarSeccionComprobante = _showQRCode;
-
-    // Cargar municipios desde la API
     _cargarMunicipios();
   }
 
@@ -108,7 +98,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
     widget.cartProvider.setMunicipioEntrega(_selectedMunicipio);
     widget.cartProvider.setBarrioEntrega(_barrioController.text);
     widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
-    // El departamento se fija en 'ANTIOQUIA' en el provider cuando se selecciona domicilio
     if (widget.cartProvider.selectedDeliveryMethod == 'domicilio') {
       widget.cartProvider.setDepartamentoEntrega('ANTIOQUIA');
     }
@@ -122,7 +111,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
     }
   }
 
-  // SELECCIONAR ARCHIVO
   Future<void> _pickFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -152,7 +140,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
     }
   }
 
-  // SUBIR COMPROBANTE A CLOUDINARY
   Future<void> _uploadComprobante() async {
     final hasFile = (kIsWeb && _fileBytes != null && _fileName != null) ||
         (!kIsWeb && _filePath != null);
@@ -188,7 +175,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
     }
   }
 
-  // CONFIRMAR Y CREAR PEDIDO
   Future<void> _confirmAndCreateOrder() async {
     if (!widget.cartProvider.isReadyForCheckout) {
       _showSnackbar('Completa toda la información requerida', isError: true);
@@ -231,7 +217,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? AppTheme.errorColor : AppTheme.successColor,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -250,7 +236,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
@@ -258,13 +244,12 @@ class _CheckoutModalState extends State<CheckoutModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ENCABEZADO
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Finalizar Compra',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color.fromARGB(255, 30, 58, 138)),
+                  style: AppTheme.titleLarge.copyWith(fontSize: 20),
                 ),
                 if (!_pedidoConfirmado)
                   IconButton(
@@ -275,20 +260,16 @@ class _CheckoutModalState extends State<CheckoutModal> {
             ),
             const SizedBox(height: 20),
 
-            // RESUMEN
             _buildSummarySection(),
             const SizedBox(height: 20),
 
-            // MÉTODO DE ENTREGA
             _buildDeliverySection(),
             const SizedBox(height: 16),
 
-            // DIRECCIÓN (si es domicilio)
             if (widget.cartProvider.selectedDeliveryMethod == 'domicilio')
               _buildAddressSection(),
             const SizedBox(height: 16),
 
-            // MÉTODO DE PAGO
             _buildPaymentSection(),
             const SizedBox(height: 16),
 
@@ -308,29 +289,44 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppTheme.gray50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.gray200),
       ),
       child: Column(
         children: [
-          const Text('Resumen del Pedido', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
+          Text(
+            'Resumen del Pedido',
+            style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Subtotal (${widget.cartProvider.items.length} productos)', style: const TextStyle(fontSize: 14, color: Colors.grey)),
-              Text('\$${widget.cartProvider.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(
+                'Subtotal (${widget.cartProvider.items.length} productos)',
+                style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
+              ),
+              Text(
+                '\$${widget.cartProvider.subtotal.toStringAsFixed(2)}',
+                style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Colors.grey),
+          Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total a pagar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey)),
-              Text('\$${widget.cartProvider.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.green)),
+              Text(
+                'Total a pagar',
+                style: AppTheme.titleMedium.copyWith(fontSize: 18),
+              ),
+              Text(
+                '\$${widget.cartProvider.totalAmount.toStringAsFixed(2)}',
+                style: AppTheme.priceText.copyWith(fontSize: 22),
+              ),
             ],
           ),
         ],
@@ -342,7 +338,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Método de entrega', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
+        Text(
+          'Método de entrega',
+          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
+        ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -353,13 +352,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 isSelected: widget.cartProvider.selectedDeliveryMethod == 'tienda',
                 onTap: () {
                   widget.cartProvider.selectDeliveryMethod('tienda');
-                  // Limpiar todos los campos de dirección
                   _direccionController.clear();
                   _barrioController.clear();
                   _codigoPostalController.clear();
-                  setState(() {
-                    _selectedMunicipio = null;
-                  });
+                  setState(() => _selectedMunicipio = null);
                   _updateDeliveryInfo();
                 },
               ),
@@ -392,24 +388,21 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Dirección de entrega', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-
-        // Departamento fijo
-        TextFormField(
-          initialValue: 'ANTIOQUIA',
-          readOnly: true,
-          decoration: const InputDecoration(
-            labelText: 'Departamento',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+        Text(
+          'Dirección de entrega',
+          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
 
-        // Municipio (dropdown desde API)
+        TextFormField(
+          initialValue: 'ANTIOQUIA',
+          readOnly: true,
+          decoration: AppTheme.inputDecoration(label: 'Departamento'),
+        ),
+        const SizedBox(height: 12),
+
         if (_cargandoMunicipios)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: LinearProgressIndicator())
+          const LinearProgressIndicator()
         else
           DropdownButtonFormField<String>(
             value: _selectedMunicipio,
@@ -421,46 +414,28 @@ class _CheckoutModalState extends State<CheckoutModal> {
               widget.cartProvider.setMunicipioEntrega(value);
               _autocompletarCodigoPostal(value);
             },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
+            decoration: AppTheme.inputDecoration(label: 'Municipio'),
           ),
         const SizedBox(height: 12),
 
-        // Barrio
         TextField(
           controller: _barrioController,
-          decoration: const InputDecoration(
-            hintText: 'Barrio',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+          decoration: AppTheme.inputDecoration(label: 'Barrio', hint: 'Barrio'),
           onChanged: (value) => widget.cartProvider.setBarrioEntrega(value),
         ),
         const SizedBox(height: 12),
 
-        // Código postal
         TextField(
           controller: _codigoPostalController,
-          decoration: const InputDecoration(
-            hintText: 'Código postal',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+          decoration: AppTheme.inputDecoration(label: 'Código postal', hint: 'Código postal'),
           keyboardType: TextInputType.number,
           onChanged: (value) => widget.cartProvider.setCodigoPostalEntrega(value),
         ),
         const SizedBox(height: 12),
 
-        // Dirección línea
         TextField(
           controller: _direccionController,
-          decoration: const InputDecoration(
-            hintText: 'Dirección completa (calle, número, etc.)',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+          decoration: AppTheme.inputDecoration(label: 'Dirección completa', hint: 'Calle, número, etc.'),
           maxLines: 2,
           onChanged: (value) => widget.cartProvider.setDeliveryAddress(value),
         ),
@@ -472,7 +447,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Método de pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey)),
+        Text(
+          'Método de pago',
+          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
+        ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -516,23 +494,26 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppTheme.infoColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade100),
+        border: Border.all(color: AppTheme.infoColor.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('💰 Pago por transferencia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.blue)),
+          Text(
+            '💰 Pago por transferencia',
+            style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor),
+          ),
           const SizedBox(height: 8),
           const Text('Realiza la transferencia a la siguiente cuenta bancaria:', style: TextStyle(fontSize: 13)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: AppTheme.gray300),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,10 +533,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
               height: 200,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                border: Border.all(color: AppTheme.gray300),
+                boxShadow: [BoxShadow(color: AppTheme.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Image.network(
                 qrImageUrl,
@@ -568,10 +549,14 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 150,
                   height: 150,
-                  color: Colors.grey[100],
-                  child: const Column(
+                  color: AppTheme.gray100,
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [Icon(Icons.qr_code_2, size: 80, color: Colors.blue), SizedBox(height: 8), Text('Código QR de pago', style: TextStyle(fontSize: 12, color: Colors.grey))],
+                    children: [
+                      Icon(Icons.qr_code_2, size: 80, color: AppTheme.primaryColor),
+                      const SizedBox(height: 8),
+                      Text('Código QR de pago', style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+                    ],
                   ),
                 ),
               ),
@@ -581,15 +566,20 @@ class _CheckoutModalState extends State<CheckoutModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: AppTheme.warningColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.shade100),
+              border: Border.all(color: AppTheme.warningColor.withOpacity(0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.warning_amber, color: Colors.orange, size: 20),
-                SizedBox(width: 8),
-                Expanded(child: Text('⚠️ IMPORTANTE: Después de pagar, sube el comprobante abajo.', style: TextStyle(fontSize: 12, color: Colors.orange))),
+                Icon(Icons.warning_amber, color: AppTheme.warningColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '⚠️ IMPORTANTE: Después de pagar, sube el comprobante abajo.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.warningColor),
+                  ),
+                ),
               ],
             ),
           ),
@@ -604,18 +594,21 @@ class _CheckoutModalState extends State<CheckoutModal> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: AppTheme.successColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade100),
+        border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.cloud_upload, color: Colors.green, size: 24),
+              Icon(Icons.cloud_upload, color: AppTheme.successColor, size: 24),
               const SizedBox(width: 8),
-              const Text('Subir comprobante de pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.green)),
+              Text(
+                'Subir comprobante de pago',
+                style: AppTheme.titleMedium.copyWith(color: AppTheme.successColor),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -626,26 +619,26 @@ class _CheckoutModalState extends State<CheckoutModal> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(color: AppTheme.successColor.withOpacity(0.5)),
               ),
               child: Row(
                 children: [
-                  Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.insert_drive_file, color: Colors.green)),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Icon(Icons.insert_drive_file, color: AppTheme.successColor)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_fileName!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
+                        Text(_fileName!, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 2),
-                        Text(kIsWeb ? 'Listo para subir' : 'Archivo local', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        Text(kIsWeb ? 'Listo para subir' : 'Archivo local', style: TextStyle(fontSize: 11, color: AppTheme.gray600)),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                    icon: const Icon(Icons.delete_outline, size: 22),
                     onPressed: () {
                       setState(() {
                         _filePath = null;
@@ -654,6 +647,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                         _comprobanteUrlSubido = null;
                       });
                     },
+                    color: AppTheme.errorColor,
                   ),
                 ],
               ),
@@ -664,15 +658,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: AppTheme.errorColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade100),
+                border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                  Icon(Icons.error_outline, color: AppTheme.errorColor, size: 20),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(_errorComprobante!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                  Expanded(child: Text(_errorComprobante!, style: TextStyle(color: AppTheme.errorColor, fontSize: 13))),
                 ],
               ),
             ),
@@ -684,10 +678,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
               icon: const Icon(Icons.attach_file, size: 20),
               label: const Text('Seleccionar archivo (PNG, JPG, PDF)'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade50,
-                foregroundColor: Colors.blue.shade800,
+                backgroundColor: AppTheme.primaryLight.withOpacity(0.2),
+                foregroundColor: AppTheme.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.blue.shade200)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: AppTheme.primaryLight)),
               ),
               onPressed: _pickFile,
             ),
@@ -699,12 +693,12 @@ class _CheckoutModalState extends State<CheckoutModal> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: _isUploadingComprobante
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white)))
                     : const Icon(Icons.cloud_upload, size: 20),
                 label: Text(_isUploadingComprobante ? 'Subiendo...' : 'Subir comprobante'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppTheme.successColor,
+                  foregroundColor: AppTheme.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -718,19 +712,19 @@ class _CheckoutModalState extends State<CheckoutModal> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.shade100,
+                color: AppTheme.successColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)), child: const Icon(Icons.check, color: Colors.white, size: 24)),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor, borderRadius: BorderRadius.circular(20)), child: const Icon(Icons.check, color: AppTheme.white, size: 24)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('✅ Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green)),
+                        Text('✅ Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor)),
                         const SizedBox(height: 4),
                         Text('URL: ${_comprobanteUrlSubido!.substring(0, 50)}...', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],
@@ -764,12 +758,12 @@ class _CheckoutModalState extends State<CheckoutModal> {
           : ElevatedButton(
               onPressed: _isConfirmButtonEnabled ? _confirmAndCreateOrder : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isConfirmButtonEnabled ? const Color.fromARGB(255, 30, 58, 138) : Colors.grey.shade400,
-                foregroundColor: Colors.white,
+                backgroundColor: _isConfirmButtonEnabled ? AppTheme.primaryColor : AppTheme.gray400,
+                foregroundColor: AppTheme.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 3,
               ),
-              child: Text(buttonText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+              child: Text(buttonText, style: AppTheme.buttonText.copyWith(letterSpacing: 0.5)),
             ),
     );
   }
@@ -791,15 +785,26 @@ class _DeliveryOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.shade50 : Colors.grey.shade50,
+          color: isSelected ? AppTheme.primaryLight.withOpacity(0.1) : AppTheme.gray50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? Colors.blue : Colors.grey.shade300, width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : AppTheme.gray300,
+            width: isSelected ? 2 : 1,
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 30, color: isSelected ? Colors.blue : Colors.grey.shade600),
+            Icon(icon, size: 30, color: isSelected ? AppTheme.primaryColor : AppTheme.gray600),
             const SizedBox(height: 8),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? Colors.blue : Colors.grey.shade700)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppTheme.primaryColor : AppTheme.gray700,
+              ),
+            ),
           ],
         ),
       ),
@@ -823,15 +828,26 @@ class _PaymentOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
+          color: isSelected ? AppTheme.successColor.withOpacity(0.1) : AppTheme.gray50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? Colors.green : Colors.grey.shade300, width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? AppTheme.successColor : AppTheme.gray300,
+            width: isSelected ? 2 : 1,
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 30, color: isSelected ? Colors.green : Colors.grey.shade600),
+            Icon(icon, size: 30, color: isSelected ? AppTheme.successColor : AppTheme.gray600),
             const SizedBox(height: 8),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? Colors.green : Colors.grey.shade700)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppTheme.successColor : AppTheme.gray700,
+              ),
+            ),
           ],
         ),
       ),

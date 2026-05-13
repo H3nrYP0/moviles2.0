@@ -5,6 +5,7 @@ import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import 'package:optica_app/features/home/presentation/screens/profile_screen.dart';
 import 'checkout_modal.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -20,14 +21,14 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: AppTheme.primaryColor,
+        iconTheme: const IconThemeData(color: AppTheme.white),
         actions: [
           Consumer<CartProvider>(
             builder: (context, cartProvider, child) {
               if (cartProvider.items.isNotEmpty) {
                 return IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.white),
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.white),
                   onPressed: () => _showClearCartDialog(context, cartProvider),
                   tooltip: 'Vaciar carrito',
                 );
@@ -54,14 +55,14 @@ class _CartScreenState extends State<CartScreen> {
             Icon(
               Icons.shopping_cart_outlined, 
               size: 80, 
-              color: Colors.grey.shade400
+              color: AppTheme.gray400,
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Tu carrito está vacío',
               style: TextStyle(
                 fontSize: 18, 
-                color: Colors.grey,
+                color: AppTheme.gray500,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -69,7 +70,7 @@ class _CartScreenState extends State<CartScreen> {
             Text(
               'Agrega productos desde el catálogo',
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppTheme.gray600,
                 fontSize: 14,
               ),
             ),
@@ -95,11 +96,11 @@ class _CartScreenState extends State<CartScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            color: AppTheme.surfaceColor,
+            border: Border(top: BorderSide(color: AppTheme.gray300)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: AppTheme.black.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -114,12 +115,10 @@ class _CartScreenState extends State<CartScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    _openCheckoutModal(context);
-                  },
+                  onPressed: () => _openCheckoutModal(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 30, 58, 138),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: AppTheme.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -145,18 +144,18 @@ class _CartScreenState extends State<CartScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppTheme.gray50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.gray200),
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'Resumen del Pedido',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.grey,
+              color: AppTheme.gray600,
             ),
           ),
           const SizedBox(height: 12),
@@ -166,16 +165,17 @@ class _CartScreenState extends State<CartScreen> {
             children: [
               Text(
                 'Subtotal (${cartProvider.items.length} productos)',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: AppTheme.gray600,
                 ),
               ),
               Text(
                 '\$${cartProvider.subtotal.toStringAsFixed(2)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
                 ),
               ),
             ],
@@ -183,27 +183,23 @@ class _CartScreenState extends State<CartScreen> {
           
           const SizedBox(height: 8),
           
-          const Divider(height: 1, color: Colors.grey),
+          Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
           
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Total',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Colors.grey,
+                  color: AppTheme.gray600,
                 ),
               ),
               Text(
                 '\$${cartProvider.totalAmount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.green,
-                ),
+                style: AppTheme.priceText.copyWith(fontSize: 22),
               ),
             ],
           ),
@@ -216,15 +212,15 @@ class _CartScreenState extends State<CartScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
+        title: Text(
           'Vaciar carrito',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: AppTheme.titleMedium,
         ),
         content: const Text('¿Estás seguro de que quieres vaciar todo el carrito?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -232,8 +228,8 @@ class _CartScreenState extends State<CartScreen> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.errorColor,
+              foregroundColor: AppTheme.white,
             ),
             child: const Text('Vaciar'),
           ),
@@ -249,7 +245,7 @@ class _CartScreenState extends State<CartScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Debes iniciar sesión para continuar'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppTheme.warningColor,
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
             label: 'Iniciar sesión',
@@ -266,7 +262,7 @@ class _CartScreenState extends State<CartScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Debes completar tu perfil de cliente primero'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppTheme.warningColor,
         ),
       );
       Navigator.push(
@@ -319,7 +315,7 @@ class _CartItemCard extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.gray200,
                 borderRadius: BorderRadius.circular(8),
                 image: item.product.imagenUrl != null && item.product.imagenUrl!.isNotEmpty
                     ? DecorationImage(
@@ -333,7 +329,7 @@ class _CartItemCard extends StatelessWidget {
                       child: Icon(
                         Icons.shopping_bag,
                         size: 30,
-                        color: Colors.grey.shade400,
+                        color: AppTheme.gray400,
                       ),
                     )
                   : null,
@@ -359,7 +355,7 @@ class _CartItemCard extends StatelessWidget {
                   Text(
                     '\$${item.product.precioVenta.toStringAsFixed(2)} c/u',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: AppTheme.gray600,
                       fontSize: 13,
                     ),
                   ),
@@ -368,8 +364,8 @@ class _CartItemCard extends StatelessWidget {
                   
                   Text(
                     '\$${item.subtotal.toStringAsFixed(2)} total',
-                    style: const TextStyle(
-                      color: Colors.green,
+                    style: TextStyle(
+                      color: AppTheme.successColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -381,9 +377,9 @@ class _CartItemCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: AppTheme.gray50,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: AppTheme.gray300),
               ),
               child: Row(
                 children: [
@@ -391,21 +387,19 @@ class _CartItemCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: item.quantity > 1 ? Colors.white : Colors.grey.shade200,
+                      color: item.quantity > 1 ? AppTheme.surfaceColor : AppTheme.gray200,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: item.quantity > 1 ? Colors.blue : Colors.grey.shade300,
+                        color: item.quantity > 1 ? AppTheme.primaryColor : AppTheme.gray300,
                       ),
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.remove, size: 16),
                       onPressed: item.quantity > 1
-                          ? () {
-                              cartProvider.decrementQuantity(item.product.id);
-                            }
+                          ? () => cartProvider.decrementQuantity(item.product.id)
                           : null,
                       padding: EdgeInsets.zero,
-                      color: item.quantity > 1 ? Colors.blue : Colors.grey,
+                      color: item.quantity > 1 ? AppTheme.primaryColor : AppTheme.gray400,
                     ),
                   ),
                   
@@ -424,21 +418,19 @@ class _CartItemCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: item.quantity < item.product.stock ? Colors.white : Colors.grey.shade200,
+                      color: item.quantity < item.product.stock ? AppTheme.surfaceColor : AppTheme.gray200,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: item.quantity < item.product.stock ? Colors.blue : Colors.grey.shade300,
+                        color: item.quantity < item.product.stock ? AppTheme.primaryColor : AppTheme.gray300,
                       ),
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.add, size: 16),
                       onPressed: item.quantity < item.product.stock
-                          ? () {
-                              cartProvider.incrementQuantity(item.product.id);
-                            }
+                          ? () => cartProvider.incrementQuantity(item.product.id)
                           : null,
                       padding: EdgeInsets.zero,
-                      color: item.quantity < item.product.stock ? Colors.blue : Colors.grey,
+                      color: item.quantity < item.product.stock ? AppTheme.primaryColor : AppTheme.gray400,
                     ),
                   ),
                 ],
@@ -446,10 +438,9 @@ class _CartItemCard extends StatelessWidget {
             ),
 
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
-              onPressed: () {
-                cartProvider.removeFromCart(item.product.id);
-              },
+              icon: const Icon(Icons.delete_outline, size: 22),
+              onPressed: () => cartProvider.removeFromCart(item.product.id),
+              color: AppTheme.errorColor,
             ),
           ],
         ),

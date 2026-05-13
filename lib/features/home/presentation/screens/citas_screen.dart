@@ -6,6 +6,7 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../citas/presentation/providers/citas_provider.dart';
 import 'crear_cita_screen.dart';
 import '../../../citas/data/models/cita_model.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CitasScreen extends StatefulWidget {
   const CitasScreen({super.key});
@@ -46,7 +47,6 @@ class _CitasScreenState extends State<CitasScreen> {
     final authProvider = context.read<AuthProvider>();
     
     if (authProvider.isAuthenticated && authProvider.user != null) {
-      // Establecer modo admin si corresponde
       citasProvider.setAdminMode(authProvider.isAdmin);
       await citasProvider.loadCitas();
     }
@@ -63,22 +63,19 @@ class _CitasScreenState extends State<CitasScreen> {
     final result = await citasProvider.actualizarEstadoCita(cita.id, nuevoEstadoId);
     
     if (result['success'] == true) {
-      // Verificar si el widget está montado
       if (!mounted) return;
-      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Cita ${_capitalize(nuevoEstadoNombre)}'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.successColor,
         ),
       );
     } else {
       if (!mounted) return;
-      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${result['error']}'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     }
@@ -107,17 +104,12 @@ class _CitasScreenState extends State<CitasScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'Cambiar estado - Cita #${cita.id}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTheme.titleMedium,
                 ),
               ),
-              
               ...estados.map((estado) {
                 final estadoNombre = estado['nombre'].toString();
                 final estadoId = estado['id'] as int;
-                
                 return ListTile(
                   leading: Icon(
                     _getEstadoIcon(estadoNombre),
@@ -125,7 +117,7 @@ class _CitasScreenState extends State<CitasScreen> {
                   ),
                   title: Text(_capitalize(estadoNombre)),
                   trailing: cita.estadoNombre?.toLowerCase() == estadoNombre
-                      ? const Icon(Icons.check, color: Colors.green)
+                      ? Icon(Icons.check, color: AppTheme.successColor)
                       : null,
                   onTap: () {
                     Navigator.pop(context);
@@ -135,7 +127,6 @@ class _CitasScreenState extends State<CitasScreen> {
                   },
                 );
               }).toList(),
-              
               const SizedBox(height: 16),
             ],
           ),
@@ -151,35 +142,23 @@ class _CitasScreenState extends State<CitasScreen> {
 
   IconData _getEstadoIcon(String estado) {
     switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return Icons.pending;
-      case 'confirmada':
-        return Icons.check_circle_outline;
-      case 'en progreso':
-        return Icons.timer;
-      case 'completada':
-        return Icons.verified;
-      case 'cancelada':
-        return Icons.cancel;
-      default:
-        return Icons.event;
+      case 'pendiente': return Icons.pending;
+      case 'confirmada': return Icons.check_circle_outline;
+      case 'en progreso': return Icons.timer;
+      case 'completada': return Icons.verified;
+      case 'cancelada': return Icons.cancel;
+      default: return Icons.event;
     }
   }
 
   Color _getEstadoColor(String estado) {
     switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return Colors.orange;
-      case 'confirmada':
-        return Colors.blue;
-      case 'en progreso':
-        return Colors.purple;
-      case 'completada':
-        return Colors.green;
-      case 'cancelada':
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case 'pendiente': return AppTheme.warningColor;
+      case 'confirmada': return AppTheme.primaryColor;
+      case 'en progreso': return AppTheme.infoColor;
+      case 'completada': return AppTheme.successColor;
+      case 'cancelada': return AppTheme.errorColor;
+      default: return AppTheme.gray600;
     }
   }
 
@@ -198,7 +177,6 @@ class _CitasScreenState extends State<CitasScreen> {
         ? citasProvider.filteredCitas
         : citasProvider.citas;
     
-    // Aplicar filtro por estado si está seleccionado
     if (_selectedFilter != null && _selectedFilter != 'todas') {
       lista = lista.where((cita) {
         final estadoCita = cita.estadoNombre?.toLowerCase() ?? '';
@@ -207,10 +185,7 @@ class _CitasScreenState extends State<CitasScreen> {
     }
     
     final query = _searchController.text.toLowerCase();
-    
-    if (query.isEmpty) {
-      return lista;
-    }
+    if (query.isEmpty) return lista;
     
     return lista.where((cita) {
       final clienteNombre = cita.clienteNombre?.toLowerCase() ?? '';
@@ -218,7 +193,6 @@ class _CitasScreenState extends State<CitasScreen> {
       final empleadoNombre = cita.empleadoNombre?.toLowerCase() ?? '';
       final estado = cita.estadoNombre?.toLowerCase() ?? '';
       final notas = cita.notas?.toLowerCase() ?? '';
-      
       return clienteNombre.contains(query) ||
              servicioNombre.contains(query) ||
              empleadoNombre.contains(query) ||
@@ -226,9 +200,6 @@ class _CitasScreenState extends State<CitasScreen> {
              notas.contains(query);
     }).toList();
   }
-
-  // Color principal desde ARGB
-  Color get _primaryColor => const Color.fromARGB(255, 30, 58, 138);
 
   @override
   Widget build(BuildContext context) {
@@ -242,11 +213,9 @@ class _CitasScreenState extends State<CitasScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          authProvider.isAdmin 
-            ? 'Panel de Citas (Admin)' 
-            : ''
+          authProvider.isAdmin ? 'Panel de Citas (Admin)' : ''
         ),
-        backgroundColor: _primaryColor,
+        backgroundColor: AppTheme.primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -260,13 +229,11 @@ class _CitasScreenState extends State<CitasScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const CrearCitaScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const CrearCitaScreen()),
           );
         },
-        backgroundColor: _primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppTheme.primaryColor,
+        child: const Icon(Icons.add, color: AppTheme.white),
       ),
     );
   }
@@ -283,7 +250,7 @@ class _CitasScreenState extends State<CitasScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.red),
+              Icon(Icons.error_outline, size: 60, color: AppTheme.errorColor),
               const SizedBox(height: 16),
               const Text(
                 'Error al cargar citas',
@@ -293,15 +260,15 @@ class _CitasScreenState extends State<CitasScreen> {
               Text(
                 citasProvider.error,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: AppTheme.gray600),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadCitas,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
+                  backgroundColor: AppTheme.primaryColor,
                 ),
-                child: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                child: const Text('Reintentar', style: TextStyle(color: AppTheme.white)),
               ),
             ],
           ),
@@ -314,18 +281,17 @@ class _CitasScreenState extends State<CitasScreen> {
     if (citasMostrar.isEmpty) {
       return Column(
         children: [
-          // Filtro de estado
+          // Filtro de estado (solo admin)
           if (authProvider.isAdmin)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: _estados.entries.map((entry) {
                     final isSelected = _selectedFilter == entry.key ||
                         (_selectedFilter == null && entry.key == 'todas');
-                    
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
@@ -338,15 +304,15 @@ class _CitasScreenState extends State<CitasScreen> {
                             _aplicarFiltroEstado(entry.key);
                           }
                         },
-                        selectedColor: _primaryColor.withOpacity(0.2),
-                        backgroundColor: Colors.grey.shade100,
+                        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                        backgroundColor: AppTheme.gray100,
                         labelStyle: TextStyle(
-                          color: isSelected ? _primaryColor : Colors.black,
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? _primaryColor : Colors.grey.shade300,
+                            color: isSelected ? AppTheme.primaryColor : AppTheme.gray300,
                           ),
                         ),
                       ),
@@ -363,15 +329,11 @@ class _CitasScreenState extends State<CitasScreen> {
               decoration: InputDecoration(
                 hintText: 'Buscar citas...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
+                        onPressed: () => _searchController.clear(),
                       )
                     : null,
               ),
@@ -384,13 +346,11 @@ class _CitasScreenState extends State<CitasScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.event_note, size: 80, color: Colors.grey.shade400),
+                    Icon(Icons.event_note, size: 80, color: AppTheme.gray400),
                     const SizedBox(height: 16),
                     Text(
                       authProvider.isAdmin ? 'No hay citas' : 'No tienes citas',
-                      style: TextStyle(fontSize: 18, 
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 18, color: AppTheme.gray600, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -398,19 +358,17 @@ class _CitasScreenState extends State<CitasScreen> {
                           ? 'No se encontraron citas con los filtros actuales'
                           : 'Agenda tu primera cita',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey),
+                      style: TextStyle(color: AppTheme.gray600),
                     ),
                     const SizedBox(height: 24),
                     if (authProvider.isAdmin && _selectedFilter != null)
                       ElevatedButton(
-                        onPressed: () {
-                          _aplicarFiltroEstado(null);
-                        },
+                        onPressed: () => _aplicarFiltroEstado(null),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
+                          backgroundColor: AppTheme.primaryColor,
                         ),
-                        child: const Text('Limpiar filtro', style: TextStyle(color: Colors.white)),
-                      )
+                        child: const Text('Limpiar filtro', style: TextStyle(color: AppTheme.white)),
+                      ),
                   ],
                 ),
               ),
@@ -422,18 +380,17 @@ class _CitasScreenState extends State<CitasScreen> {
     
     return Column(
       children: [
-        // Filtro de estado
+        // Filtro de estado (admin)
         if (authProvider.isAdmin)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: _estados.entries.map((entry) {
                   final isSelected = _selectedFilter == entry.key ||
                       (_selectedFilter == null && entry.key == 'todas');
-                  
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
@@ -446,15 +403,15 @@ class _CitasScreenState extends State<CitasScreen> {
                           _aplicarFiltroEstado(entry.key);
                         }
                       },
-                      selectedColor: _primaryColor.withOpacity(0.2),
-                      backgroundColor: Colors.grey.shade100,
+                      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                      backgroundColor: AppTheme.gray100,
                       labelStyle: TextStyle(
-                        color: isSelected ? _primaryColor : Colors.black,
+                        color: isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? _primaryColor : Colors.grey.shade300,
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.gray300,
                         ),
                       ),
                     ),
@@ -471,15 +428,11 @@ class _CitasScreenState extends State<CitasScreen> {
             decoration: InputDecoration(
               hintText: 'Buscar citas...',
               prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                      },
+                      onPressed: () => _searchController.clear(),
                     )
                   : null,
             ),
@@ -497,12 +450,8 @@ class _CitasScreenState extends State<CitasScreen> {
                     ? _CitaAdminCard(
                         cita: cita,
                         onCambiarEstado: () => _mostrarMenuCambioEstado(context, cita),
-                        primaryColor: _primaryColor,
                       )
-                    : _CitaClienteCard(
-                        cita: cita,
-                        primaryColor: _primaryColor,
-                      );
+                    : _CitaClienteCard(cita: cita);
               },
             ),
           ),
@@ -518,27 +467,25 @@ class _CitasScreenState extends State<CitasScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.person_off, size: 80, color: Colors.orange),
+            Icon(Icons.person_off, size: 80, color: AppTheme.warningColor),
             const SizedBox(height: 16),
             const Text(
               'Inicio de sesión requerido',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Debes iniciar sesión para ver tus citas',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: AppTheme.gray600),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
+                backgroundColor: AppTheme.primaryColor,
               ),
-              child: const Text('Iniciar sesión', style: TextStyle(color: Colors.white)),
+              child: const Text('Iniciar sesión', style: TextStyle(color: AppTheme.white)),
             ),
           ],
         ),
@@ -547,30 +494,25 @@ class _CitasScreenState extends State<CitasScreen> {
   }
 }
 
-// Widget para cliente
+// ------------------------------------------------------------
+//  Widget para cliente
+// ------------------------------------------------------------
 class _CitaClienteCard extends StatelessWidget {
   final Cita cita;
-  final Color primaryColor;
   
-  const _CitaClienteCard({
-    required this.cita,
-    required this.primaryColor,
-  });
+  const _CitaClienteCard({required this.cita});
   
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-          _mostrarDetallesCita(context, cita);
-        },
+        onTap: () => _mostrarDetallesCita(context, cita),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Primera fila: Estado y fecha
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -579,7 +521,7 @@ class _CitaClienteCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: primaryColor,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
                   Container(
@@ -594,42 +536,30 @@ class _CitaClienteCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           _capitalize(cita.estadoNombre ?? 'pendiente'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: cita.estadoColor,
-                          ),
+                          style: TextStyle(fontSize: 12, color: cita.estadoColor),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              
               const SizedBox(height: 8),
-              
-              // Fecha y hora
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: primaryColor),
+                  Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryColor),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       '${cita.fechaFormateada} ${cita.horaFormateada}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: AppTheme.gray600),
                     ),
                   ),
                 ],
               ),
-              
               const SizedBox(height: 8),
-              
-              // Optometra asignado
               Row(
                 children: [
-                  Icon(Icons.person, size: 14, color: primaryColor),
+                  Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -639,9 +569,7 @@ class _CitaClienteCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
               const SizedBox(height: 8),
-                    
             ],
           ),
         ),
@@ -677,7 +605,7 @@ class _CitaClienteCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                     Container(
@@ -704,92 +632,66 @@ class _CitaClienteCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 16),
-                
-                // Información detallada
                 _DetalleItem(
                   icon: Icons.calendar_today,
                   label: 'Fecha y Hora',
                   value: '${cita.fechaFormateada} ${cita.horaFormateada}',
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
                 _DetalleItem(
                   icon: Icons.person,
                   label: 'Optometra',
                   value: cita.empleadoNombre ?? 'No asignado',
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
                 _DetalleItem(
                   icon: Icons.medical_services,
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'Servicio',
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
                 if (cita.duracion != null)
                   _DetalleItem(
                     icon: Icons.timer,
                     label: 'Duración',
                     value: '${cita.duracion} minutos',
-                    iconColor: primaryColor,
+                    iconColor: AppTheme.primaryColor,
                   ),
-                
                 if (cita.notas != null && cita.notas!.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      const Text(
-                        'Notas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Text('Notas', style: TextStyle(fontSize: 12, color: AppTheme.gray600)),
                       const SizedBox(height: 4),
-                      Text(
-                        cita.notas!,
-                        style: const TextStyle(fontSize: 14),
-                      ),
+                      Text(cita.notas!, style: const TextStyle(fontSize: 14)),
                     ],
                   ),
-                
                 const SizedBox(height: 20),
-                
-                // Botones de acción
                 if (cita.puedeCancelar)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red,
+                        backgroundColor: AppTheme.errorColor.withOpacity(0.1),
+                        foregroundColor: AppTheme.errorColor,
                       ),
-                      onPressed: () {
-                        _cancelarCita(context, cita);
-                      },
+                      onPressed: () => _cancelarCita(context, cita),
                       child: const Text('Cancelar Cita'),
                     ),
                   ),
-                
                 const SizedBox(height: 8),
-                
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: AppTheme.primaryColor,
                     ),
-                    child: const Text('Cerrar', style: TextStyle(color: Colors.white)),
+                    child: const Text('Cerrar', style: TextStyle(color: AppTheme.white)),
                   ),
                 ),
-                
                 const SizedBox(height: 20),
               ],
             ),
@@ -808,31 +710,29 @@ class _CitaClienteCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: Text('No', style: TextStyle(color: AppTheme.gray600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
             onPressed: () async {
               Navigator.pop(context);
               Navigator.pop(context);
-              
               final citasProvider = Provider.of<CitasProvider>(context, listen: false);
               final result = await citasProvider.actualizarEstadoCita(cita.id, 5);
-              
               if (result['success'] == true && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Cita cancelada exitosamente'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppTheme.successColor,
                   ),
                 );
               } else if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error: ${result['error']}'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppTheme.errorColor,
                   ),
                 );
               }
@@ -845,16 +745,16 @@ class _CitaClienteCard extends StatelessWidget {
   }
 }
 
-// Widget para admin
+// ------------------------------------------------------------
+//  Widget para admin
+// ------------------------------------------------------------
 class _CitaAdminCard extends StatelessWidget {
   final Cita cita;
   final VoidCallback onCambiarEstado;
-  final Color primaryColor;
   
   const _CitaAdminCard({
     required this.cita,
     required this.onCambiarEstado,
-    required this.primaryColor,
   });
   
   @override
@@ -867,7 +767,6 @@ class _CitaAdminCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Primera fila: ID y botón para cambiar estado
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -876,20 +775,17 @@ class _CitaAdminCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor,
+                    color: AppTheme.primaryColor,
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.edit, size: 20, color: primaryColor),
+                  icon: Icon(Icons.edit, size: 20, color: AppTheme.primaryColor),
                   onPressed: onCambiarEstado,
                   tooltip: 'Cambiar estado',
                 ),
               ],
             ),
-            
             const SizedBox(height: 8),
-            
-            // Estado actual
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -914,13 +810,10 @@ class _CitaAdminCard extends StatelessWidget {
                 ],
               ),
             ),
-            
             const SizedBox(height: 12),
-            
-            // Información del cliente
             Row(
               children: [
-                Icon(Icons.person, size: 14, color: primaryColor),
+                Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -930,13 +823,10 @@ class _CitaAdminCard extends StatelessWidget {
                 ),
               ],
             ),
-            
             const SizedBox(height: 8),
-            
-            // Servicio y optometra
             Row(
               children: [
-                Icon(Icons.medical_services, size: 14, color: primaryColor),
+                Icon(Icons.medical_services, size: 14, color: AppTheme.primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -946,12 +836,10 @@ class _CitaAdminCard extends StatelessWidget {
                 ),
               ],
             ),
-            
             const SizedBox(height: 4),
-            
             Row(
               children: [
-                Icon(Icons.person, size: 14, color: primaryColor),
+                Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -961,48 +849,37 @@ class _CitaAdminCard extends StatelessWidget {
                 ),
               ],
             ),
-            
             const SizedBox(height: 8),
-            
-            // Fecha y hora
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 14, color: primaryColor),
+                Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryColor),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     '${cita.fechaFormateada} ${cita.horaFormateada}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 13, color: AppTheme.gray600),
                   ),
                 ),
                 if (cita.duracion != null)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
+                      color: AppTheme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${cita.duracion} min',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: primaryColor,
-                      ),
+                      style: TextStyle(fontSize: 11, color: AppTheme.primaryColor),
                     ),
                   ),
               ],
             ),
-            
-            // Método de pago si existe
             if (cita.metodoPago != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    Icon(Icons.payment, size: 14, color: primaryColor),
+                    Icon(Icons.payment, size: 14, color: AppTheme.primaryColor),
                     const SizedBox(width: 4),
                     Text(
                       _capitalize(cita.metodoPago!),
@@ -1011,20 +888,16 @@ class _CitaAdminCard extends StatelessWidget {
                   ],
                 ),
               ),
-            
-            // Botón para ver detalles completos
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {
-                  _mostrarDetallesCompletos(context, cita);
-                },
+                onPressed: () => _mostrarDetallesCompletos(context, cita),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Ver detalles', style: TextStyle(color: primaryColor)),
+                    Text('Ver detalles', style: TextStyle(color: AppTheme.primaryColor)),
                     const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 16, color: primaryColor),
+                    Icon(Icons.arrow_forward, size: 16, color: AppTheme.primaryColor),
                   ],
                 ),
               ),
@@ -1063,7 +936,7 @@ class _CitaAdminCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                     Container(
@@ -1090,88 +963,64 @@ class _CitaAdminCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 16),
-                
-                // Información extendida para admin
                 _DetalleItem(
                   label: 'Cliente',
                   value: cita.clienteNombre ?? 'No disponible',
                   icon: Icons.person,
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
                 _DetalleItem(
                   label: 'Servicio',
                   value: cita.servicioNombre ?? 'No disponible',
                   icon: Icons.medical_services,
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
-                
                 _DetalleItem(
                   label: 'Optometra',
                   value: cita.empleadoNombre ?? 'No asignado',
                   icon: Icons.person,
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
-                
                 _DetalleItem(
                   label: 'Fecha y Hora',
                   value: '${cita.fechaFormateada} ${cita.horaFormateada}',
                   icon: Icons.calendar_today,
-                  iconColor: primaryColor,
+                  iconColor: AppTheme.primaryColor,
                 ),
-                
                 if (cita.duracion != null)
                   _DetalleItem(
                     label: 'Duración',
                     value: '${cita.duracion} minutos',
                     icon: Icons.timer,
-                    iconColor: primaryColor,
+                    iconColor: AppTheme.primaryColor,
                   ),
-                
-
-                
                 if (cita.notas != null && cita.notas!.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      const Text(
-                        'Notas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Text('Notas', style: TextStyle(fontSize: 12, color: AppTheme.gray600)),
                       const SizedBox(height: 4),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: AppTheme.gray50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          cita.notas!,
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                        child: Text(cita.notas!, style: const TextStyle(fontSize: 14)),
                       ),
                     ],
                   ),
-                
                 const SizedBox(height: 20),
-                
-                // Botones de acción para admin
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor.withOpacity(0.1),
-                          foregroundColor: primaryColor,
+                          backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                          foregroundColor: AppTheme.primaryColor,
                         ),
                         onPressed: onCambiarEstado,
                         child: const Text('Cambiar Estado'),
@@ -1180,18 +1029,15 @@ class _CitaAdminCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor: AppTheme.primaryColor,
                         ),
-                        child: const Text('Cerrar', style: TextStyle(color: Colors.white)),
+                        child: const Text('Cerrar', style: TextStyle(color: AppTheme.white)),
                       ),
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 20),
               ],
             ),
@@ -1202,7 +1048,9 @@ class _CitaAdminCard extends StatelessWidget {
   }
 }
 
-// Widget para detalles (compartido)
+// ------------------------------------------------------------
+//  Widget de detalle compartido
+// ------------------------------------------------------------
 class _DetalleItem extends StatelessWidget {
   final String label;
   final String value;
@@ -1213,7 +1061,7 @@ class _DetalleItem extends StatelessWidget {
     required this.label,
     required this.value,
     this.icon,
-    this.iconColor = Colors.grey,
+    this.iconColor = AppTheme.gray600,
   });
   
   @override
@@ -1228,33 +1076,15 @@ class _DetalleItem extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: iconColor),
                 const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
+                Text(label, style: TextStyle(fontSize: 12, color: AppTheme.gray600)),
               ],
             ),
             const SizedBox(height: 2),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text(value, style: const TextStyle(fontSize: 14)),
           ] else ...[
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 12, color: AppTheme.gray600)),
             const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text(value, style: const TextStyle(fontSize: 14)),
           ],
         ],
       ),

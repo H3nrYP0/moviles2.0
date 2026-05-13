@@ -22,6 +22,9 @@ class RegisterScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+
+
+            
             // Botón de volver en la parte superior izquierda
             Align(
               alignment: Alignment.centerLeft,

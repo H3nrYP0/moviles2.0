@@ -5,6 +5,7 @@ import '../../../catalog/data/models/product_model.dart';
 import '../../../home/presentation/providers/catalog_provider.dart';
 import 'product_detail_screen.dart';
 import '../../../../widgets/back_button.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CategoryProductsScreen extends StatefulWidget {
   final int categoryId;
@@ -45,7 +46,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
+        backgroundColor: AppTheme.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         leading: CustomBackButton(
           onPressed: () {
@@ -53,7 +54,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           },
         ),
         actions: [
-          // Botón de búsqueda en AppBar
           IconButton(
             icon: Icon(_showSearch ? Icons.close : Icons.search),
             onPressed: () {
@@ -97,19 +97,19 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.blue.shade400,
+                          color: AppTheme.primaryLight,
                           width: 1.5,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.blue.shade600,
+                          color: AppTheme.primaryColor,
                           width: 2,
                         ),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppTheme.surfaceColor,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,
@@ -134,8 +134,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     children: [
                       Text(
                         '${catalogProvider.products.length} producto${catalogProvider.products.length != 1 ? 's' : ''} encontrado${catalogProvider.products.length != 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          color: Colors.grey,
+                        style: TextStyle(
+                          color: AppTheme.gray500,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -146,11 +146,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                             _searchController.clear();
                             catalogProvider.loadProductsByCategory(widget.categoryId);
                           },
-                          child: const Text(
+                          child: Text(
                             'Limpiar búsqueda',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.blue,
+                              color: AppTheme.primaryColor,
                             ),
                           ),
                         ),
@@ -174,18 +174,21 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error, size: 64, color: Colors.red),
+                        Icon(Icons.error, size: 64, color: AppTheme.errorColor),
                         const SizedBox(height: 16),
                         Text(
                           'Error: ${catalogProvider.error}',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
+                          style: TextStyle(color: AppTheme.errorColor),
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
                             catalogProvider.loadProductsByCategory(widget.categoryId);
                           },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                          ),
                           child: const Text('Reintentar'),
                         ),
                       ],
@@ -201,16 +204,16 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                         Icon(
                           _searchController.text.isEmpty ? Icons.inventory : Icons.search_off,
                           size: 80,
-                          color: Colors.grey.shade400,
+                          color: AppTheme.gray400,
                         ),
                         const SizedBox(height: 20),
                         Text(
                           _searchController.text.isEmpty
                               ? 'No hay productos en esta categoría'
                               : 'No se encontraron productos',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey,
+                            color: AppTheme.gray500,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -221,7 +224,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                               : 'Intenta con otra búsqueda',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade500,
+                            color: AppTheme.gray500,
                           ),
                         ),
                         if (_searchController.text.isNotEmpty)
@@ -232,6 +235,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                                 _searchController.clear();
                                 catalogProvider.loadProductsByCategory(widget.categoryId);
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                              ),
                               child: const Text('Ver todos los productos'),
                             ),
                           ),
@@ -296,11 +302,11 @@ class _ProductCard extends StatelessWidget {
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: AppTheme.gray100,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black12,
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -311,7 +317,7 @@ class _ProductCard extends StatelessWidget {
                   child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
                       ? Image.network(
                           product.imagenUrl!,
-                          fit: BoxFit.contain, // Cambiado de 'cover' a 'contain'
+                          fit: BoxFit.contain,
                           width: double.infinity,
                           height: double.infinity,
                           loadingBuilder: (context, child, loadingProgress) {
@@ -359,7 +365,7 @@ class _ProductCard extends StatelessWidget {
                         product.descripcion!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.gray600,
                           height: 1.3,
                         ),
                         maxLines: 2,
@@ -371,7 +377,6 @@ class _ProductCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Precio
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -380,12 +385,11 @@ class _ProductCard extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: AppTheme.successColor,
                               ),
                             ),
                           ],
                         ),
-
                       ],
                     ),
                   ],
@@ -394,10 +398,10 @@ class _ProductCard extends StatelessWidget {
               
               const SizedBox(width: 8),
               
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Colors.grey,
+                color: AppTheme.gray500,
               ),
             ],
           ),
@@ -408,7 +412,7 @@ class _ProductCard extends StatelessWidget {
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: Colors.blue.shade50,
+      color: AppTheme.primaryLight.withOpacity(0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -416,14 +420,14 @@ class _ProductCard extends StatelessWidget {
             Icon(
               Icons.shopping_bag,
               size: 32,
-              color: Colors.blue.shade200,
+              color: AppTheme.primaryColor,
             ),
             const SizedBox(height: 4),
             Text(
               product.nombre.split(' ').first,
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.blue.shade300,
+                color: AppTheme.primaryColor,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,

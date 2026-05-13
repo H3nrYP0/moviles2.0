@@ -9,30 +9,34 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  
+  # Internacionalización (versión compatible con Flutter SDK)
+  intl: ^0.20.2
+  
+  # Iconos
   cupertino_icons: ^1.0.8
   
   # Navegación y estado
   provider: ^6.1.1
 
+  # Selector de archivos
   file_picker: ^10.3.7
 
-   # Para detectar plataforma
+  # Detectar plataforma
   universal_io: ^2.2.2 
   
   # HTTP
   http: ^1.1.0
   
-  # Storage
+  # Storage local
   shared_preferences: ^2.2.2
   
-  # Formateo
-  intl: 0.20.2  # YA LO TIENES 👍
+  # Envío de correos
   mailer: ^6.6.0
-  
-  # DEPENDENCIA CRÍTICA PARA EL CALENDARIO - AÑADE ESTA LÍNEA
+
+  # Soporte para localizaciones (calendario, fechas)
   flutter_localizations:
-    sdk: flutter  # Esta viene con el SDK de Flutter
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

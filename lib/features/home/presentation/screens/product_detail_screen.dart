@@ -4,6 +4,7 @@ import '../../../catalog/data/models/product_model.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
 import 'package:optica_app/features/home/presentation/screens/login_screen.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -17,9 +18,6 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
 
-  // ========================================
-  // VERSIÓN QUE SÍ LLEVA AL LOGIN DIRECTAMENTE
-  // ========================================
   void _handleAddToCart(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
@@ -29,18 +27,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         MaterialPageRoute(
           builder: (context) => LoginScreen(
             onSuccess: () {
-              // Después de login, volver al producto AUTOMÁTICAMENTE
-              Navigator.pop(context); // Cerrar login
-              
-              // Agregar automáticamente al carrito
+              Navigator.pop(context);
               final cartProvider = Provider.of<CartProvider>(context, listen: false);
               cartProvider.addToCart(widget.product, quantity: _quantity);
               
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('✅ ${_quantity} ${widget.product.nombre} agregado al carrito'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
+                  backgroundColor: AppTheme.successColor,
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
@@ -51,15 +46,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
     
-    // 2. Usuario autenticado - proceder normalmente
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
     if (widget.product.stock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Producto agotado'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: const Text('Producto agotado'),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -69,7 +63,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Solo hay ${widget.product.stock} unidades disponibles'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppTheme.warningColor,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -82,7 +76,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white),
+            Icon(Icons.check_circle, color: AppTheme.white),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -92,12 +86,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.successColor,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
 
@@ -119,18 +111,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: AppTheme.white,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: AppTheme.primaryColor,
+        iconTheme: const IconThemeData(color: AppTheme.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
@@ -139,7 +129,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Container(
               height: 320,
-              color: Colors.grey.shade50,
+              color: AppTheme.gray50,
               child: Stack(
                 children: [
                   Center(
@@ -162,9 +152,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ),
                                 );
                               },
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildPlaceholderImage();
-                              },
+                              errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
                             ),
                           )
                         : _buildPlaceholderImage(),
@@ -185,11 +173,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Expanded(
                         child: Text(
                           widget.product.nombre,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
+                          style: AppTheme.headline2.copyWith(fontSize: 24),
                         ),
                       ),
                       Column(
@@ -197,17 +181,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           Text(
                             '\$${widget.product.precioVenta.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
+                            style: AppTheme.priceText.copyWith(fontSize: 28),
                           ),
                           Text(
                             'Total: \$${(widget.product.precioVenta * _quantity).toStringAsFixed(2)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey,
+                              color: AppTheme.gray500,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -222,32 +202,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: AppTheme.gray50,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: AppTheme.gray200),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.description, size: 18, color: Colors.blue),
-                              SizedBox(width: 8),
+                              Icon(Icons.description, size: 18, color: AppTheme.primaryColor),
+                              const SizedBox(width: 8),
                               Text(
                                 'Descripción',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: AppTheme.titleMedium.copyWith(fontSize: 18),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
                           Text(
                             widget.product.descripcion!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
-                              color: Colors.grey,
+                              color: AppTheme.gray600,
                               height: 1.5,
                             ),
                           ),
@@ -260,9 +237,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: AppTheme.gray50,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: AppTheme.gray200),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,12 +259,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.surfaceColor,
                                 borderRadius: BorderRadius.circular(25),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: AppTheme.gray300),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: AppTheme.black.withOpacity(0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -296,13 +273,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               child: IconButton(
                                 icon: const Icon(Icons.remove),
                                 onPressed: _quantity > 1
-                                    ? () {
-                                        setState(() {
-                                          _quantity--;
-                                        });
-                                      }
+                                    ? () => setState(() => _quantity--)
                                     : null,
-                                color: _quantity > 1 ? Colors.blue : Colors.grey,
+                                color: _quantity > 1 ? AppTheme.primaryColor : AppTheme.gray400,
                               ),
                             ),
                             
@@ -319,7 +292,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   '${hasStock ? widget.product.stock : 0} disponibles',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                    color: AppTheme.gray600,
                                   ),
                                 ),
                               ],
@@ -329,12 +302,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.surfaceColor,
                                 borderRadius: BorderRadius.circular(25),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: AppTheme.gray300),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: AppTheme.black.withOpacity(0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -343,15 +316,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               child: IconButton(
                                 icon: const Icon(Icons.add),
                                 onPressed: hasStock && _quantity < widget.product.stock
-                                    ? () {
-                                        setState(() {
-                                          _quantity++;
-                                        });
-                                      }
+                                    ? () => setState(() => _quantity++)
                                     : null,
-                                color: hasStock && _quantity < widget.product.stock 
-                                    ? Colors.blue 
-                                    : Colors.grey,
+                                color: hasStock && _quantity < widget.product.stock
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.gray400,
                               ),
                             ),
                           ],
@@ -369,9 +338,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       onPressed: () => _handleAddToCart(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: hasStock && _quantity > 0
-                            ? const Color.fromARGB(255, 30, 58, 138) 
-                            : Colors.grey.shade400,
-                        foregroundColor: Colors.white,
+                            ? AppTheme.primaryColor
+                            : AppTheme.gray400,
+                        foregroundColor: AppTheme.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -406,7 +375,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: Colors.blue.shade50,
+      color: AppTheme.primaryLight.withOpacity(0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -414,7 +383,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Icon(
               Icons.shopping_bag,
               size: 80,
-              color: Colors.blue.shade200,
+              color: AppTheme.primaryColor,
             ),
             const SizedBox(height: 12),
             Padding(
@@ -424,7 +393,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.blue.shade300,
+                  color: AppTheme.primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -432,11 +401,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 8),
             Text(
               '\$${widget.product.precioVenta.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 24,
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTheme.priceText.copyWith(fontSize: 24),
             ),
           ],
         ),

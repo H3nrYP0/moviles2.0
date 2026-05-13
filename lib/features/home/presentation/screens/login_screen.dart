@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 import 'password_recovery_screen.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class LoginScreen extends StatelessWidget {
   final VoidCallback? onSuccess;
@@ -23,34 +24,33 @@ class LoginScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // ===== BOTÓN VOLVER (IGUAL QUE REGISTER) =====
+            // Botón volver
             Align(
               alignment: Alignment.centerLeft,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: AppTheme.black.withOpacity(0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back,
-                    color: Color(0xFF1a237e),
+                    color: AppTheme.primaryColor,
                   ),
                   onPressed: onBackPressed,
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // ===== LOGO =====
+            // Logo
             Container(
               height: 80,
               width: 80,
@@ -64,36 +64,29 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Eyes Settings',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1a237e),
-              ),
+              style: AppTheme.headline2.copyWith(fontSize: 28),
             ),
-
             const SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Accede a tu cuenta para continuar',
-              style: TextStyle(color: Color(0xFF666666)),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 30),
 
-            // ===== FORMULARIO =====
+            // Formulario
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: AppTheme.gray200.withOpacity(0.5),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -114,7 +107,6 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
 
 class _LoginForm extends StatefulWidget {
   final VoidCallback? onSuccess;
@@ -138,31 +130,20 @@ class __LoginFormState extends State<_LoginForm> {
 
   Future<void> _login(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
-      // Cerrar teclado
       FocusScope.of(context).unfocus();
-      
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
-      
       if (success) {
-        // Si hay un callback de éxito, ejecutarlo
-        if (widget.onSuccess != null) {
-          widget.onSuccess!();
-        }
-        
-        // También navegar de regreso si estamos en una ruta separada
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
+        if (widget.onSuccess != null) widget.onSuccess!();
+        if (Navigator.canPop(context)) Navigator.pop(context);
       } else {
-        // Mostrar error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authProvider.error),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -173,73 +154,68 @@ class __LoginFormState extends State<_LoginForm> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-
     return Form(
       key: _formKey,
       child: Column(
         children: [
-          // Email - estilo mejorado
+          // Email
           TextFormField(
             controller: _emailController,
             decoration: InputDecoration(
               labelText: 'Correo electrónico',
-              labelStyle: const TextStyle(color: Color(0xFF555555)),
-              prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
+              labelStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
+              prefixIcon: Icon(Icons.email, color: AppTheme.primaryColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+                borderSide: const BorderSide(color: AppTheme.gray300),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+                borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
               ),
               filled: true,
-              fillColor: const Color(0xFFf8f9fa),
+              fillColor: AppTheme.gray50,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
-          
+
           // Contraseña
           TextFormField(
             controller: _passwordController,
             decoration: InputDecoration(
               labelText: 'Contraseña',
-              labelStyle: const TextStyle(color: Color(0xFF555555)),
-              prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
+              labelStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
+              prefixIcon: Icon(Icons.lock, color: AppTheme.primaryColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+                borderSide: const BorderSide(color: AppTheme.gray300),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
+                borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
               ),
               filled: true,
-              fillColor: const Color(0xFFf8f9fa),
+              fillColor: AppTheme.gray50,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xFF666666),
+                  color: AppTheme.gray600,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
             obscureText: _obscurePassword,
             validator: Validators.validatePassword,
             onFieldSubmitted: (_) => _login(context),
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
-          
+
           // Recordarme y recuperar contraseña
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -248,22 +224,17 @@ class __LoginFormState extends State<_LoginForm> {
                 children: [
                   Checkbox(
                     value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value ?? false;
-                      });
-                    },
-                    activeColor: const Color(0xFF1a237e), // Color azul para el checkbox
+                    onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                    activeColor: AppTheme.primaryColor,
                   ),
-                  const Text(
+                  Text(
                     'Recordarme',
-                    style: TextStyle(color: Color(0xFF555555)),
+                    style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
                   ),
                 ],
               ),
               TextButton(
                 onPressed: () {
-                  // Navegar a la pantalla de recuperación de contraseña
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -271,72 +242,64 @@ class __LoginFormState extends State<_LoginForm> {
                     ),
                   );
                 },
-                child: const Text(
+                child: Text(
                   '¿Olvidaste tu contraseña?',
-                  style: TextStyle(color: Color(0xFF1a237e)),
+                  style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 30),
-          
-          // Botón de login - estilo mejorado
+
+          // Botón login
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _login(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1a237e), // Azul oscuro
+                backgroundColor: AppTheme.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 2,
               ),
               child: authProvider.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppTheme.white,
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Iniciar sesión',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                      style: AppTheme.buttonText.copyWith(fontSize: 16),
                     ),
             ),
           ),
           const SizedBox(height: 20),
-          
-          // Línea divisoria o texto alternativo
+
           const Divider(thickness: 1, height: 20),
           const SizedBox(height: 10),
-          
-          // Enlaces adicionales
+
+          // Registro
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 '¿No tienes cuenta? ',
-                style: TextStyle(color: Color(0xFF666666)),
+                style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
               ),
               TextButton(
                 onPressed: widget.onRegisterPressed,
-                child: const Text(
+                child: Text(
                   'Regístrate aquí',
-                  style: TextStyle(
-                    color: Color(0xFF1a237e),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-
             ],
           ),
         ],

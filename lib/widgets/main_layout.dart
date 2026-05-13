@@ -11,6 +11,7 @@ import '../features/home/presentation/screens/profile_screen.dart';
 import 'package:optica_app/features/cart/presentation/providers/cart_provider.dart';
 import 'package:optica_app/features/home/presentation/screens/pedidos_screen.dart';
 import 'package:optica_app/features/home/presentation/screens/citas_screen.dart';
+import '../core/theme/app_theme.dart';  // Importamos el tema
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -65,7 +66,7 @@ class _MainLayoutState extends State<MainLayout> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('¡Registro exitoso! Ahora puedes iniciar sesión.'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.successColor,
             duration: Duration(seconds: 3),
           ),
         );
@@ -191,7 +192,7 @@ class _MainLayoutState extends State<MainLayout> {
               ),
           ],
         ),
-        backgroundColor: const Color.fromARGB(255, 30, 58, 138),
+        backgroundColor: AppTheme.primaryColor,  // ← teal
         iconTheme: const IconThemeData(color: Colors.white),
         // SIEMPRE mostrar hamburger icon para menú
         leading: Builder(
@@ -257,7 +258,7 @@ class _MainLayoutState extends State<MainLayout> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: AppTheme.errorColor,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
@@ -316,7 +317,7 @@ class _MainLayoutState extends State<MainLayout> {
             onPressed: () => _onItemSelected(3),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color.fromARGB(255, 30, 58, 138),
+              foregroundColor: AppTheme.primaryColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -348,7 +349,7 @@ class _MainLayoutState extends State<MainLayout> {
               child: Text(
                 _userName?.substring(0, 1).toUpperCase() ?? 'U',
                 style: TextStyle(
-                  color: const Color.fromARGB(255, 30, 58, 138),
+                  color: AppTheme.primaryColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -365,7 +366,7 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildDrawer(AuthProvider authProvider) {
     final cartProvider = Provider.of<CartProvider>(context, listen: true);
     final itemCount = cartProvider.itemCount;
-    final primaryColor = const Color.fromARGB(255, 30, 58, 138);
+    final primaryColor = AppTheme.primaryColor;
     
     return Drawer(
       child: ListView(
@@ -375,11 +376,11 @@ class _MainLayoutState extends State<MainLayout> {
           
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey[50],
+            color: AppTheme.gray100,
             child: Text(
               'Navegación',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppTheme.gray600,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -448,19 +449,19 @@ class _MainLayoutState extends State<MainLayout> {
               leading: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: AppTheme.errorColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.logout,
-                  color: Colors.red[600],
+                  color: AppTheme.errorColor,
                   size: 22,
                 ),
               ),
               title: Text(
                 'Cerrar sesión',
                 style: TextStyle(
-                  color: Colors.red[600],
+                  color: AppTheme.errorColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -503,7 +504,7 @@ class _MainLayoutState extends State<MainLayout> {
           icon,
           color: selected 
               ? primaryColor 
-              : (isAuthenticated ? Colors.grey[700] : Colors.grey[400]),
+              : (isAuthenticated ? AppTheme.gray700 : AppTheme.gray400),
           size: 22,
         ),
       ),
@@ -512,7 +513,7 @@ class _MainLayoutState extends State<MainLayout> {
         style: TextStyle(
           color: selected 
               ? primaryColor 
-              : (isAuthenticated ? Colors.grey[800] : Colors.grey[400]),
+              : (isAuthenticated ? AppTheme.gray800 : AppTheme.gray400),
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),
@@ -524,7 +525,7 @@ class _MainLayoutState extends State<MainLayout> {
               'Requiere inicio de sesión',
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey[500],
+                color: AppTheme.gray500,
               ),
             )
           : null,
@@ -559,7 +560,7 @@ class _MainLayoutState extends State<MainLayout> {
               Icons.shopping_cart,
               color: selected 
                   ? primaryColor 
-                  : (isAuthenticated ? Colors.grey[700] : Colors.grey[400]),
+                  : (isAuthenticated ? AppTheme.gray700 : AppTheme.gray400),
               size: 22,
             ),
           ),
@@ -570,7 +571,7 @@ class _MainLayoutState extends State<MainLayout> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  color: AppTheme.errorColor,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white, width: 1.5),
                 ),
@@ -596,7 +597,7 @@ class _MainLayoutState extends State<MainLayout> {
         style: TextStyle(
           color: selected 
               ? primaryColor 
-              : (isAuthenticated ? Colors.grey[800] : Colors.grey[400]),
+              : (isAuthenticated ? AppTheme.gray800 : AppTheme.gray400),
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),
@@ -625,7 +626,7 @@ class _MainLayoutState extends State<MainLayout> {
               'Requiere inicio de sesión',
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey[500],
+                color: AppTheme.gray500,
               ),
             )
           : null,
@@ -646,7 +647,7 @@ class _MainLayoutState extends State<MainLayout> {
           end: Alignment.bottomRight,
           colors: [
             primaryColor,
-            Color.fromARGB(255, 50, 78, 158),
+            AppTheme.primaryLight,
           ],
         ),
       ),
@@ -714,14 +715,14 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         child: Icon(
           icon,
-          color: selected ? primaryColor : Colors.grey[700],
+          color: selected ? primaryColor : AppTheme.gray700,
           size: 22,
         ),
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: selected ? primaryColor : Colors.grey[800],
+          color: selected ? primaryColor : AppTheme.gray800,
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),

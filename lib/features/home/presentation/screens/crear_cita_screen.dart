@@ -8,6 +8,7 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../citas/presentation/providers/citas_provider.dart';
 import '../../../citas/data/models/cita_model.dart';
 import '../../../citas/data/models/servicio_model.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CrearCitaScreen extends StatefulWidget {
   const CrearCitaScreen({super.key});
@@ -27,14 +28,14 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   TimeOfDay? _selectedTime;
   String? _selectedMetodoPago;
   
-  // Mapa hora -> empleadoId (devuelto por el endpoint de disponibilidad)
+  // Mapa hora -> empleadoId
   Map<String, int> _horasMap = {};
   
   // Listas de datos
   List<Map<String, dynamic>> _clientesList = [];
   List<Servicio> _serviciosList = [];
   
-  // Horas disponibles (solo las claves del mapa)
+  // Horas disponibles
   List<String> _horasDisponibles = [];
   
   // Métodos de pago
@@ -51,10 +52,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   String _info = '';
   String? _userName;
   String? _userEmail;
-  int? _selectedEmpleadoId; // se asigna automáticamente al elegir hora
-  
-  // Color principal
-  Color get _primaryColor => const Color.fromARGB(255, 30, 58, 138);
+  int? _selectedEmpleadoId;
   
   @override
   void initState() {
@@ -99,7 +97,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       if (authProvider.isAuthenticated && authProvider.user != null) {
         // 1. Cargar clienteId
         if (authProvider.isAdmin) {
-          // Admin: selecciona cliente de la lista
           if (citasProvider.clientes.isEmpty) {
             await citasProvider.loadCitas();
           }
@@ -114,14 +111,13 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
             _error = 'No hay clientes disponibles en el sistema';
           }
         } else {
-          // Cliente: usar su propio clienteId
           _selectedClienteId = authProvider.user?.clienteId ?? await StorageService.getClienteId();
           if (_selectedClienteId == null) {
             _error = 'No se encontró perfil de cliente. Complete su perfil primero.';
           }
         }
         
-        // 2. Cargar servicios (público)
+        // 2. Cargar servicios
         if (citasProvider.servicios.isEmpty) {
           await citasProvider.loadCitas();
         }
@@ -129,13 +125,11 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         
         if (_serviciosList.isNotEmpty) {
           _selectedServicioId = _serviciosList[0].id;
-          // Actualizar horas disponibles para el primer servicio
           await _actualizarHorasDisponibles(_selectedServicioId!);
         } else {
           _error = _error.isNotEmpty ? '$_error\nNo hay servicios disponibles' : 'No hay servicios disponibles';
         }
         
-        // 3. Seleccionar método de pago por defecto
         _selectedMetodoPago = _metodosPago.isNotEmpty ? _metodosPago[0] : null;
         
         if (_error.isEmpty && _selectedClienteId != null) {
@@ -153,7 +147,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // ACTUALIZAR HORAS DISPONIBLES usando el endpoint público
+  // ACTUALIZAR HORAS DISPONIBLES
   Future<void> _actualizarHorasDisponibles(int servicioId) async {
     if (_selectedDate == null || servicioId == 0) {
       setState(() {
@@ -176,7 +170,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       final data = await _apiService.getHorasDisponiblesMultiple(
         servicioId: servicioId,
         fecha: fechaStr,
-        intervaloMinutos: 30, // o puedes usar la duración del servicio si prefieres
+        intervaloMinutos: 30,
       );
       
       final Map<String, int> tempMap = {};
@@ -203,14 +197,12 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // PARSEAR ID (int o string)
   int _parseId(dynamic id) {
     if (id is int) return id;
     if (id is String) return int.tryParse(id) ?? 0;
     return 0;
   }
   
-  // SELECCIONAR FECHA
   Future<void> _seleccionarFecha() async {
     final fechaSeleccionada = await showDatePicker(
       context: context,
@@ -237,7 +229,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // MOSTRAR HORAS DISPONIBLES (grid)
   void _seleccionarHora() {
     if (_selectedDate == null) {
       setState(() => _error = 'Primero seleccione una fecha');
@@ -257,7 +248,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       builder: (context) => AlertDialog(
         title: Text(
           'Horas Disponibles (${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).duracionMin} min)',
-          style: const TextStyle(fontSize: 16),
+          style: AppTheme.titleMedium,
         ),
         content: SizedBox(
           width: double.maxFinite,
@@ -267,14 +258,10 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
             children: [
               Text(
                 'Servicio: ${_serviciosList.firstWhere((s) => s.id == _selectedServicioId).nombre}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: _primaryColor,
-                ),
+                style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
               ),
               const SizedBox(height: 8),
-              const Text('Seleccione una hora disponible:', style: TextStyle(fontSize: 12)),
+              Text('Seleccione una hora disponible:', style: AppTheme.bodySmall),
               const SizedBox(height: 16),
               Expanded(
                 child: GridView.builder(
@@ -305,10 +292,10 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: _primaryColor.withOpacity(0.1),
-                        foregroundColor: _primaryColor,
+                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                        foregroundColor: AppTheme.primaryColor,
                       ),
-                      child: Text(horaStr, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(horaStr, style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                     );
                   },
                 ),
@@ -319,22 +306,19 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: _primaryColor)),
+            child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor)),
           ),
         ],
       ),
     );
   }
   
-  // Convertir string "HH:MM" a TimeOfDay
   TimeOfDay _timeOfDayFromString(String time) {
     final parts = time.split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
   
-  // CREAR CITA
   Future<void> _crearCita() async {
-    // Validaciones
     final errores = <String>[];
     if (_selectedClienteId == null || _selectedClienteId == 0) errores.add('Cliente no encontrado');
     if (_selectedServicioId == null) errores.add('Servicio no seleccionado');
@@ -365,7 +349,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         clienteId: _selectedClienteId!,
         servicioId: _selectedServicioId!,
         empleadoId: _selectedEmpleadoId!,
-        estadoCitaId: 1, // Estado pendiente
+        estadoCitaId: 1,
         metodoPago: _selectedMetodoPago,
         fecha: DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day),
         hora: _selectedTime!,
@@ -379,7 +363,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       
       if (result['success'] == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Cita creada exitosamente'), backgroundColor: Colors.green, duration: const Duration(seconds: 3)),
+          SnackBar(content: Text('✅ Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: const Duration(seconds: 3)),
         );
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.pop(context);
@@ -387,7 +371,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         final errorMsg = result['error']?.toString() ?? 'Error desconocido al crear cita';
         setState(() => _error = errorMsg);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ $errorMsg'), backgroundColor: Colors.red, duration: const Duration(seconds: 4)),
+          SnackBar(content: Text('❌ $errorMsg'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
     } catch (e) {
@@ -397,13 +381,12 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error inesperado: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 4)),
+          SnackBar(content: Text('❌ Error inesperado: $e'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
     }
   }
   
-  // FORMATOS
   String _formatearFecha(DateTime fecha) {
     final dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     final meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -417,7 +400,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(authProvider.isAdmin ? 'Crear Nueva Cita' : 'Agendar Cita'),
-        backgroundColor: _primaryColor,
+        backgroundColor: AppTheme.primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -427,11 +410,16 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Cargando datos...'),
-            ]))
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Cargando datos...'),
+                ],
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -465,16 +453,27 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       _buildLabel('Cliente'),
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.shade100)),
-                        child: Row(children: [
-                          Icon(Icons.person, color: _primaryColor),
-                          const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            const Text('Usted', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            Text(_userName ?? 'Cliente #$_selectedClienteId', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            if (_userEmail != null) Text(_userEmail!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          ])),
-                        ]),
+                        decoration: BoxDecoration(
+                          color: AppTheme.successColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.person, color: AppTheme.primaryColor),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Usted', style: AppTheme.caption.copyWith(color: AppTheme.gray600)),
+                                  Text(_userName ?? 'Cliente #$_selectedClienteId', style: AppTheme.titleMedium),
+                                  if (_userEmail != null) Text(_userEmail!, style: AppTheme.caption),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -512,33 +511,57 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                             onTap: _seleccionarFecha,
                             child: Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8), color: Colors.white),
-                              child: Row(children: [
-                                Icon(Icons.calendar_today, color: _selectedDate != null ? _primaryColor : Colors.grey),
-                                const SizedBox(width: 12),
-                                Expanded(child: Text(_selectedDate != null ? _formatearFecha(_selectedDate!) : 'Seleccionar fecha')),
-                                Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-                              ]),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppTheme.gray400),
+                                borderRadius: BorderRadius.circular(8),
+                                color: AppTheme.surfaceColor,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_today, color: _selectedDate != null ? AppTheme.primaryColor : AppTheme.gray500),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _selectedDate != null ? _formatearFecha(_selectedDate!) : 'Seleccionar fecha',
+                                      style: AppTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: InkWell(
-                            onTap: _selectedServicioId == null ? () => setState(() => _error = 'Primero seleccione un servicio') : _seleccionarHora,
+                            onTap: _selectedServicioId == null
+                                ? () => setState(() => _error = 'Primero seleccione un servicio')
+                                : _seleccionarHora,
                             child: Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8), color: Colors.white),
-                              child: Row(children: [
-                                Icon(Icons.access_time, color: _selectedTime != null ? _primaryColor : Colors.grey),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _isLoadingHoras
-                                      ? const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                      : Text(_selectedTime != null ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}' : 'Seleccionar hora'),
-                                ),
-                                Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-                              ]),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppTheme.gray400),
+                                borderRadius: BorderRadius.circular(8),
+                                color: AppTheme.surfaceColor,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.access_time, color: _selectedTime != null ? AppTheme.primaryColor : AppTheme.gray500),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _isLoadingHoras
+                                        ? const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : Text(
+                                            _selectedTime != null
+                                                ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
+                                                : 'Seleccionar hora',
+                                            style: AppTheme.bodyMedium,
+                                          ),
+                                  ),
+                                  Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -553,22 +576,25 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       child: ElevatedButton(
                         onPressed: (_isLoading || _selectedClienteId == null || _horasDisponibles.isEmpty) ? null : _crearCita,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: (_selectedClienteId == null || _horasDisponibles.isEmpty) ? Colors.grey : _primaryColor,
+                          backgroundColor: (_selectedClienteId == null || _horasDisponibles.isEmpty) ? AppTheme.gray400 : AppTheme.primaryColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         child: _isLoading
-                            ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                                SizedBox(width: 12),
-                                Text('Creando cita...'),
-                              ])
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white)),
+                                  const SizedBox(width: 12),
+                                  Text('Creando cita...', style: AppTheme.buttonText),
+                                ],
+                              )
                             : Text(
                                 _selectedClienteId == null
                                     ? 'Falta perfil de cliente'
                                     : _horasDisponibles.isEmpty
                                         ? 'Sin horas disponibles'
                                         : 'Agendar Cita',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: AppTheme.buttonText,
                               ),
                       ),
                     ),
@@ -576,7 +602,10 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     if (!_isLoading)
                       SizedBox(
                         width: double.infinity,
-                        child: TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: TextStyle(color: _primaryColor))),
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor)),
+                        ),
                       ),
                   ],
                 ),
@@ -589,18 +618,19 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF555555))),
+      child: Text(text, style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
     );
   }
   
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: AppTheme.bodyMedium,
       border: const OutlineInputBorder(),
-      prefixIcon: Icon(Icons.spa, color: _primaryColor),
+      prefixIcon: Icon(Icons.spa, color: AppTheme.primaryColor),
       filled: true,
-      fillColor: Colors.white,
-      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _primaryColor, width: 2)),
+      fillColor: AppTheme.surfaceColor,
+      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryColor, width: 2)),
     );
   }
   
@@ -608,16 +638,27 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade200)),
-      child: Row(children: [
-        const Icon(Icons.error_outline, size: 20, color: Colors.red),
-        const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Error', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-          const SizedBox(height: 4),
-          Text(mensaje, style: const TextStyle(color: Colors.red)),
-        ])),
-      ]),
+      decoration: BoxDecoration(
+        color: AppTheme.errorColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 20, color: AppTheme.errorColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Error', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppTheme.errorColor)),
+                const SizedBox(height: 4),
+                Text(mensaje, style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorColor)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
   
@@ -625,12 +666,18 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(color: _primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: _primaryColor.withOpacity(0.3))),
-      child: Row(children: [
-        Icon(Icons.info, size: 20, color: _primaryColor),
-        const SizedBox(width: 8),
-        Expanded(child: Text(mensaje, style: TextStyle(color: _primaryColor))),
-      ]),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info, size: 20, color: AppTheme.primaryColor),
+          const SizedBox(width: 8),
+          Expanded(child: Text(mensaje, style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor))),
+        ],
+      ),
     );
   }
 }

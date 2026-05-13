@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../catalog/data/models/category_model.dart';
 import '../../../home/presentation/providers/catalog_provider.dart';
 import 'category_products_screen.dart';
+import '../../../../core/theme/app_theme.dart';   // Tema centralizado
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -42,18 +43,22 @@ class _CatalogScreenState extends State<CatalogScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
+                Icon(Icons.error, size: 64, color: AppTheme.errorColor),
                 const SizedBox(height: 16),
                 Text(
                   'Error: ${catalogProvider.error}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(color: AppTheme.errorColor),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
                     catalogProvider.loadCategories();
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: AppTheme.surfaceColor,
+                  ),
                   child: const Text('Reintentar'),
                 ),
               ],
@@ -66,11 +71,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.category, size: 64, color: Colors.grey),
+                Icon(Icons.category, size: 64, color: AppTheme.gray400),
                 SizedBox(height: 16),
                 Text(
                   'No hay categorías disponibles',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: AppTheme.gray500),
                 ),
               ],
             ),
@@ -84,12 +89,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildCategoriesList(List<Category> categories) {
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, left: 12, right: 12, bottom: 16), // Márgenes ajustados
+      padding: const EdgeInsets.only(top: 16, left: 12, right: 12, bottom: 16),
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final category = categories[index];
         return Container(
-          margin: const EdgeInsets.only(bottom: 16), // Espacio entre cards
+          margin: const EdgeInsets.only(bottom: 16),
           child: _CategoryCard(category: category),
         );
       },
@@ -130,7 +135,7 @@ class _CategoryCard extends StatelessWidget {
               height: 180,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.gray200,
               ),
               child: category.imagenUrl != null && category.imagenUrl!.isNotEmpty
                   ? Image.network(
@@ -219,7 +224,6 @@ class _CategoryCard extends StatelessWidget {
                 ],
               ),
             ),
-            
           ],
         ),
       ),
@@ -228,7 +232,7 @@ class _CategoryCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      color: Colors.blue.shade50,
+      color: AppTheme.primaryLight.withOpacity(0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -236,13 +240,13 @@ class _CategoryCard extends StatelessWidget {
             Icon(
               Icons.category,
               size: 60,
-              color: Colors.blue.shade200,
+              color: AppTheme.primaryColor,
             ),
             const SizedBox(height: 8),
             Text(
               category.nombre,
               style: TextStyle(
-                color: Colors.blue.shade300,
+                color: AppTheme.primaryColor,
                 fontWeight: FontWeight.bold,
               ),
             ),

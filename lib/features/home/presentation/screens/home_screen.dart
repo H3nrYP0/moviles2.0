@@ -1,64 +1,254 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/widgets/loading_indicator.dart';
+import '../../../catalog/data/models/product_model.dart';
+import '../../../home/presentation/screens/crear_cita_screen.dart';
+import '../providers/catalog_provider.dart';
+import 'product_detail_screen.dart';
+import '../../../../core/theme/app_theme.dart';        // ← importa el tema
 
-
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PageController _pageController = PageController(viewportFraction: 0.8);
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CatalogProvider>(context, listen: false).loadFeaturedProducts();
+    });
+    _pageController.addListener(() {
+      final newPage = _pageController.page?.round() ?? 0;
+      if (newPage != _currentPage) setState(() => _currentPage = newPage);
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _getHomeImage(),
-      builder: (context, snapshot) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // IMAGEN o ÍCONO
-              if (snapshot.hasData && snapshot.data != null)
-                Container(
-                  width: 300,
-                  height: 200,
-                  margin: const EdgeInsets.only(bottom: 30),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: DecorationImage(
-                      image: NetworkImage(snapshot.data!),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
-              else if (snapshot.connectionState == ConnectionState.waiting)
-                const CircularProgressIndicator()
-              else
-                const Icon(
-                  Icons.visibility,
-                  size: 100,
-                  color: Colors.blue,
-                ),
-              
-              const SizedBox(height: 20),
-              
-              const Text(
-                'Bienvenido a Eyes Settings',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildWelcomeBanner(),
+            const SizedBox(height: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Productos Destacados',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              
-              const SizedBox(height: 10),
-              
-              const Text(
-                'Tu visión, nuestra prioridad',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ],
+            ),
+            const SizedBox(height: 12),
+            _buildFeaturedCarousel(),
+            const SizedBox(height: 32),
+            _buildAppointmentButton(),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 20, bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryColor, AppTheme.primaryLight],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          const Text(
+            'Bienvenido a Eyes Settings',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
+          const SizedBox(height: 6),
+          const Text(
+            'Tu visión, nuestra prioridad',
+            style: TextStyle(fontSize: 16, color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedCarousel() {
+    return Consumer<CatalogProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const LoadingIndicator(message: 'Cargando productos destacados...');
+        }
+        if (provider.error.isNotEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 8),
+                  Text(provider.error),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => provider.loadFeaturedProducts(),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        final products = provider.featuredProducts;
+        if (products.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: Text('No hay productos destacados')),
+          );
+        }
+
+        return Column(
+          children: [
+            SizedBox(
+              height: 320,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: products.length,
+                onPageChanged: (index) => setState(() => _currentPage = index),
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: _buildProductCard(products[index]),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(products.length, (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentPage == index ? AppTheme.primaryColor : Colors.grey.shade300,
+                ),
+              )),
+            ),
+          ],
         );
       },
     );
   }
 
-  Future<String?> _getHomeImage() async {
-    // Aquí llamarías a tu ApiService
-    // Por ahora, devuelve la URL hardcodeada
-    return 'https://res.cloudinary.com/drhhthuqq/image/upload/v1765769365/ojo_vc7bdu.jpg';
+  Widget _buildProductCard(Product product) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Image.network(
+                  product.imagenUrl ?? '',
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.broken_image, size: 50),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.nombre,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _formatCurrency(product.precioVenta),
+                    style: AppTheme.priceText,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _buildAppointmentButton() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CrearCitaScreen()),
+            );
+          },
+          icon: const Icon(Icons.calendar_today, size: 24),
+          label: const Text(
+            'AGENDAR CITA',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.successColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            elevation: 5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatCurrency(double amount) {
+    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0);
+    return formatter.format(amount);
+  }
+
+
 }
