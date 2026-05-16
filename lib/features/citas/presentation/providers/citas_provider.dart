@@ -11,7 +11,17 @@ class CitasProvider extends ChangeNotifier {
   List<Cita> _allCitas = [];
   List<Servicio> _servicios = [];
   List<Map<String, dynamic>> _empleados = [];
-  List<Map<String, dynamic>> _clientes = [];
+  List<Map<String, dynamic>> _clientes = [];          // ✅ Lista para dropdown
+  Map<int, String> _clientesMap = {};                 // ✅ Mapa para búsqueda rápida
+
+  // ===================== CACHÉ =====================
+  static List<Servicio>? _cachedServicios;
+  static DateTime? _cachedServiciosTime;
+  static List<Map<String, dynamic>>? _cachedEmpleados;
+  static DateTime? _cachedEmpleadosTime;
+  static List<Map<String, dynamic>>? _cachedClientes; // ✅ Cache de lista de clientes
+  static DateTime? _cachedClientesTime;
+  static const _cacheDuration = Duration(minutes: 5);
 
   // ===================== FILTROS / ADMIN =====================
   bool _isAdminMode = false;
@@ -26,7 +36,8 @@ class CitasProvider extends ChangeNotifier {
   List<Cita> get allCitas => List.from(_allCitas);
   List<Servicio> get servicios => List.from(_servicios);
   List<Map<String, dynamic>> get empleados => List.from(_empleados);
-  List<Map<String, dynamic>> get clientes => List.from(_clientes);
+  List<Map<String, dynamic>> get clientes => List.from(_clientes);   // ✅ Restaurado
+  Map<int, String> get clientesMap => Map.unmodifiable(_clientesMap);
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasError => _error.isNotEmpty;
@@ -54,22 +65,20 @@ class CitasProvider extends ChangeNotifier {
   }
 
   // ===================== CARGA PRINCIPAL =====================
-  Future<void> loadCitas() async {
+  Future<void> loadCitas({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      // Cargar datos auxiliares (servicios siempre, clientes/empleados si admin)
-      await _loadServicios();
+      await _loadServicios(forceRefresh: forceRefresh);
       if (_isAdminMode) {
         await Future.wait([
-          _loadEmpleados(),
-          _loadClientes(),
+          _loadEmpleados(forceRefresh: forceRefresh),
+          _loadClientes(forceRefresh: forceRefresh),   // ✅ Usamos nuevo método unificado
         ]);
       }
 
-      // Cargar citas según modo
       if (_isAdminMode) {
         await _loadAllCitasAdmin();
         _citas = List.from(_allCitas);
@@ -85,45 +94,79 @@ class CitasProvider extends ChangeNotifier {
   }
 
   Future<void> refreshCitas() async {
-    await loadCitas();
+    await loadCitas(forceRefresh: true);
   }
 
-  // ===================== LOADERS PRIVADOS =====================
-  Future<void> _loadServicios() async {
+  // ===================== LOADERS PRIVADOS CON CACHÉ =====================
+  Future<void> _loadServicios({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedServicios != null && 
+        _cachedServiciosTime != null &&
+        DateTime.now().difference(_cachedServiciosTime!) < _cacheDuration) {
+      _servicios = _cachedServicios!;
+      print('📦 Usando caché de servicios');
+      return;
+    }
+
     try {
       final data = await _apiService.getServicios();
       _servicios = data
           .map((e) => Servicio.fromJson(e))
           .where((s) => s.estado == true)
           .toList();
+      _cachedServicios = List.from(_servicios);
+      _cachedServiciosTime = DateTime.now();
     } catch (e) {
       _servicios = [];
       print('Error cargando servicios: $e');
     }
   }
 
-  Future<void> _loadEmpleados() async {
+  Future<void> _loadEmpleados({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedEmpleados != null && 
+        _cachedEmpleadosTime != null &&
+        DateTime.now().difference(_cachedEmpleadosTime!) < _cacheDuration) {
+      _empleados = _cachedEmpleados!;
+      print('📦 Usando caché de empleados');
+      return;
+    }
+
     try {
       final data = await _apiService.getEmpleados();
       _empleados = data
           .where((e) => e['estado'] == true || e['estado'] == 'true')
           .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
           .toList();
+      _cachedEmpleados = List.from(_empleados);
+      _cachedEmpleadosTime = DateTime.now();
     } catch (e) {
       _empleados = [];
       print('Error cargando empleados: $e');
     }
   }
 
-  Future<void> _loadClientes() async {
+  // ✅ Método unificado: carga lista de clientes y construye mapa
+  Future<void> _loadClientes({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedClientes != null && 
+        _cachedClientesTime != null &&
+        DateTime.now().difference(_cachedClientesTime!) < _cacheDuration) {
+      _clientes = _cachedClientes!;
+      _clientesMap = { for (var c in _clientes) (c['id'] as int): '${c['nombre']} ${c['apellido']}' };
+      print('📦 Usando caché de clientes');
+      return;
+    }
+
     try {
       final data = await _apiService.getClientes();
       _clientes = data
           .where((c) => c['estado'] == true || c['estado'] == 'true')
           .map<Map<String, dynamic>>((c) => Map<String, dynamic>.from(c))
           .toList();
+      _clientesMap = { for (var c in _clientes) (c['id'] as int): '${c['nombre']} ${c['apellido']}' };
+      _cachedClientes = List.from(_clientes);
+      _cachedClientesTime = DateTime.now();
     } catch (e) {
       _clientes = [];
+      _clientesMap = {};
       print('Error cargando clientes: $e');
     }
   }
@@ -132,7 +175,6 @@ class CitasProvider extends ChangeNotifier {
     try {
       final data = await _apiService.getMisCitas();
       _allCitas = await _enriquecerCitas(data);
-      // En modo cliente, no se filtran más (ya vienen solo las suyas)
       _citas = List.from(_allCitas);
       print('✅ Mis citas cargadas: ${_citas.length}');
     } catch (e) {
@@ -147,7 +189,6 @@ class CitasProvider extends ChangeNotifier {
       final data = await _apiService.getAllCitas();
       _allCitas = await _enriquecerCitas(data);
       _citas = List.from(_allCitas);
-      // Ordenar por fecha descendente
       _allCitas.sort((a, b) {
         final fechaA = DateTime(a.fecha.year, a.fecha.month, a.fecha.day, a.hora.hour, a.hora.minute);
         final fechaB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day, b.hora.hour, b.hora.minute);
@@ -161,21 +202,30 @@ class CitasProvider extends ChangeNotifier {
     }
   }
 
-  // Enriquecer lista de citas con nombres (empleado, servicio, cliente, estado)
+  // Enriquecer citas usando mapas para O(1) lookup
   Future<List<Cita>> _enriquecerCitas(List<dynamic> citasJson) async {
     List<Cita> citas = [];
+    final Map<int, String> empleadoNombreMap = {};
+    for (var emp in _empleados) {
+      final id = emp['id'] as int;
+      empleadoNombreMap[id] = emp['nombre'] as String;
+    }
+    final Map<int, String> servicioNombreMap = {};
+    for (var serv in _servicios) {
+      servicioNombreMap[serv.id] = serv.nombre;
+    }
+
     for (var json in citasJson) {
       try {
         final cita = Cita.fromJson(json);
-        // Si el backend no devuelve los nombres, los asignamos desde nuestras listas
         if (cita.empleadoNombre == null || cita.empleadoNombre!.isEmpty) {
-          cita.empleadoNombre = getEmpleadoNombre(cita.empleadoId);
+          cita.empleadoNombre = empleadoNombreMap[cita.empleadoId] ?? 'Empleado #${cita.empleadoId}';
         }
         if (cita.servicioNombre == null || cita.servicioNombre!.isEmpty) {
-          cita.servicioNombre = getServicioNombre(cita.servicioId);
+          cita.servicioNombre = servicioNombreMap[cita.servicioId] ?? 'Servicio #${cita.servicioId}';
         }
         if (cita.clienteNombre == null || cita.clienteNombre!.isEmpty) {
-          cita.clienteNombre = getClienteNombre(cita.clienteId);
+          cita.clienteNombre = _clientesMap[cita.clienteId] ?? 'Cliente #${cita.clienteId}';
         }
         if (cita.estadoNombre == null || cita.estadoNombre!.isEmpty) {
           cita.estadoNombre = _getNombreEstadoPorId(cita.estadoCitaId);
@@ -196,7 +246,7 @@ class CitasProvider extends ChangeNotifier {
     try {
       final result = await _apiService.createCita(cita.toApiJson());
       if (result['success'] == true) {
-        await loadCitas();
+        await loadCitas(forceRefresh: true);
         return {'success': true};
       } else {
         return {'success': false, 'error': result['error'] ?? 'Error al crear la cita'};
@@ -213,7 +263,7 @@ class CitasProvider extends ChangeNotifier {
     try {
       final result = await _apiService.updateCitaEstado(id, estadoId);
       if (result['success'] == true) {
-        await loadCitas();
+        await loadCitas(forceRefresh: true);
         return {'success': true};
       }
       return {'success': false, 'error': result['error'] ?? 'Error al actualizar estado'};
@@ -251,12 +301,7 @@ class CitasProvider extends ChangeNotifier {
   }
 
   String getClienteNombre(int id) {
-    final cliente = _clientes.firstWhere(
-      (c) => c['id'] == id,
-      orElse: () => {},
-    );
-    final nombreCompleto = '${cliente['nombre'] ?? ''} ${cliente['apellido'] ?? ''}'.trim();
-    return nombreCompleto.isEmpty ? 'Cliente #$id' : nombreCompleto;
+    return _clientesMap[id] ?? 'Cliente #$id';
   }
 
   // ===================== UTILIDADES =====================

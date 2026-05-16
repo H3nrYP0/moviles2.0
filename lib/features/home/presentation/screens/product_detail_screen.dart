@@ -4,7 +4,7 @@ import '../../../catalog/data/models/product_model.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
 import 'package:optica_app/features/home/presentation/screens/login_screen.dart';
-import '../../../../core/theme/app_theme.dart';   // Tema centralizado
+import '../../../../core/theme/app_theme.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -18,6 +18,14 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
 
+  // Optimización de imagen para Cloudinary
+  String _optimizeImageUrl(String url, {int width = 400, int height = 400}) {
+    if (url.contains('cloudinary.com') && !url.contains('?')) {
+      return '$url?w=$width&h=$height&fit=crop';
+    }
+    return url;
+  }
+
   void _handleAddToCart(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
@@ -30,7 +38,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Navigator.pop(context);
               final cartProvider = Provider.of<CartProvider>(context, listen: false);
               cartProvider.addToCart(widget.product, quantity: _quantity);
-              
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('✅ ${_quantity} ${widget.product.nombre} agregado al carrito'),
@@ -137,7 +144,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ? Container(
                             constraints: const BoxConstraints(maxWidth: 400),
                             child: Image.network(
-                              widget.product.imagenUrl!,
+                              _optimizeImageUrl(widget.product.imagenUrl!, width: 400, height: 400),
                               fit: BoxFit.contain,
                               width: double.infinity,
                               height: double.infinity,
@@ -278,7 +285,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 color: _quantity > 1 ? AppTheme.primaryColor : AppTheme.gray400,
                               ),
                             ),
-                            
                             Column(
                               children: [
                                 Text(
@@ -297,7 +303,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ],
                             ),
-                            
                             Container(
                               width: 50,
                               height: 50,

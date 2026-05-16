@@ -70,20 +70,35 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ✅ OPTIMIZADO: una sola llamada a getClientesMap() en modo admin
   Future<void> _cargarNombresClientes(List<Pedido> pedidos) async {
     final clienteIds = pedidos.map((p) => p.clienteId).toSet();
 
-    for (final clienteId in clienteIds) {
-      if (!_clientesNombres.containsKey(clienteId)) {
-        try {
-          final result = await _apiService.getClienteNombre(clienteId);
-          if (result['success'] == true) {
-            _clientesNombres[clienteId] = result['nombre'];
-          } else {
+    if (_isAdminMode) {
+      // ADMIN: cargar todos los clientes de una sola vez
+      try {
+        final clientesMap = await _apiService.getClientesMap();
+        _clientesNombres.addAll(clientesMap);
+      } catch (e) {
+        // Fallback: asignar nombres genéricos por si falla
+        for (final clienteId in clienteIds) {
+          _clientesNombres.putIfAbsent(clienteId, () => 'Cliente #$clienteId');
+        }
+      }
+    } else {
+      // CLIENTE: solo su propio cliente (máximo una llamada)
+      for (final clienteId in clienteIds) {
+        if (!_clientesNombres.containsKey(clienteId)) {
+          try {
+            final result = await _apiService.getClienteNombre(clienteId);
+            if (result['success'] == true) {
+              _clientesNombres[clienteId] = result['nombre'];
+            } else {
+              _clientesNombres[clienteId] = 'Cliente #$clienteId';
+            }
+          } catch (e) {
             _clientesNombres[clienteId] = 'Cliente #$clienteId';
           }
-        } catch (e) {
-          _clientesNombres[clienteId] = 'Cliente #$clienteId';
         }
       }
     }
@@ -189,7 +204,7 @@ class PedidosProvider extends ChangeNotifier {
         final updated = Pedido(
           id: p.id,
           clienteId: p.clienteId,
-          usuarioId: p.usuarioId, // se mantiene por compatibilidad, pero backend no lo usa
+          usuarioId: p.usuarioId,
           total: p.total,
           metodoPago: p.metodoPago,
           metodoEntrega: p.metodoEntrega,

@@ -19,17 +19,16 @@ class CatalogProvider extends ChangeNotifier {
   int? get currentCategoryId => _currentCategoryId;
   
   // ==========================================================
-  //  CATEGORÍAS (SIN IMÁGENES - VERSIÓN SIMPLIFICADA)
+  //  CATEGORÍAS (con soporte para forceRefresh)
   // ==========================================================
   
-  Future<void> loadCategories() async {
+  Future<void> loadCategories({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
     
     try {
-      // 🔥 Cambio: usar getCategorias() en lugar de getCategoriasConImagenes()
-      final categoriasJson = await _apiService.getCategorias();
+      final categoriasJson = await _apiService.getCategorias(forceRefresh: forceRefresh);
       _categories = categoriasJson
           .map((json) => Category.fromJson(json))
           .where((categoria) => categoria.estado)
@@ -45,10 +44,10 @@ class CatalogProvider extends ChangeNotifier {
   }
   
   // ==========================================================
-  //  PRODUCTOS (usando getProductos)
+  //  PRODUCTOS POR CATEGORÍA (con soporte para forceRefresh)
   // ==========================================================
   
-  Future<void> loadProductsByCategory(int categoryId) async {
+  Future<void> loadProductsByCategory(int categoryId, {bool forceRefresh = false}) async {
     _isLoading = true;
     _error = '';
     _currentCategoryId = categoryId;
@@ -56,7 +55,7 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await _apiService.getProductos();
+      final response = await _apiService.getProductos(forceRefresh: forceRefresh);
       final allProducts = response
           .map((json) => Product.fromJson(json))
           .toList();
@@ -73,10 +72,14 @@ class CatalogProvider extends ChangeNotifier {
     }
   }
   
-  Future<void> searchProducts(String query) async {
+  // ==========================================================
+  //  BÚSQUEDA (usa productos en caché si es posible)
+  // ==========================================================
+  
+  Future<void> searchProducts(String query, {bool forceRefresh = false}) async {
     if (query.isEmpty) {
       if (_currentCategoryId != null) {
-        await loadProductsByCategory(_currentCategoryId!);
+        await loadProductsByCategory(_currentCategoryId!, forceRefresh: forceRefresh);
       }
       return;
     }
@@ -85,7 +88,7 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await _apiService.getProductos();
+      final response = await _apiService.getProductos(forceRefresh: forceRefresh);
       final allProducts = response
           .map((json) => Product.fromJson(json))
           .toList();
@@ -124,35 +127,28 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Este método ya no se usa para categorías, pero lo dejamos por si acaso
-  Future<String?> loadCategoryImageIfNeeded(int categoryId) async {
-    // No hacemos nada porque no tenemos imágenes de categorías
-    return null;
-  }
-
-// ==========================================================
-//  PRODUCTOS DESTACADOS (usando getProductos)
-// ==========================================================
-List<Product> _featuredProducts = [];
-List<Product> get featuredProducts => List.unmodifiable(_featuredProducts);
-
-Future<void> loadFeaturedProducts() async {
-  _isLoading = true;
-  _error = '';
-  notifyListeners();
-
-  try {
-    final data = await _apiService.getProductos();
-    final allProducts = data.map((json) => Product.fromJson(json)).toList();
-    // Tomamos los primeros 6 productos como "destacados"
-    _featuredProducts = allProducts.take(6).toList();
+  // ==========================================================
+  //  PRODUCTOS DESTACADOS (con soporte para forceRefresh)
+  // ==========================================================
+  List<Product> _featuredProducts = [];
+  List<Product> get featuredProducts => List.unmodifiable(_featuredProducts);
+  
+  Future<void> loadFeaturedProducts({bool forceRefresh = false}) async {
+    _isLoading = true;
     _error = '';
-  } catch (e) {
-    _error = 'Error al cargar productos destacados: $e';
-    _featuredProducts = [];
-  } finally {
-    _isLoading = false;
     notifyListeners();
+    
+    try {
+      final data = await _apiService.getProductos(forceRefresh: forceRefresh);
+      final allProducts = data.map((json) => Product.fromJson(json)).toList();
+      _featuredProducts = allProducts.take(6).toList();
+      _error = '';
+    } catch (e) {
+      _error = 'Error al cargar productos destacados: $e';
+      _featuredProducts = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-}
 }

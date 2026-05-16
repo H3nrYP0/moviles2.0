@@ -6,7 +6,7 @@ import '../../../catalog/data/models/product_model.dart';
 import '../../../home/presentation/screens/crear_cita_screen.dart';
 import '../providers/catalog_provider.dart';
 import 'product_detail_screen.dart';
-import '../../../../core/theme/app_theme.dart';        // ← importa el tema
+import '../../../../core/theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController(viewportFraction: 0.8);
-  int _currentPage = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -25,41 +24,58 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CatalogProvider>(context, listen: false).loadFeaturedProducts();
     });
-    _pageController.addListener(() {
-      final newPage = _pageController.page?.round() ?? 0;
-      if (newPage != _currentPage) setState(() => _currentPage = newPage);
-    });
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onRefresh() async {
+    await Provider.of<CatalogProvider>(context, listen: false)
+        .loadFeaturedProducts(forceRefresh: true);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeBanner(),
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Productos Destacados',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeBanner(),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Productos Destacados',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _buildFeaturedCarousel(),
-            const SizedBox(height: 32),
-            _buildAppointmentButton(),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 12),
+              _buildFeaturedGrid(),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CrearCitaScreen()),
+          );
+        },
+        icon: const Icon(Icons.calendar_today, size: 24),
+        label: const Text('AGENDAR CITA'),
+        backgroundColor: AppTheme.successColor,
+        foregroundColor: Colors.white,
+        elevation: 5,
       ),
     );
   }
@@ -96,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFeaturedCarousel() {
+  Widget _buildFeaturedGrid() {
     return Consumer<CatalogProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
@@ -129,34 +145,23 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        return Column(
-          children: [
-            SizedBox(
-              height: 320,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: products.length,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: _buildProductCard(products[index]),
-                ),
-              ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.75,
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(products.length, (index) => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentPage == index ? AppTheme.primaryColor : Colors.grey.shade300,
-                ),
-              )),
-            ),
-          ],
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return _buildProductCard(product);
+            },
+          ),
         );
       },
     );
@@ -217,38 +222,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAppointmentButton() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CrearCitaScreen()),
-            );
-          },
-          icon: const Icon(Icons.calendar_today, size: 24),
-          label: const Text(
-            'AGENDAR CITA',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.successColor,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            elevation: 5,
-          ),
-        ),
-      ),
-    );
-  }
-
   String _formatCurrency(double amount) {
     final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0);
     return formatter.format(amount);
   }
-
-
 }

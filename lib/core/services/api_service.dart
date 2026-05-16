@@ -7,6 +7,16 @@ import '../../core/services/storage_service.dart';
 class ApiService {
   static bool _debugMode = true;
 
+  // ==========================================================
+  //  CACHÉ EN MEMORIA
+  // ==========================================================
+  static List<dynamic>? _cachedProductos;
+  static DateTime? _cachedProductosTime;
+  static const _cacheDuration = Duration(minutes: 5);
+
+  static List<dynamic>? _cachedCategorias;
+  static DateTime? _cachedCategoriasTime;
+
   static void _log(String message, {String type = 'INFO'}) {
     if (_debugMode) print('[$type] $message');
   }
@@ -313,26 +323,50 @@ class ApiService {
   }
 
   // ==========================================================
-  //  PRODUCTOS / CATEGORÍAS (públicos)
+  //  PRODUCTOS / CATEGORÍAS (públicos) CON CACHÉ
   // ==========================================================
-  Future<List<dynamic>> getProductos() async {
-    _log('GET productos from: ${ApiEndpoints.productos}');
+  Future<List<dynamic>> getProductos({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedProductos != null && 
+        _cachedProductosTime != null &&
+        DateTime.now().difference(_cachedProductosTime!) < _cacheDuration) {
+      _log('📦 Usando caché de productos (${_cachedProductos!.length} items)');
+      return _cachedProductos!;
+    }
+
+    _log('GET productos from: ${ApiEndpoints.productos} (sin caché)');
     try {
       final headers = await _getHeaders(withToken: false);
       final response = await http.get(Uri.parse(ApiEndpoints.productos), headers: headers);
-      if (response.statusCode == 200) return json.decode(response.body);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _cachedProductos = data;
+        _cachedProductosTime = DateTime.now();
+        return data;
+      }
       throw Exception('Error al obtener productos');
     } catch (e) {
       throw Exception('Error de conexión: $e');
     }
   }
 
-  Future<List<dynamic>> getCategorias() async {
-    _log('GET categorias from: ${ApiEndpoints.categorias}');
+  Future<List<dynamic>> getCategorias({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedCategorias != null && 
+        _cachedCategoriasTime != null &&
+        DateTime.now().difference(_cachedCategoriasTime!) < _cacheDuration) {
+      _log('📦 Usando caché de categorías');
+      return _cachedCategorias!;
+    }
+
+    _log('GET categorias from: ${ApiEndpoints.categorias} (sin caché)');
     try {
       final headers = await _getHeaders(withToken: false);
       final response = await http.get(Uri.parse(ApiEndpoints.categorias), headers: headers);
-      if (response.statusCode == 200) return json.decode(response.body);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _cachedCategorias = data;
+        _cachedCategoriasTime = DateTime.now();
+        return data;
+      }
       throw Exception('Error al obtener categorías');
     } catch (e) {
       throw Exception('Error de conexión: $e');
@@ -605,7 +639,7 @@ class ApiService {
   Future<List<dynamic>> getMisCitas() async {
     _log('GET mis citas from: ${ApiEndpoints.clienteCitas}');
     try {
-      final headers = await _getHeaders(); // con token
+      final headers = await _getHeaders();
       final response = await http.get(Uri.parse(ApiEndpoints.clienteCitas), headers: headers);
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -623,10 +657,9 @@ class ApiService {
   Future<List<dynamic>> getAllCitas() async {
     _log('GET all citas from: ${ApiEndpoints.citas}');
     try {
-      final headers = await _getHeaders(); // con token
+      final headers = await _getHeaders();
       final response = await http.get(Uri.parse(ApiEndpoints.citas), headers: headers);
       if (response.statusCode == 200) {
-        // El endpoint /citas devuelve paginado: {data: [...], total, page, ...}
         final data = json.decode(response.body);
         if (data is Map && data.containsKey('data')) {
           return data['data'] as List;
