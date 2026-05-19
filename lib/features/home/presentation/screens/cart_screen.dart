@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import 'package:optica_app/features/home/presentation/screens/profile_screen.dart';
 import 'checkout_modal.dart';
-import '../../../../core/theme/app_theme.dart';   // Tema centralizado
+import '../../../../core/theme/app_theme.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -16,7 +17,16 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final ApiService _apiService = ApiService();
-  
+
+  String _formatPrice(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,15 +63,15 @@ class _CartScreenState extends State<CartScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.shopping_cart_outlined, 
-              size: 80, 
+              Icons.shopping_cart_outlined,
+              size: 80,
               color: AppTheme.gray400,
             ),
             const SizedBox(height: 20),
             Text(
               'Tu carrito está vacío',
               style: TextStyle(
-                fontSize: 18, 
+                fontSize: 18,
                 color: AppTheme.gray500,
                 fontWeight: FontWeight.w500,
               ),
@@ -92,7 +102,6 @@ class _CartScreenState extends State<CartScreen> {
             },
           ),
         ),
-
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -110,7 +119,6 @@ class _CartScreenState extends State<CartScreen> {
             children: [
               _buildSummary(cartProvider),
               const SizedBox(height: 16),
-              
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -159,7 +167,6 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -171,7 +178,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               Text(
-                '\$${cartProvider.subtotal.toStringAsFixed(2)}',
+                _formatPrice(cartProvider.subtotal),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -180,12 +187,9 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ],
           ),
-          
           const SizedBox(height: 8),
-          
           Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -198,7 +202,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               Text(
-                '\$${cartProvider.totalAmount.toStringAsFixed(2)}',
+                _formatPrice(cartProvider.totalAmount),
                 style: AppTheme.priceText.copyWith(fontSize: 22),
               ),
             ],
@@ -240,7 +244,7 @@ class _CartScreenState extends State<CartScreen> {
 
   void _openCheckoutModal(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     if (!authProvider.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -297,6 +301,15 @@ class _CartItemCard extends StatelessWidget {
 
   const _CartItemCard({required this.item});
 
+  String _formatPrice(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
+
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
@@ -335,7 +348,6 @@ class _CartItemCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,19 +363,16 @@ class _CartItemCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  
                   Text(
-                    '\$${item.product.precioVenta.toStringAsFixed(2)} c/u',
+                    '${_formatPrice(item.product.precioVenta)} c/u',
                     style: TextStyle(
                       color: AppTheme.gray600,
                       fontSize: 13,
                     ),
                   ),
-                  
                   const SizedBox(height: 4),
-                  
                   Text(
-                    '\$${item.subtotal.toStringAsFixed(2)} total',
+                    '${_formatPrice(item.subtotal)} total',
                     style: TextStyle(
                       color: AppTheme.successColor,
                       fontWeight: FontWeight.w600,
@@ -373,7 +382,6 @@ class _CartItemCard extends StatelessWidget {
                 ],
               ),
             ),
-
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -402,7 +410,6 @@ class _CartItemCard extends StatelessWidget {
                       color: item.quantity > 1 ? AppTheme.primaryColor : AppTheme.gray400,
                     ),
                   ),
-                  
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
@@ -413,7 +420,6 @@ class _CartItemCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
                   Container(
                     width: 32,
                     height: 32,
@@ -436,7 +442,6 @@ class _CartItemCard extends StatelessWidget {
                 ],
               ),
             ),
-
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 22),
               onPressed: () => cartProvider.removeFromCart(item.product.id),

@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Óptica App',
-        
+
         // 🔥🔥🔥 ESTO ES LO QUE NECESITA EL CALENDARIO 🔥🔥🔥
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,   // Para DatePicker
