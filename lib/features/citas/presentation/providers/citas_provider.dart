@@ -64,6 +64,20 @@ class CitasProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<Map<String, dynamic>> _estados = [];
+
+List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
+
+Future<void> loadEstados({bool forceRefresh = false}) async {
+  try {
+    final data = await _apiService.getEstadosCita();
+    _estados = data;
+  } catch (e) {
+    _estados = [];
+  }
+  notifyListeners();
+}
+
   // ===================== CARGA PRINCIPAL =====================
   Future<void> loadCitas({bool forceRefresh = false}) async {
     _isLoading = true;

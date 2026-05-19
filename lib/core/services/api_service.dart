@@ -299,6 +299,50 @@ class ApiService {
     }
   }
 
+  // ==========================================================
+//  ESTADOS DE PEDIDO
+// ==========================================================
+Future<List<Map<String, dynamic>>> getEstadosPedido() async {
+  _log('GET estados pedido from: ${ApiEndpoints.estadosPedido}');
+  try {
+    final headers = await _getHeaders(withToken: false);
+    final response = await http.get(Uri.parse(ApiEndpoints.estadosPedido), headers: headers);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is List) {
+        return List<Map<String, dynamic>>.from(data);
+      }
+      return [];
+    }
+    return [];
+  } catch (e) {
+    _log('Error getEstadosPedido: $e', type: 'ERROR');
+    return [];
+  }
+}
+
+// ==========================================================
+//  ESTADOS DE CITA
+// ==========================================================
+Future<List<Map<String, dynamic>>> getEstadosCita() async {
+  _log('GET estados cita from: ${ApiEndpoints.estadoCita}');
+  try {
+    final headers = await _getHeaders(withToken: false);
+    final response = await http.get(Uri.parse(ApiEndpoints.estadoCita), headers: headers);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is List) {
+        return List<Map<String, dynamic>>.from(data);
+      }
+      return [];
+    }
+    return [];
+  } catch (e) {
+    _log('Error getEstadosCita: $e', type: 'ERROR');
+    return [];
+  }
+}
+
   Future<Map<int, String>> getClientesMap() async {
     _log('GET mapa de clientes', type: 'INFO');
     try {

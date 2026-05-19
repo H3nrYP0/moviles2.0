@@ -36,6 +36,21 @@ class PedidosProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ===================== ESTADOS =====================
+List<Map<String, dynamic>> _estados = [];
+
+List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
+
+Future<void> loadEstados({bool forceRefresh = false}) async {
+  try {
+    final data = await _apiService.getEstadosPedido();
+    _estados = data;
+  } catch (e) {
+    _estados = [];
+  }
+  notifyListeners();
+}
+
   List<Pedido> get filteredPedidos {
     List<Pedido> baseList = _isAdminMode ? _allPedidos : _pedidos;
 

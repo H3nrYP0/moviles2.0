@@ -6,7 +6,7 @@ import '../../../auth/data/models/user_model.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../data/constants/municipios_antioquia.dart';
 import 'password_recovery_screen.dart';
-import '../../../../core/theme/app_theme.dart';   // Tema centralizado
+import '../../../../core/theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,11 +36,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _selectedGenero;
   String? _selectedTipoDocumento;
   bool _isLoading = false;
+  bool _isLoadingInfo = true; // ← NUEVO: indica si los datos de información están cargando
   bool _showEditModal = false;
   Map<String, dynamic>? _clienteData;
 
-  final List<String> _generos = ['Masculino', 'Femenino', 'Otro'];
-  final List<String> _tiposDocumento = ['CC', 'TI', 'CE', 'PA'];
+  final List<String> _generos = const ['Masculino', 'Femenino', 'Otro'];
+  final List<String> _tiposDocumento = const ['CC', 'TI', 'CE', 'PA'];
 
   @override
   void initState() {
@@ -65,11 +66,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadClienteData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
     
     if (user != null) {
-      setState(() => _isLoading = true);
+      if (mounted) setState(() {
+        _isLoadingInfo = true;
+        _isLoading = false;
+      });
       
       final result = await _apiService.getMiPerfilCliente();
       
@@ -77,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _clienteData = result['cliente'];
           _loadFormData();
+          _isLoadingInfo = false;
           _isLoading = false;
         });
       } else {
@@ -86,19 +91,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             setState(() {
               _clienteData = resultById['cliente'];
               _loadFormData();
+              _isLoadingInfo = false;
               _isLoading = false;
             });
           } else {
-            setState(() => _isLoading = false);
+            if (mounted) setState(() {
+              _isLoadingInfo = false;
+              _isLoading = false;
+            });
             _prepareNewCliente(user);
           }
         } else {
-          setState(() => _isLoading = false);
+          if (mounted) setState(() {
+            _isLoadingInfo = false;
+            _isLoading = false;
+          });
           _prepareNewCliente(user);
         }
       }
     } else {
       _prepareNewCliente(user);
+      if (mounted) setState(() => _isLoadingInfo = false);
     }
   }
 
@@ -176,10 +189,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveClienteData() async {
+    FocusScope.of(context).unfocus();
+    
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Corrija los errores en el formulario'),
+        const SnackBar(
+          content: Text('Corrija los errores en el formulario'),
           backgroundColor: AppTheme.errorColor,
           behavior: SnackBarBehavior.floating,
         ),
@@ -187,13 +202,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
     
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Debe iniciar sesión'),
+        const SnackBar(
+          content: Text('Debe iniciar sesión'),
           backgroundColor: AppTheme.errorColor,
           behavior: SnackBarBehavior.floating,
         ),
@@ -291,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  WIDGETS CON ESTILOS DEL TEMA
+  //  WIDGETS CON ESTILOS DEL TEMA (MEJORADOS)
   // ==========================================================
 
   Widget _buildMunicipioField() {
@@ -349,6 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int maxLines = 1,
     bool enabled = true,
     String? hintText,
+    String? Function(String?)? customValidator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           keyboardType: keyboardType,
           maxLines: maxLines,
           style: AppTheme.bodyLarge,
-          validator: required ? (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null : null,
+          validator: customValidator ?? (required ? (value) => (value == null || value.isEmpty) ? 'Este campo es requerido' : null : null),
         ),
         const SizedBox(height: 16),
       ],
@@ -460,6 +476,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // NUEVO: Widget esqueleto para mostrar mientras cargan los datos
+  Widget _buildInfoSkeleton() {
+    return Column(
+      children: List.generate(11, (index) => 
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.gray300),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: AppTheme.gray300,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 12,
+                      color: AppTheme.gray300,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      height: 14,
+                      color: AppTheme.gray200,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showEditProfileModal() {
     if (_clienteData != null) _loadFormData();
     setState(() => _showEditModal = true);
@@ -469,116 +533,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Editar datos personales', style: AppTheme.titleLarge),
-                  IconButton(icon: const Icon(Icons.close, size: 24), onPressed: () => setState(() => _showEditModal = false)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('Actualiza tu información personal', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildSelectField(label: 'Tipo de documento', options: _tiposDocumento, value: _selectedTipoDocumento, onChanged: (v) => setState(() => _selectedTipoDocumento = v)),
-                        _buildFormField(label: 'Número de documento', controller: _documentoController, required: true, keyboardType: TextInputType.number, hintText: 'Ej: 123456789'),
-                        _buildFormField(label: 'Nombre', controller: _nombreController, required: true, hintText: 'Tu nombre'),
-                        _buildFormField(label: 'Apellido', controller: _apellidoController, required: true, hintText: 'Tu apellido'),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Fecha de nacimiento', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _fechaNacimientoController,
-                              decoration: InputDecoration(
-                                hintText: 'YYYY-MM-DD',
-                                hintStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray500),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.gray300)),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5)),
-                                filled: true,
-                                fillColor: AppTheme.gray50,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
-                                  onPressed: () async {
-                                    final date = await showDatePicker(
-                                      context: context,
-                                      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
-                                      firstDate: DateTime(1900),
-                                      lastDate: DateTime.now(),
-                                    );
-                                    if (date != null) {
-                                      setState(() {
-                                        _fechaNacimientoController.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                              validator: (value) => (value == null || value.isEmpty) ? 'La fecha de nacimiento es requerida' : null,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                        _buildSelectField(label: 'Género', options: _generos, value: _selectedGenero, onChanged: (v) => setState(() => _selectedGenero = v)),
-                        _buildFormField(label: 'Teléfono', controller: _telefonoController, required: true, keyboardType: TextInputType.phone, hintText: 'Ej: 3001234567'),
-                        _buildFormField(label: 'Correo electrónico', controller: _correoController, required: true, keyboardType: TextInputType.emailAddress, enabled: false, hintText: 'Tu correo electrónico'),
-                        _buildMunicipioField(),
-                        _buildFormField(label: 'Dirección', controller: _direccionController, maxLines: 2, hintText: 'Tu dirección completa'),
-                        _buildFormField(label: 'Barrio', controller: _barrioController, hintText: 'Ej: El Poblado'),
-                        _buildFormField(label: 'Código postal', controller: _codigoPostalController, keyboardType: TextInputType.number, hintText: 'Ej: 050001'),
-                        _buildFormField(label: 'Ocupación', controller: _ocupacionController, hintText: 'Tu profesión o trabajo'),
-                        _buildFormField(label: 'Teléfono de emergencia', controller: _telefonoEmergenciaController, keyboardType: TextInputType.phone, hintText: 'Ej: 3001234567'),
-                        const SizedBox(height: 20),
-                      ],
+      child: AbsorbPointer(
+        absorbing: _isLoading,
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Editar datos personales', style: AppTheme.titleLarge),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 24),
+                      onPressed: _isLoading ? null : () => setState(() => _showEditModal = false),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text('Actualiza tu información personal', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
+                const SizedBox(height: 20),
+                Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    children: [
+                      _buildSelectField(label: 'Tipo de documento', options: _tiposDocumento, value: _selectedTipoDocumento, onChanged: (v) => setState(() => _selectedTipoDocumento = v)),
+                      _buildFormField(label: 'Número de documento', controller: _documentoController, required: true, keyboardType: TextInputType.number, hintText: 'Ej: 123456789'),
+                      _buildFormField(label: 'Nombre', controller: _nombreController, required: true, hintText: 'Tu nombre'),
+                      _buildFormField(label: 'Apellido', controller: _apellidoController, required: true, hintText: 'Tu apellido'),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Fecha de nacimiento', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _fechaNacimientoController,
+                            decoration: InputDecoration(
+                              hintText: 'YYYY-MM-DD',
+                              hintStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray500),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.gray300)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5)),
+                              filled: true,
+                              fillColor: AppTheme.gray50,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.calendar_today, color: AppTheme.primaryColor),
+                                onPressed: _isLoading ? null : () async {
+                                  final date = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                                    firstDate: DateTime(1900),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (date != null) {
+                                    setState(() {
+                                      _fechaNacimientoController.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'La fecha de nacimiento es requerida';
+                              final RegExp dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+                              if (!dateRegex.hasMatch(value)) return 'Formato inválido (YYYY-MM-DD)';
+                              try {
+                                final fecha = DateTime.parse(value);
+                                if (fecha.isAfter(DateTime.now())) return 'La fecha no puede ser futura';
+                                if (fecha.year < 1900) return 'Año inválido';
+                              } catch (_) {
+                                return 'Fecha inválida';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                      _buildSelectField(label: 'Género', options: _generos, value: _selectedGenero, onChanged: (v) => setState(() => _selectedGenero = v)),
+                      _buildFormField(
+                        label: 'Teléfono',
+                        controller: _telefonoController,
+                        required: true,
+                        keyboardType: TextInputType.phone,
+                        hintText: 'Ej: 3001234567',
+                        customValidator: (value) {
+                          if (value == null || value.isEmpty) return 'El teléfono es requerido';
+                          final phoneRegex = RegExp(r'^\d{7,10}$');
+                          if (!phoneRegex.hasMatch(value)) return 'Ingrese un número válido (7-10 dígitos)';
+                          return null;
+                        },
+                      ),
+                      _buildFormField(label: 'Correo electrónico', controller: _correoController, required: true, keyboardType: TextInputType.emailAddress, enabled: false, hintText: 'Tu correo electrónico'),
+                      _buildMunicipioField(),
+                      _buildFormField(label: 'Dirección', controller: _direccionController, maxLines: 2, hintText: 'Tu dirección completa'),
+                      _buildFormField(label: 'Barrio', controller: _barrioController, hintText: 'Ej: El Poblado'),
+                      _buildFormField(label: 'Código postal', controller: _codigoPostalController, keyboardType: TextInputType.number, hintText: 'Ej: 050001'),
+                      _buildFormField(label: 'Ocupación', controller: _ocupacionController, hintText: 'Tu profesión o trabajo'),
+                      _buildFormField(
+                        label: 'Teléfono de emergencia',
+                        controller: _telefonoEmergenciaController,
+                        keyboardType: TextInputType.phone,
+                        hintText: 'Ej: 3001234567',
+                        customValidator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final phoneRegex = RegExp(r'^\d{7,10}$');
+                            if (!phoneRegex.hasMatch(value)) return 'Número inválido (7-10 dígitos)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => setState(() => _showEditModal = false),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        side: BorderSide(color: AppTheme.gray300),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isLoading ? null : () => setState(() => _showEditModal = false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          side: BorderSide(color: AppTheme.gray300),
+                        ),
+                        child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
                       ),
-                      child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveClienteData,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _saveClienteData,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text('Guardar cambios', style: AppTheme.buttonText),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text('Guardar cambios', style: AppTheme.buttonText),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -587,7 +691,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = context.watch<AuthProvider>();
     final primaryColor = AppTheme.primaryColor;
     
     return Scaffold(
@@ -597,6 +701,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
+                // Header con avatar y nombre
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -640,6 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
                 
+                // Botón editar perfil (solo si existe clienteData)
                 if (_clienteData != null)
                   SizedBox(
                     width: double.infinity,
@@ -652,9 +758,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.edit, color: Colors.white, size: 20),
-                          const SizedBox(width: 8),
+                        children: const [
+                          Icon(Icons.edit, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
                           Text('Editar datos personales', style: AppTheme.buttonText),
                         ],
                       ),
@@ -663,7 +769,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 const SizedBox(height: 24),
                 
-                if (_clienteData == null)
+                // Sección "Mi información" con skeleton mientras carga
+                if (_isLoadingInfo)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mi información', style: AppTheme.titleLarge),
+                      const SizedBox(height: 16),
+                      _buildInfoSkeleton(),
+                    ],
+                  )
+                else if (_clienteData == null)
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -724,6 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 const SizedBox(height: 40),
                 
+                // Sección de seguridad
                 Container(
                   padding: const EdgeInsets.all(20),
                   margin: const EdgeInsets.symmetric(horizontal: 0),

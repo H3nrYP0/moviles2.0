@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../catalog/data/models/product_model.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
@@ -17,6 +18,15 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
+
+  String _formatPrice(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
 
   // Optimización de imagen para Cloudinary
   String _optimizeImageUrl(String url, {int width = 400, int height = 400}) {
@@ -40,7 +50,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               cartProvider.addToCart(widget.product, quantity: _quantity);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('✅ ${_quantity} ${widget.product.nombre} agregado al carrito'),
+                  content: Text('${_quantity} ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito'),
                   backgroundColor: AppTheme.successColor,
                   duration: const Duration(seconds: 2),
                 ),
@@ -187,11 +197,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '\$${widget.product.precioVenta.toStringAsFixed(2)}',
+                            _formatPrice(widget.product.precioVenta),
                             style: AppTheme.priceText.copyWith(fontSize: 28),
                           ),
                           Text(
-                            'Total: \$${(widget.product.precioVenta * _quantity).toStringAsFixed(2)}',
+                            'Total: ${_formatPrice(widget.product.precioVenta * _quantity)}',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppTheme.gray500,
@@ -405,7 +415,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '\$${widget.product.precioVenta.toStringAsFixed(2)}',
+              _formatPrice(widget.product.precioVenta),
               style: AppTheme.priceText.copyWith(fontSize: 24),
             ),
           ],

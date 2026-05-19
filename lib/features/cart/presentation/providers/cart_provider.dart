@@ -163,7 +163,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   // ==========================================================
-  // MÉTODO ACTUALIZADO para enviar datos al backend (incluye dirección detallada)
+  // MÉTODO CORREGIDO – nunca envía null, solo strings vacíos
   // ==========================================================
   Map<String, dynamic> toOrderData(int clienteId, int usuarioId) {
     String direccion = '';
@@ -171,16 +171,18 @@ class CartProvider extends ChangeNotifier {
       direccion = _deliveryAddress!;
     }
 
+    final isDomicilio = _selectedDeliveryMethod == 'domicilio';
+
     return {
       'cliente_id': clienteId,
       'metodo_pago': _selectedPaymentMethod,
       'metodo_entrega': _selectedDeliveryMethod,
       'direccion_entrega': direccion,
-      // NUEVOS CAMPOS (solo si es domicilio)
-      'departamento_entrega': _selectedDeliveryMethod == 'domicilio' ? _departamentoEntrega : null,
-      'municipio_entrega': _selectedDeliveryMethod == 'domicilio' ? _municipioEntrega : null,
-      'barrio_entrega': _selectedDeliveryMethod == 'domicilio' ? _barrioEntrega : null,
-      'codigo_postal_entrega': _selectedDeliveryMethod == 'domicilio' ? _codigoPostalEntrega : null,
+      // IMPORTANTE: Siempre enviamos string, nunca null
+      'departamento_entrega': isDomicilio ? (_departamentoEntrega ?? '') : '',
+      'municipio_entrega': isDomicilio ? (_municipioEntrega ?? '') : '',
+      'barrio_entrega': isDomicilio ? (_barrioEntrega ?? '') : '',
+      'codigo_postal_entrega': isDomicilio ? (_codigoPostalEntrega ?? '') : '',
       'items': _items.map((item) => {
         'producto_id': item.product.id,
         'cantidad': item.quantity,

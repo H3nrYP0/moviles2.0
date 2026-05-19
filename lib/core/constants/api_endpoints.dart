@@ -5,14 +5,14 @@ class ApiEndpoints {
   // ==========================================================
   // 🔐 AUTH (JWT)
   // ==========================================================
-  static const String authLogin = '$baseUrl/auth/login';           // POST
-  static const String authRegister = '$baseUrl/auth/register';     // POST (envía código)
-  static const String authVerifyRegister = '$baseUrl/auth/verify-register'; // POST
-  static const String authForgotPassword = '$baseUrl/auth/forgot-password'; // POST
-  static const String authResetPassword = '$baseUrl/auth/reset-password';   // POST
-  static const String authLogout = '$baseUrl/auth/logout';         // POST
-  static const String authMe = '$baseUrl/auth/me';                 // GET (usuario actual)
-  static const String clientePerfil = '$baseUrl/cliente/perfil';   // GET (cliente del usuario)
+  static const String authLogin = '$baseUrl/auth/login';           
+  static const String authRegister = '$baseUrl/auth/register';     
+  static const String authVerifyRegister = '$baseUrl/auth/verify-register';
+  static const String authForgotPassword = '$baseUrl/auth/forgot-password';
+  static const String authResetPassword = '$baseUrl/auth/reset-password';
+  static const String authLogout = '$baseUrl/auth/logout';
+  static const String authMe = '$baseUrl/auth/me';
+  static const String clientePerfil = '$baseUrl/cliente/perfil';
   
   // ==========================================================
   // 👤 USUARIOS (solo admin)
@@ -31,24 +31,21 @@ class ApiEndpoints {
   // ==========================================================
   static const String pedidos = '$baseUrl/pedidos';
   static String pedidoById(int id) => '$baseUrl/pedidos/$id';
-  
-  // Endpoint correcto para pedidos de un cliente
   static String pedidosByCliente(int clienteId) => '$baseUrl/pedidos/cliente/$clienteId';
   
-  // ⚠️ DEPRECATED: El backend NO tiene /pedidos/usuario/{usuarioId}
-  @Deprecated('Usar pedidosByCliente(clienteId) en su lugar')
-  static String pedidosByUsuario(int usuarioId) => '$baseUrl/pedidos/usuario/$usuarioId';
+  // ✅ ESTADOS DE PEDIDO
+  static const String estadosPedido = '$baseUrl/estado-pedido';
   
   // ==========================================================
   // 📅 CITAS Y AGENDA
   // ==========================================================
-  static const String citas = '$baseUrl/citas';               // Admin: todas las citas
-  static const String clienteCitas = '$baseUrl/cliente/citas'; // Cliente: sus propias citas (GET)
+  static const String citas = '$baseUrl/citas';
+  static const String clienteCitas = '$baseUrl/cliente/citas';
   static const String servicios = '$baseUrl/servicios';
-  static const String empleados = '$baseUrl/empleados';       // Admin: requiere permiso
+  static const String empleados = '$baseUrl/empleados';
   static const String clientes = '$baseUrl/clientes';
   static const String horario = '$baseUrl/horario';
-  static const String estadoCita = '$baseUrl/estado-cita';
+  static const String estadoCita = '$baseUrl/estado-cita';         // ✅ ESTADOS DE CITA
   static const String verificarDisponibilidad = '$baseUrl/verificar-disponibilidad';
   static const String verificarDisponibilidadMultiple = '$baseUrl/verificar-disponibilidad-multiple';
   

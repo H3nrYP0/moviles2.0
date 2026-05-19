@@ -8,7 +8,7 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../citas/presentation/providers/citas_provider.dart';
 import '../../../citas/data/models/cita_model.dart';
 import '../../../citas/data/models/servicio_model.dart';
-import '../../../../core/theme/app_theme.dart';   // Tema centralizado
+import '../../../../core/theme/app_theme.dart';
 
 class CrearCitaScreen extends StatefulWidget {
   const CrearCitaScreen({super.key});
@@ -28,14 +28,14 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   TimeOfDay? _selectedTime;
   String? _selectedMetodoPago;
   
-  // Mapa hora -> empleadoId
+  // Mapa hora -> empleadoId (las horas vienen en formato "HH:MM" 24h)
   Map<String, int> _horasMap = {};
   
   // Listas de datos
   List<Map<String, dynamic>> _clientesList = [];
   List<Servicio> _serviciosList = [];
   
-  // Horas disponibles
+  // Horas disponibles (strings en formato 24h)
   List<String> _horasDisponibles = [];
   
   // Métodos de pago
@@ -53,6 +53,35 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   String? _userName;
   String? _userEmail;
   int? _selectedEmpleadoId;
+  
+  // ===================== FORMATO DE HORAS =====================
+  // Convierte TimeOfDay a string con AM/PM (ej. "02:30 PM")
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod; // 1-12
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+  
+  // Convierte string "HH:MM" (24h) a string con AM/PM
+  String _formatTimeString(String time24) {
+    try {
+      final parts = time24.split(':');
+      if (parts.length != 2) return time24;
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final timeOfDay = TimeOfDay(hour: hour, minute: minute);
+      return _formatTimeOfDay(timeOfDay);
+    } catch (_) {
+      return time24;
+    }
+  }
+  
+  // Convierte string "HH:MM" a TimeOfDay
+  TimeOfDay _timeOfDayFromString(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
   
   @override
   void initState() {
@@ -203,6 +232,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return 0;
   }
   
+  // SELECCIONAR FECHA (con deshabilitación de domingos)
   Future<void> _seleccionarFecha() async {
     final fechaSeleccionada = await showDatePicker(
       context: context,
@@ -213,9 +243,39 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       cancelText: 'Cancelar',
       confirmText: 'Seleccionar',
       helpText: 'Seleccione una fecha',
+      selectableDayPredicate: (DateTime day) {
+        // No permitir domingos
+        return day.weekday != DateTime.sunday;
+      },
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primaryColor,
+              onPrimary: Colors.white,
+              surface: AppTheme.surfaceColor,
+              onSurface: AppTheme.textPrimary,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     
     if (fechaSeleccionada != null) {
+      // Validación extra (por si falla el predicate)
+      if (fechaSeleccionada.weekday == DateTime.sunday) {
+        setState(() {
+          _error = 'No es posible agendar citas los domingos.';
+        });
+        return;
+      }
+      
       setState(() {
         _selectedDate = fechaSeleccionada;
         _selectedTime = null;
@@ -229,6 +289,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
+  // SELECCIONAR HORA (diálogo con formato AM/PM)
   void _seleccionarHora() {
     if (_selectedDate == null) {
       setState(() => _error = 'Primero seleccione una fecha');
@@ -274,6 +335,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                   itemCount: _horasDisponibles.length,
                   itemBuilder: (context, index) {
                     final horaStr = _horasDisponibles[index];
+                    final horaFormateada = _formatTimeString(horaStr);
                     return ElevatedButton(
                       onPressed: () {
                         final empleadoId = _horasMap[horaStr];
@@ -295,7 +357,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                         foregroundColor: AppTheme.primaryColor,
                       ),
-                      child: Text(horaStr, style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                      child: Text(horaFormateada, style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                     );
                   },
                 ),
@@ -311,11 +373,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         ],
       ),
     );
-  }
-  
-  TimeOfDay _timeOfDayFromString(String time) {
-    final parts = time.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
   
   Future<void> _crearCita() async {
@@ -363,7 +420,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       
       if (result['success'] == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: const Duration(seconds: 3)),
+          SnackBar(content: const Text('Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: const Duration(seconds: 3)),
         );
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.pop(context);
@@ -371,7 +428,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
         final errorMsg = result['error']?.toString() ?? 'Error desconocido al crear cita';
         setState(() => _error = errorMsg);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ $errorMsg'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
     } catch (e) {
@@ -381,7 +438,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error inesperado: $e'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
+          SnackBar(content: Text('Error inesperado: $e'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
     }
@@ -554,7 +611,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                         ? const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                                         : Text(
                                             _selectedTime != null
-                                                ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
+                                                ? _formatTimeOfDay(_selectedTime!)
                                                 : 'Seleccionar hora',
                                             style: AppTheme.bodyMedium,
                                           ),

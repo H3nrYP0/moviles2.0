@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../../core/widgets/loading_indicator.dart';
@@ -7,7 +8,7 @@ import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
 import '../../../citas/data/services/api_colombia_service.dart';
-import '../../../../core/theme/app_theme.dart';   // Tema centralizado
+import '../../../../core/theme/app_theme.dart';
 
 class CheckoutModal extends StatefulWidget {
   final CartProvider cartProvider;
@@ -45,7 +46,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
   String? _comprobanteUrlSubido;
   String? _errorComprobante;
 
-  bool _pedidoConfirmado = false;
   bool _mostrarSeccionComprobante = false;
 
   final String qrImageUrl = 'https://res.cloudinary.com/drhhthuqq/image/upload/v1765784067/qr_rs4oqq.jpg';
@@ -64,6 +64,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
     'RIONEGRO': '056156',
     'MARINILLA': '054640',
   };
+
+  String _formatPrice(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
 
   @override
   void initState() {
@@ -133,7 +142,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
           _comprobanteUrlSubido = null;
           _errorComprobante = null;
         });
-        _showSnackbar('✅ Archivo seleccionado: ${file.name}', isError: false);
+        _showSnackbar('Archivo seleccionado: ${file.name}', isError: false);
       }
     } catch (e) {
       _showSnackbar('Error al seleccionar archivo: $e', isError: true);
@@ -162,10 +171,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
           _comprobanteUrlSubido = uploadResult['url'];
           _errorComprobante = null;
         });
-        _showSnackbar('✅ Comprobante subido exitosamente', isError: false);
+        _showSnackbar('Comprobante subido exitosamente', isError: false);
       } else {
         setState(() => _errorComprobante = uploadResult['error'] ?? 'Error al subir archivo');
-        _showSnackbar('❌ Error: ${uploadResult['error']}', isError: true);
+        _showSnackbar('Error: ${uploadResult['error']}', isError: true);
       }
     } catch (e) {
       setState(() => _errorComprobante = 'Error: $e');
@@ -188,9 +197,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
       setState(() => _errorComprobante = 'Debes subir el comprobante primero');
       return;
     }
+
+    final user = widget.authProvider.user;
+    if (user == null || user.clienteId == null) {
+      _showSnackbar('Debes tener un perfil de cliente completo para continuar', isError: true);
+      return;
+    }
+
     setState(() => _isProcessing = true);
     try {
-      final user = widget.authProvider.user!;
       final orderData = widget.cartProvider.toOrderData(user.clienteId!, user.id);
       final result = await widget.apiService.createPedidoConComprobante(
         pedidoData: orderData,
@@ -198,13 +213,14 @@ class _CheckoutModalState extends State<CheckoutModal> {
       );
       if (result['success'] == true) {
         final pedidoId = result['pedido_id'] ?? 'N/A';
-        _showSnackbar('✅ Pedido #$pedidoId creado exitosamente!', isError: false);
+        _showSnackbar('Pedido #$pedidoId creado exitosamente', isError: false);
         widget.cartProvider.clearCart();
         await Future.delayed(const Duration(seconds: 1));
-        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        // Cerrar solo el modal y volver a la pantalla anterior (normalmente el carrito)
+        Navigator.of(context).popUntil((route) => route.isFirst);
         return;
       } else {
-        _showSnackbar('❌ Error al crear pedido: ${result['error']}', isError: true);
+        _showSnackbar('Error al crear pedido: ${result['error']}', isError: true);
       }
     } catch (e) {
       _showSnackbar('Error: $e', isError: true);
@@ -251,11 +267,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
                   'Finalizar Compra',
                   style: AppTheme.titleLarge.copyWith(fontSize: 20),
                 ),
-                if (!_pedidoConfirmado)
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 24),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 24),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -308,7 +323,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
               ),
               Text(
-                '\$${widget.cartProvider.subtotal.toStringAsFixed(2)}',
+                _formatPrice(widget.cartProvider.subtotal),
                 style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
@@ -324,7 +339,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 style: AppTheme.titleMedium.copyWith(fontSize: 18),
               ),
               Text(
-                '\$${widget.cartProvider.totalAmount.toStringAsFixed(2)}',
+                _formatPrice(widget.cartProvider.totalAmount),
                 style: AppTheme.priceText.copyWith(fontSize: 22),
               ),
             ],
@@ -465,6 +480,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                     _showQRCode = false;
                     _mostrarSeccionComprobante = false;
                     _comprobanteUrlSubido = null;
+                    _errorComprobante = null;
                   });
                 },
               ),
@@ -480,6 +496,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                   setState(() {
                     _showQRCode = true;
                     _mostrarSeccionComprobante = true;
+                    _errorComprobante = null;
                   });
                 },
               ),
@@ -501,9 +518,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '💰 Pago por transferencia',
-            style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor),
+          Row(
+            children: [
+              Icon(Icons.payments, color: AppTheme.infoColor, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Pago por transferencia',
+                style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           const Text('Realiza la transferencia a la siguiente cuenta bancaria:', style: TextStyle(fontSize: 13)),
@@ -518,14 +541,14 @@ class _CheckoutModalState extends State<CheckoutModal> {
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('🏦 Banco: Nequi'),
-                Text('📋 Cuenta: 32100000'),
-                Text('👤 Titular: Eye\'s Setting Óptica'),
+                Text('Banco: Nequi'),
+                Text('Cuenta: 32100000'),
+                Text('Titular: Eye\'s Setting Óptica'),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          const Text('📱 Escanea este código QR para pagar rápido:', style: TextStyle(fontSize: 13)),
+          const Text('Escanea este código QR para pagar rápido:', style: TextStyle(fontSize: 13)),
           const SizedBox(height: 12),
           Center(
             child: Container(
@@ -576,7 +599,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '⚠️ IMPORTANTE: Después de pagar, sube el comprobante abajo.',
+                    'IMPORTANTE: Después de pagar, sube el comprobante abajo.',
                     style: TextStyle(fontSize: 12, color: AppTheme.warningColor),
                   ),
                 ),
@@ -724,7 +747,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('✅ Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor)),
+                        Text('Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor)),
                         const SizedBox(height: 4),
                         Text('URL: ${_comprobanteUrlSubido!.substring(0, 50)}...', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/loading_indicator.dart';
 import '../../../catalog/data/models/product_model.dart';
@@ -244,6 +245,15 @@ class _ProductCard extends StatelessWidget {
 
   const _ProductCard({required this.product});
 
+  String _formatPrice(double amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
+
   String _optimizeImageUrl(String url, {int width = 200, int height = 200}) {
     if (url.contains('cloudinary.com') && !url.contains('?')) {
       return '$url?w=$width&h=$height&fit=crop';
@@ -321,7 +331,7 @@ class _ProductCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '\$${product.precioVenta.toStringAsFixed(2)}',
+                          _formatPrice(product.precioVenta),
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.successColor),
                         ),
                       ],

@@ -12,6 +12,8 @@ dependencies:
   
   # Internacionalización (versión compatible con Flutter SDK)
   intl: ^0.20.2
+
+  cached_network_image: ^3.3.0
   
   # Iconos
   cupertino_icons: ^1.0.8

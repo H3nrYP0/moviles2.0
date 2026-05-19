@@ -4,6 +4,7 @@ import '../../../catalog/data/models/category_model.dart';
 import '../../../home/presentation/providers/catalog_provider.dart';
 import 'category_products_screen.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../catalog/data/models/product_model.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -40,7 +41,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       onRefresh: _onRefresh,
       child: Consumer<CatalogProvider>(
         builder: (context, catalogProvider, child) {
-          if (catalogProvider.isLoading) {
+          if (catalogProvider.isLoading && catalogProvider.categories.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -53,7 +54,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             );
           }
 
-          if (catalogProvider.error.isNotEmpty) {
+          if (catalogProvider.error.isNotEmpty && catalogProvider.categories.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -97,13 +98,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
             );
           }
 
-          return _buildCategoriesGrid(catalogProvider.categories);
+          return _buildCategoriesGrid(catalogProvider);
         },
       ),
     );
   }
 
-  Widget _buildCategoriesGrid(List<Category> categories) {
+  Widget _buildCategoriesGrid(CatalogProvider provider) {
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(12),
@@ -114,10 +115,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
         mainAxisSpacing: 12,
         childAspectRatio: 0.85,
       ),
-      itemCount: categories.length,
+      itemCount: provider.categories.length,
       itemBuilder: (context, index) {
-        final category = categories[index];
-        return _CategoryCard(category: category);
+        final category = provider.categories[index];
+        return _CategoryCard(
+          category: category,
+          sampleProducts: provider.getSampleProductsForCategory(category.id),
+          isLoadingSamples: provider.isCategorySamplesLoading(category.id),
+        );
       },
     );
   }
@@ -125,11 +130,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
 class _CategoryCard extends StatelessWidget {
   final Category category;
+  final List<Product>? sampleProducts;
+  final bool isLoadingSamples;
 
-  const _CategoryCard({required this.category});
+  const _CategoryCard({
+    required this.category,
+    required this.sampleProducts,
+    required this.isLoadingSamples,
+  });
+
+  String _getImageUrl() {
+    // Prioridad: imagen del primer producto real de la categoría
+    if (sampleProducts != null && sampleProducts!.isNotEmpty) {
+      final firstProduct = sampleProducts!.first;
+      if (firstProduct.imagenUrl != null && firstProduct.imagenUrl!.isNotEmpty) {
+        return _optimizeImageUrl(firstProduct.imagenUrl!);
+      }
+    }
+    // Si no hay productos, usar imagen de la categoría si existe
+    if (category.imagenUrl != null && category.imagenUrl!.isNotEmpty) {
+      return _optimizeImageUrl(category.imagenUrl!);
+    }
+    // Fallback: cadena vacía → se mostrará placeholder
+    return '';
+  }
 
   String _optimizeImageUrl(String url, {int width = 400, int height = 300}) {
-    // Solo aplica transformación si es una URL de Cloudinary
     if (url.contains('cloudinary.com') && !url.contains('?')) {
       return '$url?w=$width&h=$height&fit=crop';
     }
@@ -138,11 +164,12 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _getImageUrl();
+    final hasValidImage = imageUrl.isNotEmpty;
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -163,33 +190,35 @@ class _CategoryCard extends StatelessWidget {
             Container(
               height: double.infinity,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppTheme.gray200,
-              ),
-              child: category.imagenUrl != null && category.imagenUrl!.isNotEmpty
-                  ? Image.network(
-                      _optimizeImageUrl(category.imagenUrl!),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildPlaceholder();
-                      },
+              color: AppTheme.gray200,
+              child: isLoadingSamples
+                  ? const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : _buildPlaceholder(),
+                  : (hasValidImage
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildPlaceholder();
+                          },
+                        )
+                      : _buildPlaceholder()),
             ),
-            
+
             // GRADIENTE OSCURO
             Container(
               height: double.infinity,
@@ -206,28 +235,40 @@ class _CategoryCard extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // NOMBRE DE LA CATEGORÍA
             Positioned(
               left: 12,
               right: 12,
               bottom: 12,
-              child: Text(
-                category.nombre,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 4,
-                      color: Colors.black,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category.nombre,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)],
                     ),
-                  ],
-                ),
-                textAlign: TextAlign.left,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isLoadingSamples && sampleProducts != null && sampleProducts!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${sampleProducts!.length} producto${sampleProducts!.length != 1 ? 's' : ''}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          shadows: [Shadow(blurRadius: 2, color: Colors.black)],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -243,18 +284,11 @@ class _CategoryCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.category,
-              size: 48,
-              color: AppTheme.primaryColor,
-            ),
+            Icon(Icons.category, size: 48, color: AppTheme.primaryColor),
             const SizedBox(height: 8),
             Text(
               category.nombre,
-              style: TextStyle(
-                color: AppTheme.primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,3 +1,4 @@
+// lib/features/home/presentation/providers/catalog_provider.dart
 import 'package:flutter/material.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../catalog/data/models/category_model.dart';
@@ -12,16 +13,27 @@ class CatalogProvider extends ChangeNotifier {
   bool _isLoading = false;
   int? _currentCategoryId;
   
+  // Almacenar productos de ejemplo por categoría (hasta 3)
+  final Map<int, List<Product>> _categorySampleProducts = {};
+  final Map<int, bool> _categorySamplesLoading = {};
+  
   List<Category> get categories => List.unmodifiable(_categories);
   List<Product> get products => List.unmodifiable(_products);
   String get error => _error;
   bool get isLoading => _isLoading;
   int? get currentCategoryId => _currentCategoryId;
   
-  // ==========================================================
-  //  CATEGORÍAS (con soporte para forceRefresh)
-  // ==========================================================
+  List<Product>? getSampleProductsForCategory(int categoryId) {
+    return _categorySampleProducts[categoryId];
+  }
   
+  bool isCategorySamplesLoading(int categoryId) {
+    return _categorySamplesLoading[categoryId] == true;
+  }
+  
+  // ==========================================================
+  //  CATEGORÍAS (solo activas)
+  // ==========================================================
   Future<void> loadCategories({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = '';
@@ -31,9 +43,14 @@ class CatalogProvider extends ChangeNotifier {
       final categoriasJson = await _apiService.getCategorias(forceRefresh: forceRefresh);
       _categories = categoriasJson
           .map((json) => Category.fromJson(json))
-          .where((categoria) => categoria.estado)
+          .where((categoria) => categoria.estado)   // ✅ filtro
           .toList();
       _error = '';
+      
+      // Precargar productos de ejemplo para cada categoría
+      for (var category in _categories) {
+        loadSampleProductsForCategory(category.id, forceRefresh: forceRefresh);
+      }
     } catch (e) {
       _error = 'Error al cargar categorías: $e';
       _categories = [];
@@ -44,9 +61,38 @@ class CatalogProvider extends ChangeNotifier {
   }
   
   // ==========================================================
-  //  PRODUCTOS POR CATEGORÍA (con soporte para forceRefresh)
+  //  PRODUCTOS DE EJEMPLO (solo activos)
   // ==========================================================
+  Future<void> loadSampleProductsForCategory(int categoryId, {bool forceRefresh = false}) async {
+    if (_categorySamplesLoading[categoryId] == true && !forceRefresh) return;
+    
+    _categorySamplesLoading[categoryId] = true;
+    notifyListeners();
+    
+    try {
+      final response = await _apiService.getProductos(forceRefresh: forceRefresh);
+      final allProducts = response
+          .map((json) => Product.fromJson(json))
+          .where((product) => product.estado)   // ✅ solo activos
+          .toList();
+      
+      final categoryProducts = allProducts
+          .where((product) => product.categoriaId == categoryId)
+          .take(3)
+          .toList();
+      
+      _categorySampleProducts[categoryId] = categoryProducts;
+    } catch (e) {
+      _categorySampleProducts[categoryId] = [];
+    } finally {
+      _categorySamplesLoading[categoryId] = false;
+      notifyListeners();
+    }
+  }
   
+  // ==========================================================
+  //  PRODUCTOS POR CATEGORÍA (solo activos)
+  // ==========================================================
   Future<void> loadProductsByCategory(int categoryId, {bool forceRefresh = false}) async {
     _isLoading = true;
     _error = '';
@@ -58,6 +104,7 @@ class CatalogProvider extends ChangeNotifier {
       final response = await _apiService.getProductos(forceRefresh: forceRefresh);
       final allProducts = response
           .map((json) => Product.fromJson(json))
+          .where((product) => product.estado)   // ✅ solo activos
           .toList();
       _products = allProducts
           .where((product) => product.categoriaId == categoryId)
@@ -73,9 +120,8 @@ class CatalogProvider extends ChangeNotifier {
   }
   
   // ==========================================================
-  //  BÚSQUEDA (usa productos en caché si es posible)
+  //  BÚSQUEDA (solo activos)
   // ==========================================================
-  
   Future<void> searchProducts(String query, {bool forceRefresh = false}) async {
     if (query.isEmpty) {
       if (_currentCategoryId != null) {
@@ -91,6 +137,7 @@ class CatalogProvider extends ChangeNotifier {
       final response = await _apiService.getProductos(forceRefresh: forceRefresh);
       final allProducts = response
           .map((json) => Product.fromJson(json))
+          .where((product) => product.estado)   // ✅ solo activos
           .toList();
       var filteredProducts = allProducts
           .where((product) => 
@@ -115,7 +162,6 @@ class CatalogProvider extends ChangeNotifier {
   // ==========================================================
   //  UTILIDADES
   // ==========================================================
-  
   void clearProducts() {
     _products = [];
     _currentCategoryId = null;
@@ -128,7 +174,7 @@ class CatalogProvider extends ChangeNotifier {
   }
   
   // ==========================================================
-  //  PRODUCTOS DESTACADOS (con soporte para forceRefresh)
+  //  PRODUCTOS DESTACADOS (solo activos)
   // ==========================================================
   List<Product> _featuredProducts = [];
   List<Product> get featuredProducts => List.unmodifiable(_featuredProducts);
@@ -140,7 +186,10 @@ class CatalogProvider extends ChangeNotifier {
     
     try {
       final data = await _apiService.getProductos(forceRefresh: forceRefresh);
-      final allProducts = data.map((json) => Product.fromJson(json)).toList();
+      final allProducts = data
+          .map((json) => Product.fromJson(json))
+          .where((product) => product.estado)   // ✅ solo activos
+          .toList();
       _featuredProducts = allProducts.take(6).toList();
       _error = '';
     } catch (e) {
