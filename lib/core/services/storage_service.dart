@@ -3,6 +3,7 @@ import '../constants/app_constants.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';
+  static const String _fotoUrlKey = 'user_foto_url';
 
   static Future<SharedPreferences> get _instance async =>
       SharedPreferences.getInstance();
@@ -16,7 +17,8 @@ class StorageService {
     int rolId,
     int userId, {
     int? clienteId,
-    String? token, // 👈 NUEVO: token JWT opcional
+    String? token,
+    String? fotoUrl,
   }) async {
     final prefs = await _instance;
 
@@ -33,6 +35,34 @@ class StorageService {
     if (token != null) {
       await prefs.setString(_tokenKey, token);
     }
+
+    if (fotoUrl != null && fotoUrl.isNotEmpty) {
+      await prefs.setString(_fotoUrlKey, fotoUrl);
+    }
+  }
+
+  /// ================================
+  /// ACTUALIZAR DATOS DEL USUARIO (después de editar perfil)
+  /// ================================
+  static Future<void> saveUserName(String name) async {
+    final prefs = await _instance;
+    await prefs.setString(AppConstants.userNameKey, name);
+  }
+
+  static Future<void> saveUserEmail(String email) async {
+    final prefs = await _instance;
+    await prefs.setString(AppConstants.userEmailKey, email);
+  }
+
+  static Future<void> saveUserData({
+    String? name,
+    String? email,
+    String? fotoUrl,
+  }) async {
+    final prefs = await _instance;
+    if (name != null) await prefs.setString(AppConstants.userNameKey, name);
+    if (email != null) await prefs.setString(AppConstants.userEmailKey, email);
+    if (fotoUrl != null) await prefs.setString(_fotoUrlKey, fotoUrl);
   }
 
   /// ================================
@@ -47,7 +77,8 @@ class StorageService {
     await prefs.remove(AppConstants.userRolKey);
     await prefs.remove(AppConstants.userIdKey);
     await prefs.remove(AppConstants.clienteIdKey);
-    await prefs.remove(_tokenKey); // 👈 NUEVO: borrar token
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_fotoUrlKey);
   }
 
   /// ================================
@@ -66,6 +97,19 @@ class StorageService {
   static Future<void> deleteToken() async {
     final prefs = await _instance;
     await prefs.remove(_tokenKey);
+  }
+
+  /// ================================
+  /// FOTO DE PERFIL
+  /// ================================
+  static Future<void> saveFotoUrl(String url) async {
+    final prefs = await _instance;
+    await prefs.setString(_fotoUrlKey, url);
+  }
+
+  static Future<String?> getFotoUrl() async {
+    final prefs = await _instance;
+    return prefs.getString(_fotoUrlKey);
   }
 
   /// ================================

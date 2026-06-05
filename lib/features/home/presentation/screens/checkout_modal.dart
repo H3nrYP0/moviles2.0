@@ -1,3 +1,4 @@
+// lib/features/cart/presentation/screens/checkout_modal.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,8 +8,9 @@ import '../../../home/presentation/providers/auth_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
-import '../../../citas/data/services/api_colombia_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../features/citas/data/services/api_colombia_service.dart';
+import '../../data/constants/medellin_postal_codes.dart';
 
 class CheckoutModal extends StatefulWidget {
   final CartProvider cartProvider;
@@ -31,11 +33,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
   final TextEditingController _barrioController = TextEditingController();
   final TextEditingController _codigoPostalController = TextEditingController();
 
-  List<String> _municipios = [];
-  bool _cargandoMunicipios = true;
-
-  String? _selectedMunicipio;
-
   bool _showQRCode = false;
   bool _isProcessing = false;
   bool _isUploadingComprobante = false;
@@ -50,20 +47,19 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
   final String qrImageUrl = 'https://res.cloudinary.com/drhhthuqq/image/upload/v1765784067/qr_rs4oqq.jpg';
 
-  final Map<String, String> _codigosPostales = {
-    'MEDELLÍN': '050001',
-    'BELLO': '051001',
-    'ENVIGADO': '055420',
-    'ITAGÜÍ': '055410',
-    'SABANETA': '055450',
-    'LA ESTRELLA': '055430',
-    'CALDAS': '055411',
-    'COPACABANA': '051540',
-    'GIRARDOTA': '053080',
-    'BARBOSA': '050420',
-    'RIONEGRO': '056156',
-    'MARINILLA': '054640',
-  };
+  // Variables para dirección dinámica (API Colombia)
+  List<Map<String, dynamic>> _departamentos = [];
+  List<Map<String, dynamic>> _municipios = [];
+  bool _cargandoDepartamentos = false;
+  bool _cargandoMunicipios = false;
+  
+  int? _selectedDepartamentoId;
+  String? _selectedDepartamentoNombre;
+  int? _selectedMunicipioId;
+  String? _selectedMunicipioNombre;
+
+  // Para controlar la carga inicial de datos del perfil
+  bool _cargandoPerfil = true;
 
   String _formatPrice(double amount) {
     final formatter = NumberFormat.currency(
@@ -77,21 +73,167 @@ class _CheckoutModalState extends State<CheckoutModal> {
   @override
   void initState() {
     super.initState();
-    _direccionController.text = widget.cartProvider.deliveryAddress ?? '';
-    _selectedMunicipio = widget.cartProvider.municipioEntrega;
-    _barrioController.text = widget.cartProvider.barrioEntrega ?? '';
-    _codigoPostalController.text = widget.cartProvider.codigoPostalEntrega ?? '';
-    _showQRCode = widget.cartProvider.selectedPaymentMethod == 'transferencia';
-    _mostrarSeccionComprobante = _showQRCode;
-    _cargarMunicipios();
+    _inicializarDatos();
   }
 
-  Future<void> _cargarMunicipios() async {
-    final municipios = await ApiColombiaService.getMunicipiosAntioquia();
-    setState(() {
-      _municipios = municipios;
-      _cargandoMunicipios = false;
-    });
+  Future<void> _inicializarDatos() async {
+    setState(() => _cargandoPerfil = true);
+    
+    // 1. Cargar datos del perfil del cliente
+    final perfil = await widget.apiService.getMiPerfilUnificado();
+    final cliente = perfil['cliente'] as Map<String, dynamic>?;
+    
+    // 2. Cargar departamentos desde la API
+    await _loadDepartamentos();
+    
+    // Variables auxiliares para almacenar los valores del perfil
+    String direccionPerfil = '';
+    String barrioPerfil = '';
+    String codigoPostalPerfil = '';
+    String departamentoPerfil = '';
+    String municipioPerfil = '';
+
+    if (cliente != null) {
+      departamentoPerfil = cliente['departamento']?.toString() ?? '';
+      municipioPerfil = cliente['municipio']?.toString() ?? '';
+      direccionPerfil = cliente['direccion']?.toString() ?? '';
+      barrioPerfil = cliente['barrio']?.toString() ?? '';
+      codigoPostalPerfil = cliente['codigo_postal']?.toString() ?? '';
+      
+      // Asignar a los controladores
+      _direccionController.text = direccionPerfil;
+      _barrioController.text = barrioPerfil;
+      _codigoPostalController.text = codigoPostalPerfil;
+      
+      // Actualizar el provider
+      widget.cartProvider.setDeliveryAddress(direccionPerfil);
+      widget.cartProvider.setBarrioEntrega(barrioPerfil);
+      widget.cartProvider.setCodigoPostalEntrega(codigoPostalPerfil);
+    }
+    
+    // Buscar IDs de departamento y municipio (si existen en el perfil)
+    if (departamentoPerfil.isNotEmpty) {
+      final deptMatch = _departamentos.firstWhere(
+        (d) => d['name'].toLowerCase() == departamentoPerfil.toLowerCase(),
+        orElse: () => {'id': null, 'name': null},
+      );
+      if (deptMatch['id'] != null) {
+        _selectedDepartamentoId = deptMatch['id'];
+        _selectedDepartamentoNombre = deptMatch['name'];
+        widget.cartProvider.setSelectedDepartamento(_selectedDepartamentoId, _selectedDepartamentoNombre);
+        
+        // Cargar municipios de ese departamento
+        await _loadMunicipios(_selectedDepartamentoId!);
+        
+        if (municipioPerfil.isNotEmpty) {
+          final munMatch = _municipios.firstWhere(
+            (m) => m['name'].toLowerCase() == municipioPerfil.toLowerCase(),
+            orElse: () => {'id': null, 'name': null, 'postalCode': null},
+          );
+          if (munMatch['id'] != null) {
+            _selectedMunicipioId = munMatch['id'];
+            _selectedMunicipioNombre = munMatch['name'];
+            widget.cartProvider.setSelectedMunicipio(_selectedMunicipioId, _selectedMunicipioNombre);
+            
+            // Solo actualizar código postal si la API lo devuelve y es diferente al del perfil
+            final postalDesdeApi = munMatch['postalCode'] as String?;
+            if (postalDesdeApi != null && postalDesdeApi.isNotEmpty) {
+              _codigoPostalController.text = postalDesdeApi;
+              widget.cartProvider.setCodigoPostalEntrega(postalDesdeApi);
+            }
+            // Si la API no tiene código postal, se mantiene el valor del perfil (ya asignado)
+          } else {
+            // No se encontró el municipio en la API, dejar el nombre y código postal del perfil
+            _selectedMunicipioNombre = municipioPerfil;
+            widget.cartProvider.setSelectedMunicipio(null, municipioPerfil);
+          }
+        }
+      }
+    } else {
+      // Si no hay departamento en el perfil, aseguramos que los campos estén vacíos
+      _selectedDepartamentoId = null;
+      _selectedDepartamentoNombre = null;
+      _selectedMunicipioId = null;
+      _selectedMunicipioNombre = null;
+    }
+    
+    // ✅ Si el perfil tiene barrio y el código postal está vacío, intentar autocompletar desde el mapa de Medellín
+    if (barrioPerfil.isNotEmpty && _codigoPostalController.text.isEmpty) {
+      final postal = MedellinPostalCodes.getPostalCode(barrioPerfil);
+      if (postal != null && postal.isNotEmpty) {
+        _codigoPostalController.text = postal;
+        widget.cartProvider.setCodigoPostalEntrega(postal);
+      }
+    }
+    
+    // 4. Restaurar otros valores del carrito (método de pago, etc.)
+    _showQRCode = widget.cartProvider.selectedPaymentMethod == 'transferencia';
+    _mostrarSeccionComprobante = _showQRCode;
+    
+    setState(() => _cargandoPerfil = false);
+  }
+
+  Future<void> _loadDepartamentos() async {
+    setState(() => _cargandoDepartamentos = true);
+    final depts = await ApiColombiaService.getDepartamentos();
+    _departamentos = depts;
+    setState(() => _cargandoDepartamentos = false);
+  }
+
+  Future<void> _loadMunicipios(int departmentId) async {
+    setState(() => _cargandoMunicipios = true);
+    final muns = await ApiColombiaService.getCiudadesPorDepartamento(departmentId);
+    _municipios = muns;
+    setState(() => _cargandoMunicipios = false);
+  }
+
+  void _onDepartamentoChanged(Map<String, dynamic>? dept) {
+    if (dept != null) {
+      setState(() {
+        _selectedDepartamentoId = dept['id'];
+        _selectedDepartamentoNombre = dept['name'];
+        _selectedMunicipioId = null;
+        _selectedMunicipioNombre = null;
+        _municipios = [];
+        // No limpiamos el código postal al cambiar departamento
+      });
+      widget.cartProvider.setSelectedDepartamento(_selectedDepartamentoId, _selectedDepartamentoNombre);
+      _loadMunicipios(dept['id']);
+    } else {
+      setState(() {
+        _selectedDepartamentoId = null;
+        _selectedDepartamentoNombre = null;
+        _selectedMunicipioId = null;
+        _selectedMunicipioNombre = null;
+        _municipios = [];
+      });
+      widget.cartProvider.setSelectedDepartamento(null, null);
+    }
+  }
+
+  void _onMunicipioChanged(Map<String, dynamic>? mun) {
+    if (mun != null) {
+      setState(() {
+        _selectedMunicipioId = mun['id'];
+        _selectedMunicipioNombre = mun['name'];
+        final postalDesdeApi = mun['postalCode'] as String?;
+        if (postalDesdeApi != null && postalDesdeApi.isNotEmpty) {
+          _codigoPostalController.text = postalDesdeApi;
+          widget.cartProvider.setCodigoPostalEntrega(postalDesdeApi);
+        } else {
+          // Si la API no tiene código postal, no tocamos el controlador (conserva el anterior, que podría ser del perfil)
+          // Actualizamos el provider con el valor actual
+          widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
+        }
+      });
+      widget.cartProvider.setSelectedMunicipio(_selectedMunicipioId, _selectedMunicipioNombre);
+    } else {
+      setState(() {
+        _selectedMunicipioId = null;
+        _selectedMunicipioNombre = null;
+      });
+      widget.cartProvider.setSelectedMunicipio(null, null);
+    }
   }
 
   @override
@@ -104,20 +246,8 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
   void _updateDeliveryInfo() {
     widget.cartProvider.setDeliveryAddress(_direccionController.text);
-    widget.cartProvider.setMunicipioEntrega(_selectedMunicipio);
     widget.cartProvider.setBarrioEntrega(_barrioController.text);
     widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
-    if (widget.cartProvider.selectedDeliveryMethod == 'domicilio') {
-      widget.cartProvider.setDepartamentoEntrega('ANTIOQUIA');
-    }
-  }
-
-  void _autocompletarCodigoPostal(String? municipio) {
-    if (municipio != null && _codigosPostales.containsKey(municipio.toUpperCase())) {
-      final codigo = _codigosPostales[municipio.toUpperCase()]!;
-      _codigoPostalController.text = codigo;
-      widget.cartProvider.setCodigoPostalEntrega(codigo);
-    }
   }
 
   Future<void> _pickFile() async {
@@ -212,12 +342,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
         comprobanteUrl: _comprobanteUrlSubido,
       );
       if (result['success'] == true) {
-        final pedidoId = result['pedido_id'] ?? 'N/A';
-        _showSnackbar('Pedido #$pedidoId creado exitosamente', isError: false);
+        _showSnackbar('¡Pedido creado exitosamente!', isError: false);
         widget.cartProvider.clearCart();
         await Future.delayed(const Duration(seconds: 1));
-        // Cerrar solo el modal y volver a la pantalla anterior (normalmente el carrito)
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.pop(context);
         return;
       } else {
         _showSnackbar('Error al crear pedido: ${result['error']}', isError: true);
@@ -249,58 +377,56 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
   @override
   Widget build(BuildContext context) {
+    final cartProvider = widget.cartProvider;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Finalizar Compra',
-                  style: AppTheme.titleLarge.copyWith(fontSize: 20),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 24),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
+      child: _cargandoPerfil
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Finalizar Compra', style: AppTheme.titleLarge.copyWith(fontSize: 20)),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 24),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSummarySection(),
+                  const SizedBox(height: 20),
+                  _buildDeliverySection(),
+                  const SizedBox(height: 16),
+                  if (cartProvider.selectedDeliveryMethod == 'domicilio')
+                    _buildAddressSection(),
+                  const SizedBox(height: 16),
+                  _buildPaymentSection(),
+                  const SizedBox(height: 16),
+                  if (_showQRCode && _mostrarSeccionComprobante) _buildQRCodeSection(),
+                  if (_showQRCode && _mostrarSeccionComprobante) _buildUploadComprobanteSection(),
+                  const SizedBox(height: 24),
+                  _buildConfirmButton(),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-
-            _buildSummarySection(),
-            const SizedBox(height: 20),
-
-            _buildDeliverySection(),
-            const SizedBox(height: 16),
-
-            if (widget.cartProvider.selectedDeliveryMethod == 'domicilio')
-              _buildAddressSection(),
-            const SizedBox(height: 16),
-
-            _buildPaymentSection(),
-            const SizedBox(height: 16),
-
-            if (_showQRCode && _mostrarSeccionComprobante) _buildQRCodeSection(),
-            if (_showQRCode && _mostrarSeccionComprobante) _buildUploadComprobanteSection(),
-            const SizedBox(height: 24),
-
-            _buildConfirmButton(),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildSummarySection() {
+    final cartProvider = widget.cartProvider;
+    final isDomicilio = cartProvider.selectedDeliveryMethod == 'domicilio';
+    final costoEnvio = cartProvider.costoEnvio;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -310,38 +436,33 @@ class _CheckoutModalState extends State<CheckoutModal> {
       ),
       child: Column(
         children: [
-          Text(
-            'Resumen del Pedido',
-            style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
-          ),
+          Text('Resumen del Pedido', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Subtotal (${widget.cartProvider.items.length} productos)',
-                style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
-              ),
-              Text(
-                _formatPrice(widget.cartProvider.subtotal),
-                style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-              ),
+              Text('Subtotal (${cartProvider.items.length} productos)', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
+              Text(_formatPrice(cartProvider.subtotal), style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
+          if (isDomicilio && costoEnvio > 0) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Costo de envío', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
+                Text(_formatPrice(costoEnvio), style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Total a pagar',
-                style: AppTheme.titleMedium.copyWith(fontSize: 18),
-              ),
-              Text(
-                _formatPrice(widget.cartProvider.totalAmount),
-                style: AppTheme.priceText.copyWith(fontSize: 22),
-              ),
+              Text('Total a pagar', style: AppTheme.titleMedium.copyWith(fontSize: 18)),
+              Text(_formatPrice(cartProvider.totalAmount), style: AppTheme.priceText.copyWith(fontSize: 22)),
             ],
           ),
         ],
@@ -350,13 +471,11 @@ class _CheckoutModalState extends State<CheckoutModal> {
   }
 
   Widget _buildDeliverySection() {
+    final cartProvider = widget.cartProvider;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Método de entrega',
-          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
-        ),
+        Text('Método de entrega', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -364,14 +483,14 @@ class _CheckoutModalState extends State<CheckoutModal> {
               child: _DeliveryOption(
                 icon: Icons.store,
                 title: 'Recoger en tienda',
-                isSelected: widget.cartProvider.selectedDeliveryMethod == 'tienda',
+                isSelected: cartProvider.selectedDeliveryMethod == 'tienda',
                 onTap: () {
-                  widget.cartProvider.selectDeliveryMethod('tienda');
+                  cartProvider.selectDeliveryMethod('tienda');
                   _direccionController.clear();
                   _barrioController.clear();
                   _codigoPostalController.clear();
-                  setState(() => _selectedMunicipio = null);
                   _updateDeliveryInfo();
+                  setState(() {});
                 },
               ),
             ),
@@ -380,16 +499,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
               child: _DeliveryOption(
                 icon: Icons.delivery_dining,
                 title: 'Envío a domicilio',
-                isSelected: widget.cartProvider.selectedDeliveryMethod == 'domicilio',
+                isSelected: cartProvider.selectedDeliveryMethod == 'domicilio',
                 onTap: () {
-                  widget.cartProvider.selectDeliveryMethod('domicilio');
-                  setState(() {
-                    _selectedMunicipio = widget.cartProvider.municipioEntrega;
-                    _barrioController.text = widget.cartProvider.barrioEntrega ?? '';
-                    _codigoPostalController.text = widget.cartProvider.codigoPostalEntrega ?? '';
-                    _direccionController.text = widget.cartProvider.deliveryAddress ?? '';
-                  });
+                  cartProvider.selectDeliveryMethod('domicilio');
+                  // Restaurar valores guardados en el provider
+                  _direccionController.text = cartProvider.deliveryAddress ?? '';
+                  _barrioController.text = cartProvider.barrioEntrega ?? '';
+                  _codigoPostalController.text = cartProvider.codigoPostalEntrega ?? '';
                   _updateDeliveryInfo();
+                  setState(() {});
                 },
               ),
             ),
@@ -403,46 +521,98 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Dirección de entrega',
-          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-        ),
+        Text('Dirección de entrega', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
 
-        TextFormField(
-          initialValue: 'ANTIOQUIA',
-          readOnly: true,
+        // Departamento
+        DropdownButtonFormField<Map<String, dynamic>>(
+          value: _selectedDepartamentoId != null
+              ? _departamentos.firstWhere(
+                  (d) => d['id'] == _selectedDepartamentoId,
+                  orElse: () => {'id': null, 'name': null},
+                )
+              : null,
+          hint: const Text('Seleccione un departamento'),
+          isExpanded: true,
+          items: _departamentos.map((dept) {
+            return DropdownMenuItem<Map<String, dynamic>>(
+              value: dept,
+              child: Text(dept['name']),
+            );
+          }).toList(),
+          onChanged: _cargandoDepartamentos ? null : _onDepartamentoChanged,
           decoration: AppTheme.inputDecoration(label: 'Departamento'),
         ),
         const SizedBox(height: 12),
 
-        if (_cargandoMunicipios)
-          const LinearProgressIndicator()
-        else
-          DropdownButtonFormField<String>(
-            value: _selectedMunicipio,
-            hint: const Text('Selecciona un municipio'),
-            isExpanded: true,
-            items: _municipios.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-            onChanged: (value) {
-              setState(() => _selectedMunicipio = value);
-              widget.cartProvider.setMunicipioEntrega(value);
-              _autocompletarCodigoPostal(value);
-            },
-            decoration: AppTheme.inputDecoration(label: 'Municipio'),
-          ),
+        // Municipio
+        DropdownButtonFormField<Map<String, dynamic>>(
+          value: _selectedMunicipioId != null
+              ? _municipios.firstWhere(
+                  (m) => m['id'] == _selectedMunicipioId,
+                  orElse: () => {'id': null, 'name': null},
+                )
+              : null,
+          hint: const Text('Seleccione un municipio'),
+          isExpanded: true,
+          items: _municipios.map((mun) {
+            return DropdownMenuItem<Map<String, dynamic>>(
+              value: mun,
+              child: Text(mun['name']),
+            );
+          }).toList(),
+          onChanged: (_cargandoMunicipios || _selectedDepartamentoId == null) ? null : _onMunicipioChanged,
+          decoration: AppTheme.inputDecoration(label: 'Municipio'),
+        ),
         const SizedBox(height: 12),
 
-        TextField(
-          controller: _barrioController,
-          decoration: AppTheme.inputDecoration(label: 'Barrio', hint: 'Barrio'),
-          onChanged: (value) => widget.cartProvider.setBarrioEntrega(value),
+        // ✅ Autocomplete para Barrio (con mapa de Medellín)
+        Autocomplete<String>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            final query = textEditingValue.text.toLowerCase();
+            return MedellinPostalCodes.allBarrios.where((barrio) {
+              return barrio.toLowerCase().contains(query);
+            }).toList();
+          },
+          onSelected: (String barrioSeleccionado) {
+            final postalCode = MedellinPostalCodes.getPostalCode(barrioSeleccionado);
+            if (postalCode != null && postalCode.isNotEmpty) {
+              _codigoPostalController.text = postalCode;
+              widget.cartProvider.setCodigoPostalEntrega(postalCode);
+            } else {
+              widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
+            }
+            widget.cartProvider.setBarrioEntrega(barrioSeleccionado);
+            setState(() {
+              _barrioController.text = barrioSeleccionado;
+            });
+          },
+          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+            // Sincronizar el controlador interno con el _barrioController existente
+            if (_barrioController.text != textEditingController.text) {
+              textEditingController.text = _barrioController.text;
+            }
+            textEditingController.addListener(() {
+              if (_barrioController.text != textEditingController.text) {
+                _barrioController.text = textEditingController.text;
+              }
+            });
+            return TextField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              decoration: AppTheme.inputDecoration(label: 'Barrio', hint: 'Escribe el nombre de tu barrio'),
+              onChanged: (value) => widget.cartProvider.setBarrioEntrega(value),
+            );
+          },
         ),
         const SizedBox(height: 12),
 
         TextField(
           controller: _codigoPostalController,
-          decoration: AppTheme.inputDecoration(label: 'Código postal', hint: 'Código postal'),
+          decoration: AppTheme.inputDecoration(label: 'Código postal', hint: 'Código postal (opcional)'),
           keyboardType: TextInputType.number,
           onChanged: (value) => widget.cartProvider.setCodigoPostalEntrega(value),
         ),
@@ -459,13 +629,11 @@ class _CheckoutModalState extends State<CheckoutModal> {
   }
 
   Widget _buildPaymentSection() {
+    final cartProvider = widget.cartProvider;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Método de pago',
-          style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600),
-        ),
+        Text('Método de pago', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -473,9 +641,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
               child: _PaymentOption(
                 icon: Icons.money,
                 title: 'Efectivo',
-                isSelected: widget.cartProvider.selectedPaymentMethod == 'efectivo',
+                isSelected: cartProvider.selectedPaymentMethod == 'efectivo',
                 onTap: () {
-                  widget.cartProvider.selectPaymentMethod('efectivo');
+                  cartProvider.selectPaymentMethod('efectivo');
                   setState(() {
                     _showQRCode = false;
                     _mostrarSeccionComprobante = false;
@@ -490,9 +658,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
               child: _PaymentOption(
                 icon: Icons.account_balance,
                 title: 'Transferencia',
-                isSelected: widget.cartProvider.selectedPaymentMethod == 'transferencia',
+                isSelected: cartProvider.selectedPaymentMethod == 'transferencia',
                 onTap: () {
-                  widget.cartProvider.selectPaymentMethod('transferencia');
+                  cartProvider.selectPaymentMethod('transferencia');
                   setState(() {
                     _showQRCode = true;
                     _mostrarSeccionComprobante = true;
@@ -522,10 +690,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
             children: [
               Icon(Icons.payments, color: AppTheme.infoColor, size: 24),
               const SizedBox(width: 8),
-              Text(
-                'Pago por transferencia',
-                style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor),
-              ),
+              Text('Pago por transferencia', style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor)),
             ],
           ),
           const SizedBox(height: 8),
@@ -628,10 +793,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
             children: [
               Icon(Icons.cloud_upload, color: AppTheme.successColor, size: 24),
               const SizedBox(width: 8),
-              Text(
-                'Subir comprobante de pago',
-                style: AppTheme.titleMedium.copyWith(color: AppTheme.successColor),
-              ),
+              Text('Subir comprobante de pago', style: AppTheme.titleMedium.copyWith(color: AppTheme.successColor)),
             ],
           ),
           const SizedBox(height: 8),

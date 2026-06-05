@@ -1,4 +1,6 @@
+// loading_indicator.dart
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final String? message;
@@ -11,12 +13,14 @@ class LoadingIndicator extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+          ),
           if (message != null) ...[
             const SizedBox(height: 16),
             Text(
               message!,
-              style: const TextStyle(color: Colors.grey),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
             ),
           ],
         ],

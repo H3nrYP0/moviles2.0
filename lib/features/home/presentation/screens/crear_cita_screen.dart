@@ -28,14 +28,14 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   TimeOfDay? _selectedTime;
   String? _selectedMetodoPago;
   
-  // Mapa hora -> empleadoId (las horas vienen en formato "HH:MM" 24h)
+  // Mapa hora -> empleadoId
   Map<String, int> _horasMap = {};
   
   // Listas de datos
   List<Map<String, dynamic>> _clientesList = [];
   List<Servicio> _serviciosList = [];
   
-  // Horas disponibles (strings en formato 24h)
+  // Horas disponibles
   List<String> _horasDisponibles = [];
   
   // Métodos de pago
@@ -55,15 +55,13 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   int? _selectedEmpleadoId;
   
   // ===================== FORMATO DE HORAS =====================
-  // Convierte TimeOfDay a string con AM/PM (ej. "02:30 PM")
   String _formatTimeOfDay(TimeOfDay time) {
-    final hour = time.hourOfPeriod; // 1-12
+    final hour = time.hourOfPeriod;
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.period == DayPeriod.am ? 'AM' : 'PM';
     return '$hour:$minute $period';
   }
   
-  // Convierte string "HH:MM" (24h) a string con AM/PM
   String _formatTimeString(String time24) {
     try {
       final parts = time24.split(':');
@@ -77,7 +75,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // Convierte string "HH:MM" a TimeOfDay
   TimeOfDay _timeOfDayFromString(String time) {
     final parts = time.split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
@@ -93,7 +90,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     });
   }
   
-  // CARGAR DATOS DEL USUARIO
   Future<void> _loadUserData() async {
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated && authProvider.user != null) {
@@ -111,7 +107,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // CARGAR DATOS INICIALES
   Future<void> _loadDatosIniciales() async {
     setState(() {
       _isLoading = true;
@@ -124,7 +119,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       final citasProvider = context.read<CitasProvider>();
       
       if (authProvider.isAuthenticated && authProvider.user != null) {
-        // 1. Cargar clienteId
         if (authProvider.isAdmin) {
           if (citasProvider.clientes.isEmpty) {
             await citasProvider.loadCitas();
@@ -146,7 +140,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           }
         }
         
-        // 2. Cargar servicios
         if (citasProvider.servicios.isEmpty) {
           await citasProvider.loadCitas();
         }
@@ -176,7 +169,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // ACTUALIZAR HORAS DISPONIBLES
   Future<void> _actualizarHorasDisponibles(int servicioId) async {
     if (_selectedDate == null || servicioId == 0) {
       setState(() {
@@ -232,7 +224,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     return 0;
   }
   
-  // SELECCIONAR FECHA (con deshabilitación de domingos)
   Future<void> _seleccionarFecha() async {
     final fechaSeleccionada = await showDatePicker(
       context: context,
@@ -244,7 +235,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       confirmText: 'Seleccionar',
       helpText: 'Seleccione una fecha',
       selectableDayPredicate: (DateTime day) {
-        // No permitir domingos
         return day.weekday != DateTime.sunday;
       },
       builder: (context, child) {
@@ -252,7 +242,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppTheme.primaryColor,
-              onPrimary: Colors.white,
+              onPrimary: AppTheme.white,
               surface: AppTheme.surfaceColor,
               onSurface: AppTheme.textPrimary,
             ),
@@ -268,7 +258,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     );
     
     if (fechaSeleccionada != null) {
-      // Validación extra (por si falla el predicate)
       if (fechaSeleccionada.weekday == DateTime.sunday) {
         setState(() {
           _error = 'No es posible agendar citas los domingos.';
@@ -289,7 +278,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     }
   }
   
-  // SELECCIONAR HORA (diálogo con formato AM/PM)
   void _seleccionarHora() {
     if (_selectedDate == null) {
       setState(() => _error = 'Primero seleccione una fecha');
@@ -488,7 +476,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     if (_info.isNotEmpty && _error.isEmpty) _buildMensajeInfo(_info),
                     const SizedBox(height: 16),
                     
-                    // CLIENTE (solo admin)
                     if (authProvider.isAdmin) ...[
                       _buildLabel('Seleccionar Cliente'),
                       if (_clientesList.isEmpty)
@@ -535,7 +522,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       const SizedBox(height: 20),
                     ],
                     
-                    // SERVICIO
                     _buildLabel('Seleccionar Servicio'),
                     if (_serviciosList.isEmpty)
                       _buildMensajeError('No hay servicios disponibles')
@@ -558,7 +544,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       ),
                     const SizedBox(height: 20),
                     
-                    // FECHA Y HORA
                     _buildLabel('Fecha y Hora de la Cita'),
                     const SizedBox(height: 8),
                     Row(
@@ -626,7 +611,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // BOTÓN ENVIAR
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -671,7 +655,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     );
   }
   
-  // Widgets auxiliares
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

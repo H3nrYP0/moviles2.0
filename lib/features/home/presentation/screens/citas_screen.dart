@@ -7,6 +7,7 @@ import '../../../citas/presentation/providers/citas_provider.dart';
 import 'crear_cita_screen.dart';
 import '../../../citas/data/models/cita_model.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../widgets/themed_refresh_indicator.dart'; // ← import correcto
 
 class CitasScreen extends StatefulWidget {
   const CitasScreen({super.key});
@@ -258,7 +259,7 @@ class _CitasScreenState extends State<CitasScreen> {
                     ],
                   ),
                 )
-              : RefreshIndicator(
+              : ThemedRefreshIndicator( // ← reemplazado
                   onRefresh: _refreshCitas,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

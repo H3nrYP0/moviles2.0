@@ -7,6 +7,8 @@ import '../../../../core/services/api_service.dart';
 import 'package:optica_app/features/home/presentation/screens/profile_screen.dart';
 import 'checkout_modal.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../widgets/themed_refresh_indicator.dart'; // ← nuevo import
+
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -25,6 +27,16 @@ class _CartScreenState extends State<CartScreen> {
       decimalDigits: 0,
     );
     return formatter.format(amount);
+  }
+
+  // Método llamado al deslizar hacia abajo
+  Future<void> _onRefresh() async {
+    final cartProvider = context.read<CartProvider>();
+    // Aquí puedes implementar la recarga real del carrito
+    // Por ejemplo, obtener productos actualizados y verificar stock/precios
+    // Si CartProvider tiene un método refreshCart(), lo llamamos:
+    await cartProvider.refreshCart(); // Asegúrate de tenerlo implementado
+    // Si no, puedes solo volver a notificar (no haría nada) o hacer una llamada API.
   }
 
   @override
@@ -93,13 +105,16 @@ class _CartScreenState extends State<CartScreen> {
     return Column(
       children: [
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: cartProvider.items.length,
-            itemBuilder: (context, index) {
-              final item = cartProvider.items[index];
-              return _CartItemCard(item: item);
-            },
+          child: ThemedRefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: cartProvider.items.length,
+              itemBuilder: (context, index) {
+                final item = cartProvider.items[index];
+                return _CartItemCard(item: item);
+              },
+            ),
           ),
         ),
         Container(

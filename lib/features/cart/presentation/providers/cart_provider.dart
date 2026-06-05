@@ -1,16 +1,13 @@
-// features/cart/presentation/providers/cart_provider.dart
+// lib/features/cart/presentation/providers/cart_provider.dart
 import 'package:flutter/material.dart';
 import '../../../catalog/data/models/product_model.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../features/citas/data/services/api_colombia_service.dart';
 
 class CartItem {
-  final Product product;
+  Product product;
   int quantity;
-
-  CartItem({
-    required this.product,
-    this.quantity = 1,
-  });
-
+  CartItem({required this.product, this.quantity = 1});
   double get subtotal => product.precioVenta * quantity;
 }
 
@@ -19,42 +16,53 @@ class CartProvider extends ChangeNotifier {
 
   // Información del pedido
   String? _selectedDeliveryMethod; // 'tienda' o 'domicilio'
-  String? _selectedPaymentMethod; // 'efectivo' o 'transferencia'
+  String? _selectedPaymentMethod;
   String? _deliveryAddress;
 
-  // NUEVAS VARIABLES PARA DIRECCIÓN DETALLADA
-  String? _departamentoEntrega;   // ej. "ANTIOQUIA"
-  String? _municipioEntrega;
+  // Nueva dirección dinámica (API Colombia)
+  List<Map<String, dynamic>> _departamentos = [];
+  List<Map<String, dynamic>> _municipios = [];
+
+  int? _selectedDepartamentoId;
+  String? _selectedDepartamentoNombre;
+  int? _selectedMunicipioId;
+  String? _selectedMunicipioNombre;
   String? _barrioEntrega;
   String? _codigoPostalEntrega;
 
   bool _isProcessing = false;
+  double _costoEnvio = 0.0;   // ← NUEVO: costo de envío
 
-  // Getters
+  // Getters existentes
   List<CartItem> get items => List.unmodifiable(_items);
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
-  double get totalAmount => _items.fold(0, (sum, item) => sum + item.subtotal);
-  double get subtotal => totalAmount;
+  double get subtotal => _items.fold(0, (sum, item) => sum + item.subtotal);
+  double get costoEnvio => _costoEnvio;   // ← NUEVO
+  double get totalAmount => subtotal + _costoEnvio;   // ← MODIFICADO: incluye envío
+
   String? get selectedDeliveryMethod => _selectedDeliveryMethod;
   String? get selectedPaymentMethod => _selectedPaymentMethod;
   String? get deliveryAddress => _deliveryAddress;
   bool get isProcessing => _isProcessing;
 
-  // Getters para dirección detallada
-  String? get departamentoEntrega => _departamentoEntrega;
-  String? get municipioEntrega => _municipioEntrega;
+  // Getters nuevos
+  List<Map<String, dynamic>> get departamentos => _departamentos;
+  List<Map<String, dynamic>> get municipios => _municipios;
+  int? get selectedDepartamentoId => _selectedDepartamentoId;
+  String? get selectedDepartamentoNombre => _selectedDepartamentoNombre;
+  int? get selectedMunicipioId => _selectedMunicipioId;
+  String? get selectedMunicipioNombre => _selectedMunicipioNombre;
   String? get barrioEntrega => _barrioEntrega;
   String? get codigoPostalEntrega => _codigoPostalEntrega;
 
   bool get isReadyForCheckout {
     if (_selectedDeliveryMethod == null || _selectedPaymentMethod == null) return false;
     if (_selectedDeliveryMethod == 'domicilio') {
-      // Validar todos los campos de dirección
       if (_deliveryAddress == null || _deliveryAddress!.isEmpty) return false;
-      if (_departamentoEntrega == null || _departamentoEntrega!.isEmpty) return false;
-      if (_municipioEntrega == null || _municipioEntrega!.isEmpty) return false;
+      if (_selectedDepartamentoId == null) return false;
+      if (_selectedMunicipioId == null) return false;
       if (_barrioEntrega == null || _barrioEntrega!.isEmpty) return false;
-      if (_codigoPostalEntrega == null || _codigoPostalEntrega!.isEmpty) return false;
+      // Código postal no es obligatorio
     }
     return true;
   }
@@ -66,6 +74,58 @@ class CartProvider extends ChangeNotifier {
     return true;
   }
 
+  // ================== Métodos de dirección (API Colombia) ==================
+  Future<void> loadDepartamentos() async {
+    final depts = await ApiColombiaService.getDepartamentos();
+    _departamentos = depts;
+    notifyListeners();
+  }
+
+  Future<void> loadMunicipios(int departmentId) async {
+    final muns = await ApiColombiaService.getCiudadesPorDepartamento(departmentId);
+    _municipios = muns;
+    // Al cambiar departamento, se resetea el municipio seleccionado
+    _selectedMunicipioId = null;
+    _selectedMunicipioNombre = null;
+    _codigoPostalEntrega = null;
+    notifyListeners();
+  }
+
+  void setSelectedDepartamento(int? id, String? nombre) {
+    _selectedDepartamentoId = id;
+    _selectedDepartamentoNombre = nombre;
+    notifyListeners();
+    if (id != null) {
+      loadMunicipios(id);
+    } else {
+      _municipios = [];
+      _selectedMunicipioId = null;
+      _selectedMunicipioNombre = null;
+      _codigoPostalEntrega = null;
+      notifyListeners();
+    }
+  }
+
+  void setSelectedMunicipio(int? id, String? nombre, {String? postalCode}) {
+    _selectedMunicipioId = id;
+    _selectedMunicipioNombre = nombre;
+    if (postalCode != null && postalCode.isNotEmpty) {
+      _codigoPostalEntrega = postalCode;
+    }
+    notifyListeners();
+  }
+
+  void setBarrioEntrega(String? value) {
+    _barrioEntrega = value;
+    notifyListeners();
+  }
+
+  void setCodigoPostalEntrega(String? value) {
+    _codigoPostalEntrega = value;
+    notifyListeners();
+  }
+
+  // ================== Métodos del carrito ==================
   void addToCart(Product product, {int quantity = 1}) {
     final existingIndex = _items.indexWhere((item) => item.product.id == product.id);
     if (existingIndex >= 0) {
@@ -98,10 +158,13 @@ class CartProvider extends ChangeNotifier {
     _selectedDeliveryMethod = null;
     _selectedPaymentMethod = null;
     _deliveryAddress = null;
-    _departamentoEntrega = null;
-    _municipioEntrega = null;
+    _selectedDepartamentoId = null;
+    _selectedDepartamentoNombre = null;
+    _selectedMunicipioId = null;
+    _selectedMunicipioNombre = null;
     _barrioEntrega = null;
     _codigoPostalEntrega = null;
+    _costoEnvio = 0.0;   // ← NUEVO
     notifyListeners();
   }
 
@@ -116,10 +179,16 @@ class CartProvider extends ChangeNotifier {
 
   void selectDeliveryMethod(String method) {
     _selectedDeliveryMethod = method;
-    if (method == 'tienda') {
+    if (method == 'domicilio') {
+      _costoEnvio = 20000.0;   // ← NUEVO: aplicar costo de envío
+    } else {
+      _costoEnvio = 0.0;        // ← NUEVO: sin costo
+      // Limpiar datos de domicilio
       _deliveryAddress = null;
-      _departamentoEntrega = null;
-      _municipioEntrega = null;
+      _selectedDepartamentoId = null;
+      _selectedDepartamentoNombre = null;
+      _selectedMunicipioId = null;
+      _selectedMunicipioNombre = null;
       _barrioEntrega = null;
       _codigoPostalEntrega = null;
     }
@@ -136,35 +205,68 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Setters para dirección detallada
-  void setDepartamentoEntrega(String? value) {
-    _departamentoEntrega = value;
-    notifyListeners();
-  }
-
-  void setMunicipioEntrega(String? value) {
-    _municipioEntrega = value;
-    notifyListeners();
-  }
-
-  void setBarrioEntrega(String? value) {
-    _barrioEntrega = value;
-    notifyListeners();
-  }
-
-  void setCodigoPostalEntrega(String? value) {
-    _codigoPostalEntrega = value;
-    notifyListeners();
-  }
-
   void setProcessing(bool processing) {
     _isProcessing = processing;
     notifyListeners();
   }
 
-  // ==========================================================
-  // MÉTODO CORREGIDO – nunca envía null, solo strings vacíos
-  // ==========================================================
+  // ================== Sincronización con backend ==================
+  Future<void> refreshCart() async {
+    final apiService = ApiService();
+    try {
+      final productosJson = await apiService.getProductos(forceRefresh: true);
+      final Map<int, Map<String, dynamic>> productosActualizados = {};
+      for (var json in productosJson) {
+        final id = json['id'] as int;
+        productosActualizados[id] = json;
+      }
+
+      bool changed = false;
+      for (var item in _items) {
+        final data = productosActualizados[item.product.id];
+        if (data == null) {
+          _items.remove(item);
+          changed = true;
+          continue;
+        }
+
+        final nuevoStock = data['stock'] as int? ?? item.product.stock;
+        final nuevoPrecio = (data['precio_venta'] as num?)?.toDouble() ?? item.product.precioVenta;
+        final estaActivo = data['estado'] as bool? ?? true;
+
+        if (!estaActivo || nuevoStock <= 0) {
+          _items.remove(item);
+          changed = true;
+          continue;
+        }
+
+        if (nuevoStock < item.quantity) {
+          item.quantity = nuevoStock;
+          changed = true;
+        }
+
+        if (nuevoPrecio != item.product.precioVenta || item.product.stock != nuevoStock) {
+          final productoActualizado = Product(
+            id: item.product.id,
+            nombre: item.product.nombre,
+            precioVenta: nuevoPrecio,
+            stock: nuevoStock,
+            descripcion: item.product.descripcion,
+            categoriaId: item.product.categoriaId,
+            marcaId: item.product.marcaId,
+            imagenUrl: item.product.imagenUrl,
+            estado: estaActivo,
+          );
+          item.product = productoActualizado;
+          changed = true;
+        }
+      }
+      if (changed) notifyListeners();
+    } catch (e) {
+      print('Error al refrescar el carrito: $e');
+    }
+  }
+
   Map<String, dynamic> toOrderData(int clienteId, int usuarioId) {
     String direccion = '';
     if (_selectedDeliveryMethod == 'domicilio' && _deliveryAddress != null && _deliveryAddress!.isNotEmpty) {
@@ -178,11 +280,11 @@ class CartProvider extends ChangeNotifier {
       'metodo_pago': _selectedPaymentMethod,
       'metodo_entrega': _selectedDeliveryMethod,
       'direccion_entrega': direccion,
-      // IMPORTANTE: Siempre enviamos string, nunca null
-      'departamento_entrega': isDomicilio ? (_departamentoEntrega ?? '') : '',
-      'municipio_entrega': isDomicilio ? (_municipioEntrega ?? '') : '',
+      'departamento_entrega': isDomicilio ? (_selectedDepartamentoNombre ?? '') : '',
+      'municipio_entrega': isDomicilio ? (_selectedMunicipioNombre ?? '') : '',
       'barrio_entrega': isDomicilio ? (_barrioEntrega ?? '') : '',
       'codigo_postal_entrega': isDomicilio ? (_codigoPostalEntrega ?? '') : '',
+      'costo_envio': _costoEnvio,   // ← NUEVO: enviar al backend (opcional)
       'items': _items.map((item) => {
         'producto_id': item.product.id,
         'cantidad': item.quantity,
@@ -191,37 +293,19 @@ class CartProvider extends ChangeNotifier {
     };
   }
 
-  void safeUpdateQuantity(int productId, int newQuantity) {
-    final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      if (newQuantity < 1) {
-        _items.removeAt(index);
-      } else if (newQuantity > _items[index].product.stock) {
-        return;
-      } else {
-        _items[index].quantity = newQuantity;
-      }
-      notifyListeners();
-    }
-  }
-
   void incrementQuantity(int productId) {
     final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      if (_items[index].quantity < _items[index].product.stock) {
-        _items[index].quantity++;
-        notifyListeners();
-      }
+    if (index >= 0 && _items[index].quantity < _items[index].product.stock) {
+      _items[index].quantity++;
+      notifyListeners();
     }
   }
 
   void decrementQuantity(int productId) {
     final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      if (_items[index].quantity > 1) {
-        _items[index].quantity--;
-        notifyListeners();
-      }
+    if (index >= 0 && _items[index].quantity > 1) {
+      _items[index].quantity--;
+      notifyListeners();
     }
   }
 }

@@ -300,48 +300,48 @@ class ApiService {
   }
 
   // ==========================================================
-//  ESTADOS DE PEDIDO
-// ==========================================================
-Future<List<Map<String, dynamic>>> getEstadosPedido() async {
-  _log('GET estados pedido from: ${ApiEndpoints.estadosPedido}');
-  try {
-    final headers = await _getHeaders(withToken: false);
-    final response = await http.get(Uri.parse(ApiEndpoints.estadosPedido), headers: headers);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data is List) {
-        return List<Map<String, dynamic>>.from(data);
+  //  ESTADOS DE PEDIDO
+  // ==========================================================
+  Future<List<Map<String, dynamic>>> getEstadosPedido() async {
+    _log('GET estados pedido from: ${ApiEndpoints.estadosPedido}');
+    try {
+      final headers = await _getHeaders(withToken: false);
+      final response = await http.get(Uri.parse(ApiEndpoints.estadosPedido), headers: headers);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        return [];
       }
       return [];
+    } catch (e) {
+      _log('Error getEstadosPedido: $e', type: 'ERROR');
+      return [];
     }
-    return [];
-  } catch (e) {
-    _log('Error getEstadosPedido: $e', type: 'ERROR');
-    return [];
   }
-}
 
-// ==========================================================
-//  ESTADOS DE CITA
-// ==========================================================
-Future<List<Map<String, dynamic>>> getEstadosCita() async {
-  _log('GET estados cita from: ${ApiEndpoints.estadoCita}');
-  try {
-    final headers = await _getHeaders(withToken: false);
-    final response = await http.get(Uri.parse(ApiEndpoints.estadoCita), headers: headers);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data is List) {
-        return List<Map<String, dynamic>>.from(data);
+  // ==========================================================
+  //  ESTADOS DE CITA
+  // ==========================================================
+  Future<List<Map<String, dynamic>>> getEstadosCita() async {
+    _log('GET estados cita from: ${ApiEndpoints.estadoCita}');
+    try {
+      final headers = await _getHeaders(withToken: false);
+      final response = await http.get(Uri.parse(ApiEndpoints.estadoCita), headers: headers);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        return [];
       }
       return [];
+    } catch (e) {
+      _log('Error getEstadosCita: $e', type: 'ERROR');
+      return [];
     }
-    return [];
-  } catch (e) {
-    _log('Error getEstadosCita: $e', type: 'ERROR');
-    return [];
   }
-}
 
   Future<Map<int, String>> getClientesMap() async {
     _log('GET mapa de clientes', type: 'INFO');
@@ -714,6 +714,55 @@ Future<List<Map<String, dynamic>>> getEstadosCita() async {
     } catch (e) {
       _log('Error getAllCitas: $e', type: 'ERROR');
       throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // ==========================================================
+  //  PERFIL UNIFICADO (nuevos métodos)
+  // ==========================================================
+
+  Future<Map<String, dynamic>> getMiPerfilUnificado() async {
+    _log('GET /mi-perfil');
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('${ApiEndpoints.baseUrl}/mi-perfil'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'error': 'Error al cargar perfil: ${response.statusCode}'};
+    } catch (e) {
+      _log('Error getMiPerfilUnificado: $e', type: 'ERROR');
+      return {'error': 'Error de conexión: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateMiPerfil({
+    required Map<String, dynamic> usuarioData,
+    Map<String, dynamic>? clienteData,
+  }) async {
+    _log('PUT /mi-perfil');
+    try {
+      final headers = await _getHeaders();
+      final body = {
+        'usuario': usuarioData,
+        if (clienteData != null) 'cliente': clienteData,
+      };
+      final response = await http.put(
+        Uri.parse('${ApiEndpoints.baseUrl}/mi-perfil'),
+        headers: headers,
+        body: json.encode(body),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      final errorData = json.decode(response.body);
+      return {'error': errorData['error'] ?? 'Error ${response.statusCode}'};
+    } catch (e) {
+      _log('Error updateMiPerfil: $e', type: 'ERROR');
+      return {'error': 'Error de conexión: $e'};
     }
   }
 }

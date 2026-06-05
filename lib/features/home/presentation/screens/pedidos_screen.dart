@@ -79,7 +79,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
   }
 
   List<Pedido> _getPedidosFiltrados(PedidosProvider pedidosProvider) {
-    List<Pedido> lista = pedidosProvider.pedidos;
+    // ✅ Crear una copia mutable de la lista original
+    List<Pedido> lista = List.from(pedidosProvider.pedidos);
 
     // Filtrar por estado
     if (_estadoFiltro != null && _estadoFiltro != 'todos') {
@@ -88,21 +89,26 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
     // Filtrar por texto de búsqueda
     final query = _searchController.text.toLowerCase();
-    if (query.isEmpty) return lista;
+    if (query.isNotEmpty) {
+      lista = lista.where((pedido) {
+        final metodoPago = pedido.metodoPagoText.toLowerCase();
+        final metodoEntrega = pedido.metodoEntregaText.toLowerCase();
+        final estado = pedido.estado.toLowerCase();
+        final direccion = pedido.direccionEntrega?.toLowerCase() ?? '';
+        final productos = pedido.items.any((item) => item.productoNombre.toLowerCase().contains(query));
+        return metodoPago.contains(query) ||
+            metodoEntrega.contains(query) ||
+            estado.contains(query) ||
+            direccion.contains(query) ||
+            pedido.id.toString().contains(query) ||
+            productos;
+      }).toList();
+    }
 
-    return lista.where((pedido) {
-      final metodoPago = pedido.metodoPagoText.toLowerCase();
-      final metodoEntrega = pedido.metodoEntregaText.toLowerCase();
-      final estado = pedido.estado.toLowerCase();
-      final direccion = pedido.direccionEntrega?.toLowerCase() ?? '';
-      final productos = pedido.items.any((item) => item.productoNombre.toLowerCase().contains(query));
-      return metodoPago.contains(query) ||
-          metodoEntrega.contains(query) ||
-          estado.contains(query) ||
-          direccion.contains(query) ||
-          pedido.id.toString().contains(query) ||
-          productos;
-    }).toList();
+    // ✅ Ordenar por ID de mayor a menor (los más recientes primero)
+    lista.sort((a, b) => b.id.compareTo(a.id));
+
+    return lista;
   }
 
   String _capitalize(String text) {
@@ -177,7 +183,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
     return Column(
       children: [
-        // Filtros por estado (chips dinámicos desde el provider)
+        // Filtros por estado (chips dinámicos)
         if (pedidosProvider.estados.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -216,7 +222,6 @@ class _PedidosScreenState extends State<PedidosScreen> {
               ],
             ),
           ),
-        // Barra de búsqueda
         Padding(
           padding: const EdgeInsets.all(12),
           child: TextField(
@@ -234,7 +239,6 @@ class _PedidosScreenState extends State<PedidosScreen> {
             ),
           ),
         ),
-        // Lista de pedidos
         Expanded(
           child: pedidosMostrar.isEmpty
               ? Center(
@@ -337,7 +341,6 @@ class _PedidoCard extends StatelessWidget {
     return text[0].toUpperCase() + text.substring(1).toLowerCase();
   }
 
-  // Iconos según estados reales: pendiente, pagado, anulado
   IconData _getEstadoIcon(String estado) {
     switch (estado.toLowerCase()) {
       case 'pendiente':

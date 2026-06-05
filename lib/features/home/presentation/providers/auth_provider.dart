@@ -17,13 +17,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isAdmin => _user?.isAdmin ?? false;
   bool get isCliente => _user?.isCliente ?? false;
   
-  // Método para actualizar el user (en lugar de setter)
+  // ==========================================================
+  //  MÉTODOS PARA ACTUALIZAR USER
+  // ==========================================================
+  
   void updateUser(User? newUser) {
     _user = newUser;
     notifyListeners();
   }
   
-  // Método para actualizar solo el clienteId
   void updateClienteId(int clienteId) {
     if (_user != null) {
       _user = User(
@@ -33,10 +35,83 @@ class AuthProvider extends ChangeNotifier {
         rolId: _user!.rolId,
         estado: _user!.estado,
         clienteId: clienteId,
+        fotoUrl: _user!.fotoUrl,
       );
       notifyListeners();
     }
   }
+  
+  // Actualizar solo la foto de perfil
+  void updateUserPhoto(String fotoUrl) {
+    if (_user != null) {
+      _user = User(
+        id: _user!.id,
+        nombre: _user!.nombre,
+        correo: _user!.correo,
+        rolId: _user!.rolId,
+        estado: _user!.estado,
+        clienteId: _user!.clienteId,
+        fotoUrl: fotoUrl,
+      );
+      // Guardar en Storage para persistencia
+      StorageService.saveFotoUrl(fotoUrl);
+      notifyListeners();
+    }
+  }
+  
+  // Actualizar múltiples campos del usuario (nombre, apellido, teléfono, etc.)
+  void updateUserData({
+    String? nombre,
+    String? apellido,
+    String? telefono,
+    String? tipoDocumento,
+    String? numeroDocumento,
+    DateTime? fechaNacimiento,
+    String? fotoUrl,
+  }) {
+    if (_user != null) {
+      _user = User(
+        id: _user!.id,
+        nombre: nombre ?? _user!.nombre,
+        correo: _user!.correo,
+        rolId: _user!.rolId,
+        estado: _user!.estado,
+        clienteId: _user!.clienteId,
+        fotoUrl: fotoUrl ?? _user!.fotoUrl,
+      );
+      // Si se actualiza la foto, también la guardamos en Storage
+      if (fotoUrl != null) {
+        StorageService.saveFotoUrl(fotoUrl);
+      }
+      notifyListeners();
+    }
+  }
+
+  // ✅ NUEVO MÉTODO: actualizar usuario completo desde un mapa (respuesta del backend)
+  void updateUserFromMap(Map<String, dynamic> usuarioData) {
+    if (_user != null) {
+      _user = User(
+        id: _user!.id,
+        nombre: usuarioData['nombre'] ?? _user!.nombre,
+        correo: usuarioData['correo'] ?? _user!.correo,
+        rolId: _user!.rolId,
+        estado: _user!.estado,
+        clienteId: _user!.clienteId,
+        fotoUrl: usuarioData['foto_url'] ?? _user!.fotoUrl,
+      );
+      // Persistir cambios en almacenamiento local
+      StorageService.saveUserName(_user!.nombre);
+      StorageService.saveUserEmail(_user!.correo);
+      if (usuarioData['foto_url'] != null) {
+        StorageService.saveFotoUrl(usuarioData['foto_url']);
+      }
+      notifyListeners();
+    }
+  }
+  
+  // ==========================================================
+  //  AUTENTICACIÓN
+  // ==========================================================
   
   Future<void> checkAuthStatus() async {
     _isLoading = true;
@@ -52,8 +127,8 @@ class AuthProvider extends ChangeNotifier {
         final id = await StorageService.getUserId();
         final clienteId = await StorageService.getClienteId();
         final token = await StorageService.getToken();
+        final fotoUrl = await StorageService.getFotoUrl();
         
-        // Verificar que tengamos token y datos básicos
         if (token != null && email != null && name != null && rol != null && id != null) {
           _user = User(
             id: id,
@@ -62,10 +137,10 @@ class AuthProvider extends ChangeNotifier {
             rolId: rol,
             estado: true,
             clienteId: clienteId,
+            fotoUrl: fotoUrl,
           );
           _error = '';
         } else {
-          // Datos incompletos o sin token, cerrar sesión
           await logout();
         }
       } else {
@@ -92,10 +167,9 @@ class AuthProvider extends ChangeNotifier {
         final usuarioData = result['usuario'];
         final token = result['token'] as String;
         
-        // El cliente_id NO viene en el login, hay que obtenerlo aparte
         final int? clienteId = await _apiService.getCurrentClienteId();
+        final String? fotoUrl = usuarioData['foto_url'];
         
-        // Crear usuario con el clienteId obtenido (puede ser null si no es cliente)
         _user = User(
           id: usuarioData['id'] is int 
               ? usuarioData['id'] 
@@ -106,10 +180,10 @@ class AuthProvider extends ChangeNotifier {
               ? usuarioData['rol_id'] 
               : int.parse(usuarioData['rol_id'].toString()),
           estado: true,
-          clienteId: clienteId, // Puede ser null si el usuario no es cliente (ej. admin)
+          clienteId: clienteId,
+          fotoUrl: fotoUrl,
         );
         
-        // Guardar en storage (incluye token y clienteId si existe)
         await StorageService.saveLoginData(
           _user!.correo,
           _user!.nombre,
@@ -118,6 +192,9 @@ class AuthProvider extends ChangeNotifier {
           clienteId: _user!.clienteId,
           token: token,
         );
+        if (fotoUrl != null && fotoUrl.isNotEmpty) {
+          await StorageService.saveFotoUrl(fotoUrl);
+        }
         
         _isLoading = false;
         notifyListeners();
@@ -136,9 +213,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
-  // ⚠️ REGISTRO TEMPORALMENTE DESACTIVADO - NUEVO FLUJO CON CÓDIGO
-  // Se implementará en Fase 6 usando:
-  // POST /auth/register  y  POST /auth/verify-register
   Future<Map<String, dynamic>> register({
     required String nombre,
     required String correo,
@@ -155,8 +229,6 @@ class AuthProvider extends ChangeNotifier {
         contrasenia: contrasenia,
       );
       
-      // Como el método registerUser ya retorna error por defecto,
-      // esto siempre fallará hasta que implementemos el flujo completo.
       _error = result['error'] ?? 'El registro requiere verificación por código. Próximamente.';
       _isLoading = false;
       notifyListeners();
@@ -178,13 +250,12 @@ class AuthProvider extends ChangeNotifier {
   }
   
   Future<void> logout() async {
-    await StorageService.clearLoginData(); // Ya borra token también
+    await StorageService.clearLoginData();
     _user = null;
     _error = '';
     notifyListeners();
   }
   
-  // Método para obtener datos del usuario actual
   Future<Map<String, dynamic>> getCurrentUserData() async {
     return {
       'email': await StorageService.getUserEmail(),
@@ -192,6 +263,7 @@ class AuthProvider extends ChangeNotifier {
       'rol': await StorageService.getUserRol(),
       'id': await StorageService.getUserId(),
       'clienteId': await StorageService.getClienteId(),
+      'fotoUrl': await StorageService.getFotoUrl(),
       'hasToken': (await StorageService.getToken()) != null,
     };
   }

@@ -1,4 +1,6 @@
+// error_message.dart
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ErrorMessage extends StatelessWidget {
   final String message;
@@ -18,21 +20,25 @@ class ErrorMessage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
-              color: Colors.red,
+              color: AppTheme.errorColor,
               size: 50,
             ),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: onRetry,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Reintentar'),
               ),
             ],

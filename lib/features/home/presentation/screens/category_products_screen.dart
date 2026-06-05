@@ -7,6 +7,7 @@ import '../../../home/presentation/providers/catalog_provider.dart';
 import 'product_detail_screen.dart';
 import '../../../../widgets/back_button.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../widgets/themed_refresh_indicator.dart'; // ← nuevo import
 
 class CategoryProductsScreen extends StatefulWidget {
   final int categoryId;
@@ -82,11 +83,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
+      body: ThemedRefreshIndicator( // ← Reemplazado
         onRefresh: _onRefresh,
         child: Column(
           children: [
-            // Barra de búsqueda expandible
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               height: _showSearch ? 70 : 0,
@@ -127,8 +127,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     )
                   : null,
             ),
-
-            // Contador de resultados
             Consumer<CatalogProvider>(
               builder: (context, catalogProvider, child) {
                 if (_searchController.text.isNotEmpty && catalogProvider.products.isNotEmpty) {
@@ -156,7 +154,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                 return const SizedBox(height: 8);
               },
             ),
-
             Expanded(
               child: Consumer<CatalogProvider>(
                 builder: (context, catalogProvider, child) {
@@ -263,48 +260,80 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isOutOfStock = product.stock <= 0;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product))),
+        onTap: isOutOfStock
+            ? null
+            : () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product))),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppTheme.gray100,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
-                      ? Image.network(
-                          _optimizeImageUrl(product.imagenUrl!),
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
-                          errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
-                        )
-                      : _buildPlaceholderImage(),
-                ),
+              // Imagen con insignia en esquina superior derecha
+              Stack(
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray100,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: product.imagenUrl != null && product.imagenUrl!.isNotEmpty
+                          ? Image.network(
+                              _optimizeImageUrl(product.imagenUrl!),
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                            )
+                          : _buildPlaceholderImage(),
+                    ),
+                  ),
+                  if (isOutOfStock)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+                          ],
+                        ),
+                        child: const Text(
+                          'AGOTADO',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -314,7 +343,12 @@ class _ProductCard extends StatelessWidget {
                   children: [
                     Text(
                       product.nombre,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.2),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                        color: isOutOfStock ? AppTheme.gray500 : AppTheme.textPrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -332,7 +366,12 @@ class _ProductCard extends StatelessWidget {
                       children: [
                         Text(
                           _formatPrice(product.precioVenta),
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.successColor),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isOutOfStock ? AppTheme.gray500 : AppTheme.successColor,
+                            decoration: isOutOfStock ? TextDecoration.lineThrough : null,
+                          ),
                         ),
                       ],
                     ),
@@ -340,7 +379,11 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.gray500),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: isOutOfStock ? AppTheme.gray400 : AppTheme.gray500,
+              ),
             ],
           ),
         ),

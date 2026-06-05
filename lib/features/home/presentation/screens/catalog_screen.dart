@@ -5,6 +5,7 @@ import '../../../home/presentation/providers/catalog_provider.dart';
 import 'category_products_screen.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../catalog/data/models/product_model.dart';
+import '../../../../widgets/themed_refresh_indicator.dart'; // ← nuevo import
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -37,7 +38,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return ThemedRefreshIndicator( // ← reemplazado
       onRefresh: _onRefresh,
       child: Consumer<CatalogProvider>(
         builder: (context, catalogProvider, child) {
@@ -140,18 +141,15 @@ class _CategoryCard extends StatelessWidget {
   });
 
   String _getImageUrl() {
-    // Prioridad: imagen del primer producto real de la categoría
     if (sampleProducts != null && sampleProducts!.isNotEmpty) {
       final firstProduct = sampleProducts!.first;
       if (firstProduct.imagenUrl != null && firstProduct.imagenUrl!.isNotEmpty) {
         return _optimizeImageUrl(firstProduct.imagenUrl!);
       }
     }
-    // Si no hay productos, usar imagen de la categoría si existe
     if (category.imagenUrl != null && category.imagenUrl!.isNotEmpty) {
       return _optimizeImageUrl(category.imagenUrl!);
     }
-    // Fallback: cadena vacía → se mostrará placeholder
     return '';
   }
 
@@ -186,7 +184,6 @@ class _CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            // IMAGEN DE FONDO
             Container(
               height: double.infinity,
               width: double.infinity,
@@ -218,8 +215,6 @@ class _CategoryCard extends StatelessWidget {
                         )
                       : _buildPlaceholder()),
             ),
-
-            // GRADIENTE OSCURO
             Container(
               height: double.infinity,
               width: double.infinity,
@@ -235,8 +230,6 @@ class _CategoryCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // NOMBRE DE LA CATEGORÍA
             Positioned(
               left: 12,
               right: 12,

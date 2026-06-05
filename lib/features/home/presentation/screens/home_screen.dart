@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Agrega esta dependencia
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../catalog/data/models/product_model.dart';
 import '../../../home/presentation/screens/crear_cita_screen.dart';
 import '../providers/catalog_provider.dart';
 import 'product_detail_screen.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../widgets/themed_refresh_indicator.dart'; // ← nuevo import
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
+      body: ThemedRefreshIndicator(  // ← reemplazado
         onRefresh: _onRefresh,
         child: CustomScrollView(
           controller: _scrollController,
@@ -130,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) => const _ProductCardSkeleton(),
-                childCount: 4, // Muestra 4 esqueletos mientras carga
+                childCount: 4,
               ),
             ),
           );
@@ -143,17 +144,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    Icon(Icons.wifi_off_outlined, color: Colors.grey.shade600, size: 64),
+                    Icon(Icons.wifi_off_outlined, color: AppTheme.gray600, size: 64),
                     const SizedBox(height: 16),
                     Text(
                       'Oops, algo salió mal',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.gray800),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       provider.error,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: AppTheme.gray600),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton.icon(
@@ -162,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: const Text('Reintentar'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ],
@@ -179,17 +182,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 60),
                 child: Column(
                   children: [
-                    Icon(Icons.sentiment_dissatisfied, size: 80, color: Colors.grey.shade400),
+                    Icon(Icons.sentiment_dissatisfied, size: 80, color: AppTheme.gray400),
                     const SizedBox(height: 16),
                     Text(
                       'No hay productos destacados',
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 16, color: AppTheme.gray600),
                     ),
                     const SizedBox(height: 12),
                     TextButton.icon(
                       onPressed: () => provider.loadFeaturedProducts(),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Actualizar'),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
                     ),
                   ],
                 ),
@@ -198,15 +202,14 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // Cuadrícula responsiva: 2 columnas en móviles, 3 en tablets
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 280, // Ancho máximo por tarjeta
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.75,
+              maxCrossAxisExtent: 280,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.75,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -222,19 +225,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProductCard(Product product) {
+    final isOutOfStock = product.stock <= 0;
+
     return Hero(
       tag: 'product_${product.id}',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(product: product),
-              ),
-            );
-          },
+          onTap: isOutOfStock
+              ? null
+              : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailScreen(product: product),
+                    ),
+                  );
+                },
           borderRadius: BorderRadius.circular(16),
           child: Card(
             elevation: 2,
@@ -243,21 +250,49 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: CachedNetworkImage(
-                      imageUrl: product.imagenUrl ?? '',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imagenUrl ?? '',
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppTheme.gray200,
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppTheme.gray200,
+                            child: const Icon(Icons.broken_image, size: 40, color: AppTheme.gray400),
+                          ),
+                        ),
                       ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                      ),
-                    ),
+                      if (isOutOfStock)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.errorColor,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+                              ],
+                            ),
+                            child: const Text(
+                              'AGOTADO',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -267,14 +302,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         product.nombre,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isOutOfStock ? AppTheme.gray500 : AppTheme.textPrimary,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _formatCurrency(product.precioVenta),
-                        style: AppTheme.priceText,
+                        style: AppTheme.priceText.copyWith(
+                          color: isOutOfStock ? AppTheme.gray500 : null,
+                          decoration: isOutOfStock ? TextDecoration.lineThrough : null,
+                        ),
                       ),
                     ],
                   ),
@@ -297,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Widget esqueleto para mostrar mientras carga
 class _ProductCardSkeleton extends StatelessWidget {
   const _ProductCardSkeleton();
 
@@ -312,7 +353,7 @@ class _ProductCardSkeleton extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.gray300,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
             ),
@@ -325,13 +366,13 @@ class _ProductCardSkeleton extends StatelessWidget {
                 Container(
                   height: 16,
                   width: double.infinity,
-                  color: Colors.grey.shade300,
+                  color: AppTheme.gray300,
                 ),
                 const SizedBox(height: 8),
                 Container(
                   height: 14,
                   width: 80,
-                  color: Colors.grey.shade300,
+                  color: AppTheme.gray300,
                 ),
               ],
             ),

@@ -6,7 +6,8 @@ class User {
   final int rolId;
   final bool estado;
   final int? clienteId;
-  
+  final String? fotoUrl; // ← NUEVO
+
   User({
     required this.id,
     required this.nombre,
@@ -14,6 +15,7 @@ class User {
     required this.rolId,
     required this.estado,
     this.clienteId,
+    this.fotoUrl, // ← NUEVO
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,7 @@ class User {
       rolId: json['rol_id'] is int ? json['rol_id'] : int.parse(json['rol_id'].toString()),
       estado: json['estado'] ?? true,
       clienteId: json['cliente_id'] ?? json['clienteId'],
+      fotoUrl: json['foto_url'], // ← NUEVO
     );
   }
   
@@ -35,6 +38,7 @@ class User {
       'rol_id': rolId,
       'estado': estado,
       'cliente_id': clienteId,
+      'foto_url': fotoUrl, // ← NUEVO
     };
   }
   
