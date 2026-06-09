@@ -1,5 +1,6 @@
 // lib/core/services/api_colombia_service.dart
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiColombiaService {
@@ -19,7 +20,7 @@ class ApiColombiaService {
         throw Exception('Error al cargar departamentos: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getDepartamentos: $e');
+      debugPrint('Error getDepartamentos: $e');
       return [];
     }
   }
@@ -40,7 +41,7 @@ class ApiColombiaService {
         throw Exception('Error al cargar ciudades: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getCiudadesPorDepartamento: $e');
+      debugPrint('Error getCiudadesPorDepartamento: $e');
       return [];
     }
   }

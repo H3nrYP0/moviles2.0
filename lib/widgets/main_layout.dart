@@ -108,7 +108,7 @@ class _MainLayoutState extends State<MainLayout> {
         title: Row(
           children: [
             if (_selectedIndex == 0 || _selectedIndex == 1) ...[
-              Icon(Icons.visibility, size: 15, color: Colors.white.withOpacity(0.9)),
+              Icon(Icons.visibility, size: 15, color: Colors.white.withValues(alpha: 0.9)),
               const SizedBox(width: 8),
               Text(
                 _titles[_selectedIndex],
@@ -201,10 +201,10 @@ class _MainLayoutState extends State<MainLayout> {
           child: ElevatedButton(
             onPressed: () => _onItemSelected(2),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.15),
+              backgroundColor: Colors.white.withValues(alpha: 0.15),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.white.withOpacity(0.3))),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.white.withValues(alpha: 0.3))),
               elevation: 0,
               minimumSize: Size.zero,
             ),
@@ -221,7 +221,7 @@ class _MainLayoutState extends State<MainLayout> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               elevation: 1,
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               minimumSize: Size.zero,
             ),
             child: const Text('Registrarse', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -241,7 +241,7 @@ class _MainLayoutState extends State<MainLayout> {
             onTap: () => _onItemSelected(4),
             child: CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white.withOpacity(0.9),
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
               backgroundImage: (fotoUrl != null && fotoUrl.isNotEmpty) ? NetworkImage(fotoUrl) : null,
               child: (fotoUrl == null || fotoUrl.isEmpty)
                   ? Text(inicial, style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 14))
@@ -258,7 +258,7 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildDrawer(AuthProvider authProvider) {
     final cartProvider = context.watch<CartProvider>();
     final itemCount = cartProvider.itemCount;
-    final primaryColor = AppTheme.primaryColor;
+    const primaryColor = AppTheme.primaryColor;
 
     return Drawer(
       child: ListView(
@@ -281,7 +281,7 @@ class _MainLayoutState extends State<MainLayout> {
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: AppTheme.errorColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppTheme.errorColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.logout, color: AppTheme.errorColor, size: 22),
               ),
               title: const Text('Cerrar sesión', style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.w500)),
@@ -310,7 +310,7 @@ class _MainLayoutState extends State<MainLayout> {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: selected ? primaryColor.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: selected ? primaryColor : (isAuthenticated ? AppTheme.gray700 : AppTheme.gray400), size: 22),
       ),
       title: Text(title, style: TextStyle(color: selected ? primaryColor : (isAuthenticated ? AppTheme.gray800 : AppTheme.gray400), fontWeight: selected ? FontWeight.w600 : FontWeight.normal, fontSize: 14)),
@@ -336,7 +336,7 @@ class _MainLayoutState extends State<MainLayout> {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: selected ? primaryColor.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
             child: Icon(Icons.shopping_cart, color: selected ? primaryColor : (isAuthenticated ? AppTheme.gray700 : AppTheme.gray400), size: 22),
           ),
           if (isAuthenticated && itemCount > 0)
@@ -356,7 +356,7 @@ class _MainLayoutState extends State<MainLayout> {
       trailing: isAuthenticated && itemCount > 0
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
               child: Text('$itemCount', style: TextStyle(fontSize: 11, color: primaryColor, fontWeight: FontWeight.w600)),
             )
           : null,
@@ -378,7 +378,7 @@ class _MainLayoutState extends State<MainLayout> {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: selected ? primaryColor.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: selected ? primaryColor.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: selected ? primaryColor : AppTheme.gray700, size: 22),
       ),
       title: Text(title, style: TextStyle(color: selected ? primaryColor : AppTheme.gray800, fontWeight: selected ? FontWeight.w600 : FontWeight.normal, fontSize: 14)),
@@ -421,9 +421,9 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           const SizedBox(height: 4),
           if (authProvider.isAuthenticated && correo.isNotEmpty)
-            Text(correo, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12))
+            Text(correo, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12))
           else
-            Text('Eyes Settings', style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12)),
+            Text('Eyes Settings', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
           const SizedBox(height: 6),
         ],
       ),

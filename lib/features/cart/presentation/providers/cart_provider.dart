@@ -263,7 +263,7 @@ class CartProvider extends ChangeNotifier {
       }
       if (changed) notifyListeners();
     } catch (e) {
-      print('Error al refrescar el carrito: $e');
+      debugPrint('Error al refrescar el carrito: $e');
     }
   }
 

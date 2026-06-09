@@ -33,7 +33,7 @@ class LoginScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.black.withOpacity(0.1),
+                      color: AppTheme.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -86,7 +86,7 @@ class LoginScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.gray200.withOpacity(0.5),
+                    color: AppTheme.gray200.withValues(alpha: 0.5),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -129,25 +129,34 @@ class __LoginFormState extends State<_LoginForm> {
   bool _rememberMe = false;
 
   Future<void> _login(BuildContext context) async {
-    if (_formKey.currentState!.validate()) {
-      FocusScope.of(context).unfocus();
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      if (success) {
-        if (widget.onSuccess != null) widget.onSuccess!();
-        if (Navigator.canPop(context)) Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.error),
-            backgroundColor: AppTheme.errorColor,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+    if (!_formKey.currentState!.validate()) return;
+
+    FocusScope.of(context).unfocus();
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final success = await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      widget.onSuccess?.call();
+      if (navigator.canPop()) {
+        navigator.pop();
       }
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

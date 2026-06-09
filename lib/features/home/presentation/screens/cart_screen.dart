@@ -124,7 +124,7 @@ class _CartScreenState extends State<CartScreen> {
             border: const Border(top: BorderSide(color: AppTheme.gray300)),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.black.withOpacity(0.1),
+                color: AppTheme.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),

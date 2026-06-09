@@ -117,7 +117,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
         _cachedServiciosTime != null &&
         DateTime.now().difference(_cachedServiciosTime!) < _cacheDuration) {
       _servicios = _cachedServicios!;
-      print('📦 Usando caché de servicios');
+      debugPrint('📦 Usando caché de servicios');
       return;
     }
 
@@ -131,7 +131,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
       _cachedServiciosTime = DateTime.now();
     } catch (e) {
       _servicios = [];
-      print('Error cargando servicios: $e');
+      debugPrint('Error cargando servicios: $e');
     }
   }
 
@@ -140,7 +140,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
         _cachedEmpleadosTime != null &&
         DateTime.now().difference(_cachedEmpleadosTime!) < _cacheDuration) {
       _empleados = _cachedEmpleados!;
-      print('📦 Usando caché de empleados');
+      debugPrint('📦 Usando caché de empleados');
       return;
     }
 
@@ -154,7 +154,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
       _cachedEmpleadosTime = DateTime.now();
     } catch (e) {
       _empleados = [];
-      print('Error cargando empleados: $e');
+      debugPrint('Error cargando empleados: $e');
     }
   }
 
@@ -165,7 +165,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
         DateTime.now().difference(_cachedClientesTime!) < _cacheDuration) {
       _clientes = _cachedClientes!;
       _clientesMap = { for (var c in _clientes) (c['id'] as int): '${c['nombre']} ${c['apellido']}' };
-      print('📦 Usando caché de clientes');
+      debugPrint('📦 Usando caché de clientes');
       return;
     }
 
@@ -181,7 +181,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     } catch (e) {
       _clientes = [];
       _clientesMap = {};
-      print('Error cargando clientes: $e');
+      debugPrint('Error cargando clientes: $e');
     }
   }
 
@@ -190,9 +190,9 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
       final data = await _apiService.getMisCitas();
       _allCitas = await _enriquecerCitas(data);
       _citas = List.from(_allCitas);
-      print('✅ Mis citas cargadas: ${_citas.length}');
+      debugPrint('✅ Mis citas cargadas: ${_citas.length}');
     } catch (e) {
-      print('❌ Error cargando mis citas: $e');
+      debugPrint('❌ Error cargando mis citas: $e');
       _allCitas = [];
       _citas = [];
     }
@@ -208,9 +208,9 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
         final fechaB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day, b.hora.hour, b.hora.minute);
         return fechaB.compareTo(fechaA);
       });
-      print('✅ Todas las citas cargadas (admin): ${_allCitas.length}');
+      debugPrint('✅ Todas las citas cargadas (admin): ${_allCitas.length}');
     } catch (e) {
-      print('❌ Error cargando todas las citas: $e');
+      debugPrint('❌ Error cargando todas las citas: $e');
       _allCitas = [];
       _citas = [];
     }
@@ -246,7 +246,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
         }
         citas.add(cita);
       } catch (e) {
-        print('⚠️ Error procesando cita: $e');
+        debugPrint('⚠️ Error procesando cita: $e');
       }
     }
     return citas;

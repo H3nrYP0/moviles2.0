@@ -50,7 +50,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               cartProvider.addToCart(widget.product, quantity: _quantity);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${_quantity} ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito'),
+                  content: Text('$_quantity ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito'),
                   backgroundColor: AppTheme.successColor,
                   duration: const Duration(seconds: 2),
                 ),
@@ -97,7 +97,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '${_quantity} ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito',
+                '$_quantity ${widget.product.nombre} ${_quantity > 1 ? 'agregados' : 'agregado'} al carrito',
                 style: const TextStyle(fontSize: 14),
               ),
             ),
@@ -281,7 +281,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 border: Border.all(color: AppTheme.gray300),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.black.withOpacity(0.1),
+                                    color: AppTheme.black.withValues(alpha: 0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -322,7 +322,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 border: Border.all(color: AppTheme.gray300),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.black.withOpacity(0.1),
+                                    color: AppTheme.black.withValues(alpha: 0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -390,7 +390,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: AppTheme.primaryLight.withOpacity(0.2),
+      color: AppTheme.primaryLight.withValues(alpha: 0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

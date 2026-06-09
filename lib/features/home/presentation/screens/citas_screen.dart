@@ -185,7 +185,7 @@ class _CitasScreenState extends State<CitasScreen> {
                   selected: _estadoFiltro == null,
                   onSelected: (_) => setState(() => _estadoFiltro = null),
                   backgroundColor: AppTheme.gray100,
-                  selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
                     color: _estadoFiltro == null ? AppTheme.primaryColor : AppTheme.gray700,
                   ),
@@ -202,7 +202,7 @@ class _CitasScreenState extends State<CitasScreen> {
                       selected: isSelected,
                       onSelected: (_) => setState(() => _estadoFiltro = nombreLower),
                       backgroundColor: AppTheme.gray100,
-                      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                      selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
                       labelStyle: TextStyle(
                         color: isSelected ? AppTheme.primaryColor : AppTheme.gray700,
                       ),
@@ -391,7 +391,7 @@ class _CitaCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _getEstadoColor(cita.estadoNombre ?? '').withOpacity(0.1),
+                            color: _getEstadoColor(cita.estadoNombre ?? '').withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: _getEstadoColor(cita.estadoNombre ?? '')),
                           ),
@@ -473,7 +473,7 @@ class _CitaCard extends StatelessWidget {
                           icon: const Icon(Icons.cancel),
                           label: const Text('Cancelar cita'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.errorColor.withOpacity(0.1),
+                            backgroundColor: AppTheme.errorColor.withValues(alpha: 0.1),
                             foregroundColor: AppTheme.errorColor,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -505,6 +505,10 @@ class _CitaCard extends StatelessWidget {
   }
 
   void _cancelarCita(BuildContext context) async {
+    final citasProvider = Provider.of<CitasProvider>(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -528,22 +532,19 @@ class _CitaCard extends StatelessWidget {
 
     if (confirm != true) return;
 
-    final citasProvider = Provider.of<CitasProvider>(context, listen: false);
     final result = await citasProvider.actualizarEstadoCita(cita.id, 5); // id 5 = cancelada
 
-    if (!context.mounted) return;
-
     if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Cita cancelada exitosamente'),
           backgroundColor: AppTheme.successColor,
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
+      navigator.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error: ${result['error']}'),
           backgroundColor: AppTheme.errorColor,
@@ -576,7 +577,7 @@ class _CitaCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getEstadoColor(cita.estadoNombre ?? '').withOpacity(0.1),
+                      color: _getEstadoColor(cita.estadoNombre ?? '').withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(

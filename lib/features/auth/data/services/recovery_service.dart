@@ -1,6 +1,7 @@
 // lib/features/auth/data/services/recovery_service.dart
 import 'dart:math';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -11,7 +12,7 @@ class RecoveryService {
   // Ahora usa el endpoint POST /auth/forgot-password (público)
   static Future<Map<String, dynamic>> checkEmailExists(String email) async {
     try {
-      print('🔍 Verificando si email existe: $email');
+      debugPrint('🔍 Verificando si email existe: $email');
       
       // Llamar al endpoint de forgot-password (si el email no existe, responde igual)
       final response = await http.post(
@@ -27,7 +28,7 @@ class RecoveryService {
       // se enviará el código. Para efectos de nuestra lógica, asumimos que el email es válido
       // y más adelante el backend validará. Así que retornamos éxito simulado.
       
-      print('✅ Email aceptado para recuperación');
+      debugPrint('✅ Email aceptado para recuperación');
       // No tenemos userId ni userName aquí; los obtendremos después si es necesario
       return {
         'success': true,
@@ -36,7 +37,7 @@ class RecoveryService {
         'userEmail': email,
       };
     } catch (e) {
-      print('❌ Error al verificar email: $e');
+      debugPrint('❌ Error al verificar email: $e');
       return {
         'success': false,
         'error': 'Error al verificar el correo: $e',
@@ -47,12 +48,12 @@ class RecoveryService {
   // ==================== PASO 2: GENERAR Y ENVIAR CÓDIGO ====================
   static Future<Map<String, dynamic>> generateRecoveryCode(String email) async {
     try {
-      print('🔐 Generando código de recuperación para: $email');
+      debugPrint('🔐 Generando código de recuperación para: $email');
       
       // 1. Generar código de 6 dígitos localmente (también lo genera el backend, pero lo guardamos localmente para verificación)
       final random = Random();
       final code = (100000 + random.nextInt(900000)).toString();
-      print('✅ Código generado localmente: $code');
+      debugPrint('✅ Código generado localmente: $code');
       
       // 2. Guardar en SharedPreferences (por si acaso)
       final prefs = await SharedPreferences.getInstance();
@@ -60,10 +61,10 @@ class RecoveryService {
       await prefs.setString('recovery_code', code);
       await prefs.setInt('recovery_timestamp', DateTime.now().millisecondsSinceEpoch);
       
-      print('💾 Código guardado localmente');
+      debugPrint('💾 Código guardado localmente');
       
       // 3. Llamar al backend para que envíe el código por email
-      print('📤 Solicitando al backend envío de código...');
+      debugPrint('📤 Solicitando al backend envío de código...');
       final response = await http.post(
         Uri.parse(ApiEndpoints.authForgotPassword),
         headers: {'Content-Type': 'application/json'},
@@ -73,7 +74,7 @@ class RecoveryService {
       final data = json.decode(response.body);
       
       if (data['success'] == true) {
-        print('✅✅✅ Código enviado por el backend exitosamente ✅✅✅');
+        debugPrint('✅✅✅ Código enviado por el backend exitosamente ✅✅✅');
         // El backend ya envió el código real. Nosotros guardamos el mismo código localmente
         // para poder verificarlo sin depender de otro endpoint.
         // Nota: Idealmente el código debería ser el mismo que envía el backend. Pero como no tenemos acceso,
@@ -88,7 +89,7 @@ class RecoveryService {
           'email': email,
         };
       } else {
-        print('❌ Error desde backend: ${data['error']}');
+        debugPrint('❌ Error desde backend: ${data['error']}');
         await clearRecoveryData();
         return {
           'success': false,
@@ -97,7 +98,7 @@ class RecoveryService {
       }
       
     } catch (e) {
-      print('❌ Error en generateRecoveryCode: $e');
+      debugPrint('❌ Error en generateRecoveryCode: $e');
       await clearRecoveryData();
       return {
         'success': false,
@@ -110,20 +111,20 @@ class RecoveryService {
   // Se mantiene igual, usando el código guardado localmente
   static Future<Map<String, dynamic>> verifyCode(String code) async {
     try {
-      print('🔍 Verificando código: $code');
+      debugPrint('🔍 Verificando código: $code');
       
       final prefs = await SharedPreferences.getInstance();
       final savedCode = prefs.getString('recovery_code');
       final timestamp = prefs.getInt('recovery_timestamp');
       final savedEmail = prefs.getString('recovery_email');
       
-      print('💾 Datos guardados:');
-      print('   - Email: $savedEmail');
-      print('   - Código guardado: $savedCode');
-      print('   - Timestamp: $timestamp');
+      debugPrint('💾 Datos guardados:');
+      debugPrint('   - Email: $savedEmail');
+      debugPrint('   - Código guardado: $savedCode');
+      debugPrint('   - Timestamp: $timestamp');
       
       if (savedCode == null || timestamp == null || savedEmail == null) {
-        print('❌ No hay código de recuperación activo');
+        debugPrint('❌ No hay código de recuperación activo');
         return {
           'success': false,
           'error': 'No hay código de recuperación activo. Solicita uno nuevo.',
@@ -133,10 +134,10 @@ class RecoveryService {
       final now = DateTime.now().millisecondsSinceEpoch;
       final diffMinutes = (now - timestamp) / 60000;
       
-      print('⏰ Tiempo transcurrido: ${diffMinutes.toStringAsFixed(2)} minutos');
+      debugPrint('⏰ Tiempo transcurrido: ${diffMinutes.toStringAsFixed(2)} minutos');
       
       if (diffMinutes > 15) {
-        print('❌ Código expirado (más de 15 minutos)');
+        debugPrint('❌ Código expirado (más de 15 minutos)');
         await clearRecoveryData();
         return {
           'success': false,
@@ -145,22 +146,22 @@ class RecoveryService {
       }
       
       if (savedCode == code) {
-        print('✅✅✅ CÓDIGO VERIFICADO CORRECTAMENTE ✅✅✅');
-        print('✅ Email: $savedEmail');
+        debugPrint('✅✅✅ CÓDIGO VERIFICADO CORRECTAMENTE ✅✅✅');
+        debugPrint('✅ Email: $savedEmail');
         return {
           'success': true,
           'message': 'Código verificado correctamente',
           'email': savedEmail,
         };
       } else {
-        print('❌ Código incorrecto');
+        debugPrint('❌ Código incorrecto');
         return {
           'success': false,
           'error': 'Código incorrecto. Intenta nuevamente.',
         };
       }
     } catch (e) {
-      print('❌ Error en verifyCode: $e');
+      debugPrint('❌ Error en verifyCode: $e');
       return {
         'success': false,
         'error': 'Error al verificar el código: $e',
@@ -175,7 +176,7 @@ class RecoveryService {
     required String confirmPassword,
   }) async {
     try {
-      print('🔐 Iniciando cambio de contraseña...');
+      debugPrint('🔐 Iniciando cambio de contraseña...');
       
       if (newPassword.isEmpty) {
         return {'success': false, 'error': 'La contraseña no puede estar vacía'};
@@ -198,7 +199,7 @@ class RecoveryService {
         };
       }
       
-      print('📧 Cambiando contraseña para: $email con código $codigo');
+      debugPrint('📧 Cambiando contraseña para: $email con código $codigo');
       
       // Llamar al endpoint real de reset-password
       final response = await http.post(
@@ -215,7 +216,7 @@ class RecoveryService {
       
       if (response.statusCode == 200 && data['success'] == true) {
         await clearRecoveryData();
-        print('✅✅✅ CONTRASEÑA CAMBIADA EXITOSAMENTE ✅✅✅');
+        debugPrint('✅✅✅ CONTRASEÑA CAMBIADA EXITOSAMENTE ✅✅✅');
         return {
           'success': true,
           'message': data['message'] ?? 'Contraseña cambiada exitosamente',
@@ -223,7 +224,7 @@ class RecoveryService {
           'userName': 'Usuario',
         };
       } else {
-        print('❌ Error desde backend: ${data['error']}');
+        debugPrint('❌ Error desde backend: ${data['error']}');
         return {
           'success': false,
           'error': data['error'] ?? 'Error al cambiar la contraseña',
@@ -231,7 +232,7 @@ class RecoveryService {
       }
       
     } catch (e) {
-      print('❌ Error en changePassword: $e');
+      debugPrint('❌ Error en changePassword: $e');
       return {
         'success': false,
         'error': 'Error al cambiar la contraseña: $e',
@@ -263,12 +264,12 @@ class RecoveryService {
   }
   
   static Future<void> clearRecoveryData() async {
-    print('🧹 Limpiando datos de recuperación...');
+    debugPrint('🧹 Limpiando datos de recuperación...');
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('recovery_email');
     await prefs.remove('recovery_code');
     await prefs.remove('recovery_timestamp');
-    print('✅ Datos de recuperación eliminados');
+    debugPrint('✅ Datos de recuperación eliminados');
   }
   
   static Future<void> debugStatus() async {
@@ -276,15 +277,15 @@ class RecoveryService {
     final email = prefs.getString('recovery_email');
     final code = prefs.getString('recovery_code');
     final timestamp = prefs.getInt('recovery_timestamp');
-    print('🔍 DEBUG RECOVERY SERVICE:');
-    print('   - Email: $email');
-    print('   - Código: $code');
-    print('   - Timestamp: $timestamp');
+    debugPrint('🔍 DEBUG RECOVERY SERVICE:');
+    debugPrint('   - Email: $email');
+    debugPrint('   - Código: $code');
+    debugPrint('   - Timestamp: $timestamp');
     if (timestamp != null) {
       final now = DateTime.now().millisecondsSinceEpoch;
       final diffMinutes = (now - timestamp) / 60000;
-      print('   - Minutos transcurridos: ${diffMinutes.toStringAsFixed(2)}');
-      print('   - Válido: ${diffMinutes <= 15 ? "✅" : "❌"}');
+      debugPrint('   - Minutos transcurridos: ${diffMinutes.toStringAsFixed(2)}');
+      debugPrint('   - Válido: ${diffMinutes <= 15 ? "✅" : "❌"}');
     }
   }
 }

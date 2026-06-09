@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import '../constants/api_endpoints.dart';
 import '../../features/catalog/data/models/category_model.dart';
 import '../../core/services/storage_service.dart';
 
 class ApiService {
-  static bool _debugMode = true;
+  static const bool _debugMode = true;
 
   // ==========================================================
   //  CACHÉ EN MEMORIA
@@ -18,7 +19,7 @@ class ApiService {
   static DateTime? _cachedCategoriasTime;
 
   static void _log(String message, {String type = 'INFO'}) {
-    if (_debugMode) print('[$type] $message');
+    if (_debugMode) debugPrint('[$type] $message');
   }
 
   // ==========================================================

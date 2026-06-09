@@ -195,7 +195,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                   selected: _estadoFiltro == null,
                   onSelected: (_) => setState(() => _estadoFiltro = null),
                   backgroundColor: AppTheme.gray100,
-                  selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
                     color: _estadoFiltro == null ? AppTheme.primaryColor : AppTheme.gray700,
                   ),
@@ -212,7 +212,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                       selected: isSelected,
                       onSelected: (_) => setState(() => _estadoFiltro = nombreLower),
                       backgroundColor: AppTheme.gray100,
-                      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                      selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
                       labelStyle: TextStyle(
                         color: isSelected ? AppTheme.primaryColor : AppTheme.gray700,
                       ),
@@ -405,7 +405,7 @@ class _PedidoCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _getEstadoColor(pedido.estado).withOpacity(0.1),
+                        color: _getEstadoColor(pedido.estado).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: _getEstadoColor(pedido.estado)),
                       ),
@@ -619,7 +619,7 @@ class _PedidoCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getEstadoColor(pedido.estado).withOpacity(0.1),
+                      color: _getEstadoColor(pedido.estado).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(

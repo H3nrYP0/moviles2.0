@@ -393,7 +393,7 @@ class _ProductCard extends StatelessWidget {
 
   Widget _buildPlaceholderImage() {
     return Container(
-      color: AppTheme.primaryLight.withOpacity(0.2),
+      color: AppTheme.primaryLight.withValues(alpha: 0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

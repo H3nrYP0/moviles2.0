@@ -21,10 +21,10 @@ class CloudinaryService {
     String? fileName,
     String? folder = 'optica/comprobantes',
   }) async {
-    print('🌩️ Cloudinary Upload: Iniciando...');
-    print('☁️ Cloud Name: $cloudName');
-    print('🔧 Usando Preset: $uploadPreset');
-    print('📁 Folder: $folder');
+    debugPrint('🌩️ Cloudinary Upload: Iniciando...');
+    debugPrint('☁️ Cloud Name: $cloudName');
+    debugPrint('🔧 Usando Preset: $uploadPreset');
+    debugPrint('📁 Folder: $folder');
     
     try {
       // 1. Crear la solicitud
@@ -57,7 +57,7 @@ class CloudinaryService {
             filename: safeFileName,
           ));
           
-          print('🌐 Web: Archivo "$fileName" como "$safeFileName"');
+          debugPrint('🌐 Web: Archivo "$fileName" como "$safeFileName"');
         } else {
           return {
             'success': false,
@@ -96,7 +96,7 @@ class CloudinaryService {
             filename: safeFileName,
           ));
           
-          print('📱 Mobile: "$filePath" (${(fileSize / 1024).toStringAsFixed(1)}KB)');
+          debugPrint('📱 Mobile: "$filePath" (${(fileSize / 1024).toStringAsFixed(1)}KB)');
         } else {
           return {
             'success': false,
@@ -106,7 +106,7 @@ class CloudinaryService {
       }
       
       // 6. Enviar solicitud con timeout
-      print('🚀 Enviando a Cloudinary...');
+      debugPrint('🚀 Enviando a Cloudinary...');
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 30),
         onTimeout: () {
@@ -117,16 +117,16 @@ class CloudinaryService {
       // 7. Procesar respuesta
       final response = await http.Response.fromStream(streamedResponse);
       
-      print('📊 Status Code: ${response.statusCode}');
+      debugPrint('📊 Status Code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final secureUrl = data['secure_url'];
         
-        print('✅ ¡ÉXITO en Cloudinary!');
-        print('🔗 URL: $secureUrl');
-        print('🆔 Public ID: ${data['public_id']}');
-        print('📏 Tamaño: ${data['bytes']} bytes');
+        debugPrint('✅ ¡ÉXITO en Cloudinary!');
+        debugPrint('🔗 URL: $secureUrl');
+        debugPrint('🆔 Public ID: ${data['public_id']}');
+        debugPrint('📏 Tamaño: ${data['bytes']} bytes');
         
         return {
           'success': true,
@@ -138,8 +138,8 @@ class CloudinaryService {
           'height': data['height'],
         };
       } else {
-        print('❌ Error HTTP: ${response.statusCode}');
-        print('📄 Response Body: ${response.body}');
+        debugPrint('❌ Error HTTP: ${response.statusCode}');
+        debugPrint('📄 Response Body: ${response.body}');
         
         // Mensajes de error específicos
         String errorMessage = 'Error ${response.statusCode}';
@@ -155,14 +155,14 @@ class CloudinaryService {
         };
       }
     } on TimeoutException catch (e) {
-      print('⏰ Timeout: $e');
+      debugPrint('⏰ Timeout: $e');
       return {
         'success': false,
         'error': 'Timeout: La subida tomó demasiado tiempo',
       };
     } catch (e) {
-      print('💥 Error inesperado: $e');
-      print('📜 Stack: ${e.toString()}');
+      debugPrint('💥 Error inesperado: $e');
+      debugPrint('📜 Stack: ${e.toString()}');
       
       return {
         'success': false,
@@ -173,7 +173,7 @@ class CloudinaryService {
   
   // Método de prueba para comprobar que todo funciona
   static Future<Map<String, dynamic>> testUpload() async {
-    print('🧪 Iniciando prueba de Cloudinary...');
+    debugPrint('🧪 Iniciando prueba de Cloudinary...');
     
     try {
       // Crear una imagen de prueba simple (1x1 pixel transparente)
@@ -181,7 +181,7 @@ class CloudinaryService {
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
       );
       
-      print('📝 Probando preset: $uploadPreset');
+      debugPrint('📝 Probando preset: $uploadPreset');
       
       final result = await uploadImage(
         bytes: testImage,
@@ -189,20 +189,20 @@ class CloudinaryService {
         folder: 'optica/test',
       );
       
-      print('🧪 Resultado prueba: ${result['success']}');
+      debugPrint('🧪 Resultado prueba: ${result['success']}');
       
       if (result['success'] == true) {
-        print('🎉 ¡PRUEBA EXITOSA!');
-        print('🔗 URL generada: ${result['url']}');
+        debugPrint('🎉 ¡PRUEBA EXITOSA!');
+        debugPrint('🔗 URL generada: ${result['url']}');
         
         // Verificar que la URL es accesible
         final urlCheck = await http.head(Uri.parse(result['url']));
-        print('🔍 URL verificada: ${urlCheck.statusCode == 200 ? "OK" : "ERROR"}');
+        debugPrint('🔍 URL verificada: ${urlCheck.statusCode == 200 ? "OK" : "ERROR"}');
       }
       
       return result;
     } catch (e) {
-      print('❌ Prueba fallida: $e');
+      debugPrint('❌ Prueba fallida: $e');
       return {
         'success': false,
         'error': 'Prueba fallida: $e',
@@ -217,7 +217,7 @@ class CloudinaryService {
     String? fileName,
     required int pedidoId, // AÑADIR 'required' aquí
   }) async {
-    print('💰 Subiendo comprobante para pedido #$pedidoId');
+    debugPrint('💰 Subiendo comprobante para pedido #$pedidoId');
     
     final result = await uploadImage(
       filePath: filePath,
@@ -227,10 +227,10 @@ class CloudinaryService {
     );
     
     if (result['success'] == true) {
-      print('✅ Comprobante subido para pedido #$pedidoId');
-      print('🔗 URL: ${result['url']}');
+      debugPrint('✅ Comprobante subido para pedido #$pedidoId');
+      debugPrint('🔗 URL: ${result['url']}');
     } else {
-      print('❌ Error subiendo comprobante: ${result['error']}');
+      debugPrint('❌ Error subiendo comprobante: ${result['error']}');
     }
     
     return result;

@@ -35,7 +35,7 @@ class RegisterScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.gray200.withOpacity(0.1),
+                      color: AppTheme.gray200.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -80,7 +80,7 @@ class RegisterScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.gray200.withOpacity(0.1),
+                    color: AppTheme.gray200.withValues(alpha: 0.1),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -128,59 +128,56 @@ class __RegisterFormState extends State<_RegisterForm> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _register(BuildContext context) async {
-    if (_formKey.currentState!.validate()) {
-      // Validar que las contraseñas coincidan
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Las contraseñas no coinciden'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
 
-      // Cerrar teclado
-      FocusScope.of(context).unfocus();
-      
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
-      final result = await authProvider.register(
-        nombre: _nameController.text.trim(),
-        correo: _emailController.text.trim(),
-        contrasenia: _passwordController.text,
+    if (_passwordController.text != _confirmPasswordController.text) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Las contraseñas no coinciden'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
       );
-      
-      if (result['success'] == true) {
-        // Registro exitoso - MOSTRAR MENSAJE Y VOLVER
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? '¡Registro exitoso!'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        
-        // ✅ LLAMAR AL CALLBACK DE ÉXITO (si existe)
-        if (widget.onSuccess != null) {
-          widget.onSuccess!();
-        }
-        
-        // ✅ NAVEGAR DE REGRESO (igual que hace login_screen)
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-      } else {
-        // Mostrar error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['error'] ?? 'Error en el registro'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await authProvider.register(
+      nombre: _nameController.text.trim(),
+      correo: _emailController.text.trim(),
+      contrasenia: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? '¡Registro exitoso!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      widget.onSuccess?.call();
+
+      if (navigator.canPop()) {
+        navigator.pop();
       }
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(result['error'] ?? 'Error en el registro'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -285,9 +282,9 @@ class __RegisterFormState extends State<_RegisterForm> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryLight.withOpacity(0.12),
+              color: AppTheme.primaryLight.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.primaryLight.withOpacity(0.35)),
+              border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
@@ -320,8 +317,8 @@ class __RegisterFormState extends State<_RegisterForm> {
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _register(context),
               style: AppTheme.primaryButtonStyle.copyWith(
-                padding: MaterialStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
-                shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 )),
               ),

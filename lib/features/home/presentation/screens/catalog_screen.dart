@@ -5,7 +5,8 @@ import '../../../home/presentation/providers/catalog_provider.dart';
 import 'category_products_screen.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../catalog/data/models/product_model.dart';
-import '../../../../widgets/themed_refresh_indicator.dart'; // ← nuevo import
+import '../../../../widgets/themed_refresh_indicator.dart';
+import '../../../../core/widgets/loading_indicator.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -43,16 +44,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       child: Consumer<CatalogProvider>(
         builder: (context, catalogProvider, child) {
           if (catalogProvider.isLoading && catalogProvider.categories.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Cargando categorías...'),
-                ],
-              ),
-            );
+            return const LoadingIndicator(message: 'Cargando categorías...');
           }
 
           if (catalogProvider.error.isNotEmpty && catalogProvider.categories.isEmpty) {
@@ -190,7 +182,10 @@ class _CategoryCard extends StatelessWidget {
               color: AppTheme.gray200,
               child: isLoadingSamples
                   ? const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                      ),
                     )
                   : (hasValidImage
                       ? Image.network(
@@ -202,6 +197,7 @@ class _CategoryCard extends StatelessWidget {
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
                                 value: loadingProgress.expectedTotalBytes != null
                                     ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
@@ -223,8 +219,8 @@ class _CategoryCard extends StatelessWidget {
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.black.withOpacity(0.3),
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                 ),
@@ -272,7 +268,7 @@ class _CategoryCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      color: AppTheme.primaryLight.withOpacity(0.2),
+      color: AppTheme.primaryLight.withValues(alpha: 0.2),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -310,6 +310,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     setState(() => _isProcessing = true);
     try {
       final orderData = widget.cartProvider.toOrderData(user.clienteId!, user.id);
@@ -317,19 +320,44 @@ class _CheckoutModalState extends State<CheckoutModal> {
         pedidoData: orderData,
         comprobanteUrl: _comprobanteUrlSubido,
       );
+
+      if (!mounted) return;
+
       if (result['success'] == true) {
-        _showSnackbar('¡Pedido creado exitosamente!', isError: false);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('¡Pedido creado exitosamente!'),
+            backgroundColor: AppTheme.successColor,
+            duration: Duration(seconds: 3),
+          ),
+        );
         widget.cartProvider.clearCart();
         await Future.delayed(const Duration(seconds: 1));
-        Navigator.pop(context);
+        if (!mounted) return;
+        navigator.pop();
         return;
       } else {
-        _showSnackbar('Error al crear pedido: ${result['error']}', isError: true);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Error al crear pedido: ${result['error']}'),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     } catch (e) {
-      _showSnackbar('Error: $e', isError: true);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
@@ -501,7 +529,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
         // Departamento
         DropdownButtonFormField<Map<String, dynamic>>(
-          value: _selectedDepartamentoId != null
+          initialValue: _selectedDepartamentoId != null
               ? _departamentos.firstWhere(
                   (d) => d['id'] == _selectedDepartamentoId,
                   orElse: () => {'id': null, 'name': null},
@@ -522,7 +550,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
         // Municipio
         DropdownButtonFormField<Map<String, dynamic>>(
-          value: _selectedMunicipioId != null
+          initialValue: _selectedMunicipioId != null
               ? _municipios.firstWhere(
                   (m) => m['id'] == _selectedMunicipioId,
                   orElse: () => {'id': null, 'name': null},
@@ -648,9 +676,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.infoColor.withOpacity(0.1),
+        color: AppTheme.infoColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.infoColor.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.infoColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,7 +721,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.gray300),
-                boxShadow: [BoxShadow(color: AppTheme.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: AppTheme.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Image.network(
                 qrImageUrl,
@@ -728,9 +756,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.warningColor.withOpacity(0.1),
+              color: AppTheme.warningColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.warningColor.withOpacity(0.3)),
+              border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
             ),
             child: const Row(
               children: [
@@ -756,9 +784,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
-        color: AppTheme.successColor.withOpacity(0.1),
+        color: AppTheme.successColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -780,11 +808,11 @@ class _CheckoutModalState extends State<CheckoutModal> {
               decoration: BoxDecoration(
                 color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.successColor.withOpacity(0.5)),
+                border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
-                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.insert_drive_file, color: AppTheme.successColor)),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.insert_drive_file, color: AppTheme.successColor)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -817,9 +845,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.errorColor.withOpacity(0.1),
+                color: AppTheme.errorColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -837,7 +865,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
               icon: const Icon(Icons.attach_file, size: 20),
               label: const Text('Seleccionar archivo (PNG, JPG, PDF)'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryLight.withOpacity(0.2),
+                backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.2),
                 foregroundColor: AppTheme.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: AppTheme.primaryLight)),
@@ -871,9 +899,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.successColor.withOpacity(0.1),
+                color: AppTheme.successColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -944,7 +972,7 @@ class _DeliveryOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryLight.withOpacity(0.1) : AppTheme.gray50,
+          color: isSelected ? AppTheme.primaryLight.withValues(alpha: 0.1) : AppTheme.gray50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primaryColor : AppTheme.gray300,
@@ -987,7 +1015,7 @@ class _PaymentOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.successColor.withOpacity(0.1) : AppTheme.gray50,
+          color: isSelected ? AppTheme.successColor.withValues(alpha: 0.1) : AppTheme.gray50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.successColor : AppTheme.gray300,

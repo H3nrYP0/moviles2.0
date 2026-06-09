@@ -113,14 +113,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
     
     if (user == null) {
-      if (mounted) setState(() => _isLoadingInfo = false);
+      if (mounted) {
+        setState(() => _isLoadingInfo = false);
+      }
       return;
     }
-    
-    if (mounted) setState(() {
-      _isLoadingInfo = true;
-      _isLoading = false;
-    });
+
+    if (mounted) {
+      setState(() {
+        _isLoadingInfo = true;
+        _isLoading = false;
+      });
+    }
     
     try {
       final result = await _apiService.getMiPerfilUnificado();
@@ -140,12 +144,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _prepareNewClienteFromUser(user);
         }
       } else {
-        if (mounted) setState(() => _isLoadingInfo = false);
+        if (mounted) {
+          setState(() => _isLoadingInfo = false);
+        }
         _prepareNewCliente(user);
       }
     } catch (e) {
-      print('Error loading profile: $e');
-      if (mounted) setState(() => _isLoadingInfo = false);
+      debugPrint('Error loading profile: $e');
+      if (mounted) {
+        setState(() => _isLoadingInfo = false);
+      }
       _prepareNewCliente(user);
     }
   }
@@ -208,13 +216,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ==========================================================
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-    
-    setState(() => _isUploadingImage = true);
-    
+    final messenger = ScaffoldMessenger.of(context);
     final authProvider = context.read<AuthProvider>();
     final userId = authProvider.user?.id ?? DateTime.now().millisecondsSinceEpoch;
+
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() => _isUploadingImage = true);
     
     final uploadResult = await CloudinaryService.uploadImage(
       filePath: picked.path,
@@ -233,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _usuarioData?['foto_url'] = fotoUrl;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Foto de perfil actualizada'),
             backgroundColor: AppTheme.successColor,
@@ -241,13 +250,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       } else {
-        _showError(result['error'] ?? 'Error al guardar la foto');
+        _showError(result['error'] ?? 'Error al guardar la foto', messenger: messenger);
       }
     } else {
-      _showError(uploadResult['error'] ?? 'Error al subir la imagen');
+      _showError(uploadResult['error'] ?? 'Error al subir la imagen', messenger: messenger);
     }
     
-    if (mounted) setState(() => _isUploadingImage = false);
+    if (mounted) {
+      setState(() => _isUploadingImage = false);
+    }
   }
 
   // ==========================================================
@@ -331,17 +342,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ==========================================================
   Future<void> _savePerfil() async {
     FocusScope.of(context).unfocus();
-    
+
+    final messenger = ScaffoldMessenger.of(context);
+
     if (!_formKey.currentState!.validate()) {
-      _showError('Corrija los errores en el formulario');
+      _showError('Corrija los errores en el formulario', messenger: messenger);
       return;
     }
-    
+
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
     
     if (user == null) {
-      _showError('Debe iniciar sesión');
+      _showError('Debe iniciar sesión', messenger: messenger);
       return;
     }
     
@@ -376,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = false);
     
     if (result['success'] == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Perfil actualizado exitosamente'),
           backgroundColor: AppTheme.successColor,
@@ -395,12 +408,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _loadFormData();
       if (_showEditModal) setState(() => _showEditModal = false);
     } else {
-      _showError(result['error'] ?? 'Error al guardar');
+      _showError(result['error'] ?? 'Error al guardar', messenger: messenger);
     }
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  void _showError(String message, {ScaffoldMessengerState? messenger}) {
+    (messenger ?? ScaffoldMessenger.of(context)).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: AppTheme.errorColor,
@@ -662,7 +675,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: option,
                     child: Padding(padding: const EdgeInsets.only(left: 16), child: Text(option)),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: onChanged,
               style: AppTheme.bodyLarge,
@@ -691,7 +704,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.gray300),
         boxShadow: [
-          BoxShadow(color: AppTheme.gray200.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: AppTheme.gray200.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -941,7 +954,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final primaryColor = AppTheme.primaryColor;
+    const primaryColor = AppTheme.primaryColor;
     final fotoUrl = _usuarioData?['foto_url'] ?? authProvider.user?.fotoUrl;
     
     return Scaffold(
@@ -954,10 +967,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Header
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: AppTheme.gray200.withOpacity(0.1), spreadRadius: 2, blurRadius: 8, offset: const Offset(0, 2))],
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    boxShadow: [BoxShadow(color: Color(0x1AD4E6E6), spreadRadius: 2, blurRadius: 8, offset: Offset(0, 2))],
                   ),
                   child: Column(
                     children: [
@@ -965,9 +978,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundColor: primaryColor.withOpacity(0.1),
+                            backgroundColor: primaryColor.withValues(alpha: 0.1),
                             backgroundImage: fotoUrl != null && fotoUrl.isNotEmpty ? NetworkImage(fotoUrl) : null,
-                            child: fotoUrl == null || fotoUrl.isEmpty ? Icon(Icons.person, size: 50, color: primaryColor) : null,
+                            child: fotoUrl == null || fotoUrl.isEmpty ? const Icon(Icons.person, size: 50, color: AppTheme.primaryColor) : null,
                           ),
                           if (!_isLoadingInfo)
                             Positioned(
@@ -993,7 +1006,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                         child: Text(_selectedDepartamentoNombre?.toUpperCase() ?? 'UBICACIÓN', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: primaryColor)),
                       ),
                     ],
@@ -1029,9 +1042,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.warningColor.withOpacity(0.1),
+                      color: AppTheme.warningColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.warningColor.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       children: [
@@ -1087,7 +1100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: AppTheme.surfaceColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppTheme.gray300),
-                    boxShadow: [BoxShadow(color: AppTheme.gray200.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+                    boxShadow: [BoxShadow(color: AppTheme.gray200.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1101,7 +1114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: AppTheme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(color: AppTheme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                             child: const Icon(Icons.lock, color: AppTheme.primaryColor, size: 22),
                           ),
                           title: Text('Cambiar contraseña', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
@@ -1115,9 +1128,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.infoColor.withOpacity(0.1),
+                          color: AppTheme.infoColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.infoColor.withOpacity(0.2)),
+                          border: Border.all(color: AppTheme.infoColor.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           children: [
@@ -1141,7 +1154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           if (_showEditModal)
             Container(
-              color: AppTheme.gray900.withOpacity(0.5),
+              color: AppTheme.gray900.withValues(alpha: 0.5),
               child: _buildEditProfileModal(),
             ),
         ],

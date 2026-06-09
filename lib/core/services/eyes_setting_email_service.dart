@@ -1,5 +1,6 @@
 // lib/core/services/eyes_setting_email_service.dart
 import 'package:mailer/mailer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mailer/smtp_server.dart';
 
 class EyesSettingEmailService {
@@ -22,13 +23,13 @@ class EyesSettingEmailService {
     required String code,
   }) async {
     try {
-      print('🚀 ============================================');
-      print('🚀 ENVIANDO EMAIL DE RECUPERACIÓN');
-      print('🚀 Desde: ${_config['email']}');
-      print('🚀 Para: $toEmail');
-      print('🚀 Usuario: $userName');
-      print('🚀 Código: $code');
-      print('🚀 ============================================');
+      debugPrint('🚀 ============================================');
+      debugPrint('🚀 ENVIANDO EMAIL DE RECUPERACIÓN');
+      debugPrint('🚀 Desde: ${_config['email']}');
+      debugPrint('🚀 Para: $toEmail');
+      debugPrint('🚀 Usuario: $userName');
+      debugPrint('🚀 Código: $code');
+      debugPrint('🚀 ============================================');
       
       if (!isConfigured) {
         return {
@@ -47,13 +48,13 @@ class EyesSettingEmailService {
         ..subject = '🔐 Código de recuperación - ${_config['company']}'
         ..html = _buildRecoveryEmailHtml(userName, code);
       
-      print('📧 Enviando email...');
+      debugPrint('📧 Enviando email...');
       final sendReport = await send(message, smtpServer);
       
-      print('✅✅✅ EMAIL ENVIADO EXITOSAMENTE ✅✅✅');
-      print('✅ Reporte: $sendReport');
-      print('✅ Para: $toEmail');
-      print('✅ Código: $code');
+      debugPrint('✅✅✅ EMAIL ENVIADO EXITOSAMENTE ✅✅✅');
+      debugPrint('✅ Reporte: $sendReport');
+      debugPrint('✅ Para: $toEmail');
+      debugPrint('✅ Código: $code');
       
       return {
         'success': true,
@@ -66,9 +67,9 @@ class EyesSettingEmailService {
       };
       
     } catch (e, stackTrace) {
-      print('❌❌❌ ERROR ENVIANDO EMAIL ❌❌❌');
-      print('❌ Error: $e');
-      print('❌ Stack trace: $stackTrace');
+      debugPrint('❌❌❌ ERROR ENVIANDO EMAIL ❌❌❌');
+      debugPrint('❌ Error: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       
       String errorMessage = 'Error al enviar el código';
       

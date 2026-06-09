@@ -342,7 +342,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                         foregroundColor: AppTheme.primaryColor,
                       ),
                       child: Text(horaFormateada, style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
@@ -382,7 +382,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
     });
     
     final citasProvider = context.read<CitasProvider>();
-    
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final servicioSeleccionado = _serviciosList.firstWhere(
         (s) => s.id == _selectedServicioId,
@@ -403,29 +405,33 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       );
       
       final result = await citasProvider.crearCita(nuevaCita);
-      
+
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      
-      if (result['success'] == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+
+      if (result['success'] == true) {
+        messenger.showSnackBar(
           const SnackBar(content: Text('Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: Duration(seconds: 3)),
         );
         await Future.delayed(const Duration(seconds: 2));
-        if (mounted) Navigator.pop(context);
+        if (!mounted) return;
+        navigator.pop();
       } else {
         final errorMsg = result['error']?.toString() ?? 'Error desconocido al crear cita';
         setState(() => _error = errorMsg);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(errorMsg), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Error inesperado: $e';
-      });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        setState(() {
+          _isLoading = false;
+          _error = 'Error inesperado: $e';
+        });
+      }
+      if (mounted) {
+        messenger.showSnackBar(
           SnackBar(content: Text('Error inesperado: $e'), backgroundColor: AppTheme.errorColor, duration: const Duration(seconds: 4)),
         );
       }
@@ -482,7 +488,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         _buildMensajeError('No hay clientes disponibles')
                       else
                         DropdownButtonFormField<int>(
-                          value: _selectedClienteId,
+                          initialValue: _selectedClienteId,
                           decoration: _inputDecoration('Cliente'),
                           items: _clientesList.map((cliente) {
                             final id = _parseId(cliente['id']);
@@ -498,9 +504,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.successColor.withOpacity(0.1),
+                          color: AppTheme.successColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.successColor.withOpacity(0.3)),
+                          border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
@@ -527,7 +533,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                       _buildMensajeError('No hay servicios disponibles')
                     else
                       DropdownButtonFormField<int>(
-                        value: _selectedServicioId,
+                        initialValue: _selectedServicioId,
                         decoration: _inputDecoration('Servicio'),
                         items: _serviciosList.map((s) => DropdownMenuItem<int>(value: s.id, child: Text(s.nombre))).toList(),
                         onChanged: (value) async {
@@ -679,9 +685,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.errorColor.withOpacity(0.1),
+        color: AppTheme.errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -707,9 +713,9 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.1),
+        color: AppTheme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

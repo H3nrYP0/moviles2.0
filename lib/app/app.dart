@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../features/home/presentation/providers/auth_provider.dart';
 import '../widgets/main_layout.dart';
+import '../core/theme/app_theme.dart';
 
 
 class App extends StatefulWidget {
@@ -22,13 +23,16 @@ class _AppState extends State<App> {
   }
 
   Future<void> _initializeApp() async {
-    // Inicializar SharedPreferences
     await SharedPreferences.getInstance();
-    
-    // Verificar estado de autenticación
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (!mounted) return;
+
+    final authProvider = context.read<AuthProvider>();
+
     await authProvider.checkAuthStatus();
-    
+
+    if (!mounted) return;
+
     setState(() {
       _isInitializing = false;
     });
@@ -42,7 +46,9 @@ class _AppState extends State<App> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+              ),
               SizedBox(height: 20),
               Text('Inicializando aplicación...'),
             ],
