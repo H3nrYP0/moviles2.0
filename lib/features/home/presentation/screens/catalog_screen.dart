@@ -60,12 +60,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error, size: 64, color: AppTheme.errorColor),
+                  const Icon(Icons.error, size: 64, color: AppTheme.errorColor),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${catalogProvider.error}',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.errorColor),
+                    style: const TextStyle(color: AppTheme.errorColor),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
@@ -277,11 +277,11 @@ class _CategoryCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.category, size: 48, color: AppTheme.primaryColor),
+            const Icon(Icons.category, size: 48, color: AppTheme.primaryColor),
             const SizedBox(height: 8),
             Text(
               category.nombre,
-              style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ],

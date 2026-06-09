@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
@@ -30,18 +31,18 @@ class RegisterScreen extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: AppTheme.gray200.withOpacity(0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Color(0xFF1a237e)),
+                  icon: const Icon(Icons.arrow_back, color: AppTheme.primaryColor),
                   onPressed: onBackPressed,
                 ),
               ),
@@ -60,32 +61,26 @@ class RegisterScreen extends StatelessWidget {
               ),
             ),
             
-            const Text(
+            Text(
               'Eyes Settings',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1a237e),
-              ),
+              style: AppTheme.headline2.copyWith(fontSize: 28, color: AppTheme.primaryColor),
             ),
             const SizedBox(height: 20),
             
-            const Text(
+            Text(
               'Crea una cuenta para disfrutar de nuestros servicios',
-              style: TextStyle(
-                color: Color(0xFF666666),
-              ),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
             
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: AppTheme.gray200.withOpacity(0.1),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -207,73 +202,38 @@ class __RegisterFormState extends State<_RegisterForm> {
           const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
-            decoration: InputDecoration(
-              hintText: 'Nombre completo *',
-              hintStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: const Icon(Icons.person, color: Color(0xFF1a237e)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFf8f9fa),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
+            decoration: AppTheme.inputDecoration(
+            hint: 'Nombre completo *',
+            prefixIcon: Icons.person,
+          ),
             validator: Validators.validateName,
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
           const SizedBox(height: 8),
           TextFormField(
             controller: _emailController,
-            decoration: InputDecoration(
-              hintText: 'ejemplo@correo.com *',
-              hintStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFf8f9fa),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
+            decoration: AppTheme.inputDecoration(
+            hint: 'ejemplo@correo.com *',
+            prefixIcon: Icons.email,
+          ),
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
           
           const SizedBox(height: 8),
           TextFormField(
             controller: _passwordController,
-            decoration: InputDecoration(
-              hintText: 'Contraseña *',
-              hintStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFf8f9fa),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: AppTheme.inputDecoration(
+              hint: 'Contraseña *',
+              prefixIcon: Icons.lock,
+            ).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xFF666666),
+                  color: AppTheme.gray500,
                 ),
                 onPressed: () {
                   setState(() {
@@ -284,32 +244,21 @@ class __RegisterFormState extends State<_RegisterForm> {
             ),
             obscureText: _obscurePassword,
             validator: Validators.validatePassword,
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
           
           const SizedBox(height: 8),
           TextFormField(
             controller: _confirmPasswordController,
-            decoration: InputDecoration(
-              hintText: 'Confirmar contraseña *',
-              hintStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1a237e)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFf8f9fa),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: AppTheme.inputDecoration(
+              hint: 'Confirmar contraseña *',
+              prefixIcon: Icons.lock_outline,
+            ).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xFF666666),
+                  color: AppTheme.gray500,
                 ),
                 onPressed: () {
                   setState(() {
@@ -328,7 +277,7 @@ class __RegisterFormState extends State<_RegisterForm> {
               }
               return null;
             },
-            style: const TextStyle(fontSize: 16),
+            style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
           
@@ -336,29 +285,26 @@ class __RegisterFormState extends State<_RegisterForm> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFf0f7ff),
+              color: AppTheme.primaryLight.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFd0e3ff)),
+              border: Border.all(color: AppTheme.primaryLight.withOpacity(0.35)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 16, color: Color(0xFF1a237e)),
+                const Icon(Icons.info_outline, size: 16, color: AppTheme.primaryColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'La contraseña debe tener al menos 6 caracteres',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF1a237e)),
+                        style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryColor),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '* Campos obligatorios',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
+                        style: AppTheme.bodySmall.copyWith(color: AppTheme.gray600),
                       ),
                     ],
                   ),
@@ -373,13 +319,11 @@ class __RegisterFormState extends State<_RegisterForm> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _register(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1a237e),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
+              style: AppTheme.primaryButtonStyle.copyWith(
+                padding: MaterialStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
+                shape: MaterialStateProperty.all(RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 2,
+                )),
               ),
               child: authProvider.isLoading
                   ? const SizedBox(
@@ -406,16 +350,16 @@ class __RegisterFormState extends State<_RegisterForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 '¿Ya tienes cuenta? ',
-                style: TextStyle(color: Color(0xFF666666)),
+                style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
               ),
               TextButton(
                 onPressed: _navigateToLogin,
-                child: const Text(
+                child: Text(
                   'Inicia sesión aquí',
-                  style: TextStyle(
-                    color: Color(0xFF1a237e),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

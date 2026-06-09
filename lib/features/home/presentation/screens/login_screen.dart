@@ -40,7 +40,7 @@ class LoginScreen extends StatelessWidget {
                   ],
                 ),
                 child: IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.arrow_back,
                     color: AppTheme.primaryColor,
                   ),
@@ -164,14 +164,14 @@ class __LoginFormState extends State<_LoginForm> {
             decoration: InputDecoration(
               labelText: 'Correo electrónico',
               labelStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
-              prefixIcon: Icon(Icons.email, color: AppTheme.primaryColor),
+              prefixIcon: const Icon(Icons.email, color: AppTheme.primaryColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppTheme.gray300),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
               ),
               filled: true,
               fillColor: AppTheme.gray50,
@@ -189,14 +189,14 @@ class __LoginFormState extends State<_LoginForm> {
             decoration: InputDecoration(
               labelText: 'Contraseña',
               labelStyle: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
-              prefixIcon: Icon(Icons.lock, color: AppTheme.primaryColor),
+              prefixIcon: const Icon(Icons.lock, color: AppTheme.primaryColor),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: AppTheme.gray300),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
               ),
               filled: true,
               fillColor: AppTheme.gray50,
@@ -263,7 +263,7 @@ class __LoginFormState extends State<_LoginForm> {
                 elevation: 2,
               ),
               child: authProvider.isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(

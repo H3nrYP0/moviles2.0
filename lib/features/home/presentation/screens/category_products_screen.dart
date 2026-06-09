@@ -110,11 +110,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                             : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppTheme.primaryLight, width: 1.5),
+                          borderSide: const BorderSide(color: AppTheme.primaryLight, width: 1.5),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
+                          borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
                         ),
                         filled: true,
                         fillColor: AppTheme.surfaceColor,
@@ -137,7 +137,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       children: [
                         Text(
                           '${catalogProvider.products.length} producto${catalogProvider.products.length != 1 ? 's' : ''} encontrado${catalogProvider.products.length != 1 ? 's' : ''}',
-                          style: TextStyle(color: AppTheme.gray500, fontSize: 12, fontWeight: FontWeight.w500),
+                          style: const TextStyle(color: AppTheme.gray500, fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                         if (_searchController.text.isNotEmpty)
                           TextButton(
@@ -145,7 +145,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                               _searchController.clear();
                               catalogProvider.loadProductsByCategory(widget.categoryId);
                             },
-                            child: Text('Limpiar búsqueda', style: TextStyle(fontSize: 12, color: AppTheme.primaryColor)),
+                            child: const Text('Limpiar búsqueda', style: TextStyle(fontSize: 12, color: AppTheme.primaryColor)),
                           ),
                       ],
                     ),
@@ -165,9 +165,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error, size: 64, color: AppTheme.errorColor),
+                          const Icon(Icons.error, size: 64, color: AppTheme.errorColor),
                           const SizedBox(height: 16),
-                          Text('Error: ${catalogProvider.error}', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.errorColor)),
+                          Text('Error: ${catalogProvider.error}', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.errorColor)),
                           const SizedBox(height: 20),
                           ElevatedButton(
                             onPressed: () => catalogProvider.loadProductsByCategory(widget.categoryId, forceRefresh: true),
@@ -187,12 +187,12 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                           const SizedBox(height: 20),
                           Text(
                             _searchController.text.isEmpty ? 'No hay productos en esta categoría' : 'No se encontraron productos',
-                            style: TextStyle(fontSize: 18, color: AppTheme.gray500, fontWeight: FontWeight.w500),
+                            style: const TextStyle(fontSize: 18, color: AppTheme.gray500, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _searchController.text.isEmpty ? 'Pronto agregaremos productos' : 'Intenta con otra búsqueda',
-                            style: TextStyle(fontSize: 14, color: AppTheme.gray500),
+                            style: const TextStyle(fontSize: 14, color: AppTheme.gray500),
                           ),
                           if (_searchController.text.isNotEmpty)
                             Padding(
@@ -356,7 +356,7 @@ class _ProductCard extends StatelessWidget {
                     if (product.descripcion != null && product.descripcion!.isNotEmpty)
                       Text(
                         product.descripcion!,
-                        style: TextStyle(fontSize: 12, color: AppTheme.gray600, height: 1.3),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.gray600, height: 1.3),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -398,11 +398,11 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shopping_bag, size: 32, color: AppTheme.primaryColor),
+            const Icon(Icons.shopping_bag, size: 32, color: AppTheme.primaryColor),
             const SizedBox(height: 4),
             Text(
               product.nombre.split(' ').first,
-              style: TextStyle(fontSize: 10, color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 10, color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ],

@@ -244,7 +244,7 @@ class _MainLayoutState extends State<MainLayout> {
               backgroundColor: Colors.white.withOpacity(0.9),
               backgroundImage: (fotoUrl != null && fotoUrl.isNotEmpty) ? NetworkImage(fotoUrl) : null,
               child: (fotoUrl == null || fotoUrl.isEmpty)
-                  ? Text(inicial, style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 14))
+                  ? Text(inicial, style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 14))
                   : null,
             ),
           ),
@@ -268,7 +268,7 @@ class _MainLayoutState extends State<MainLayout> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppTheme.gray100,
-            child: Text('Navegación', style: TextStyle(color: AppTheme.gray600, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+            child: const Text('Navegación', style: TextStyle(color: AppTheme.gray600, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
           ),
           _buildDrawerItem(icon: Icons.home, title: 'Inicio', index: 0, selected: _selectedIndex == 0, primaryColor: primaryColor),
           _buildDrawerItem(icon: Icons.store, title: 'Catálogo', index: 1, selected: _selectedIndex == 1, primaryColor: primaryColor),
@@ -282,9 +282,9 @@ class _MainLayoutState extends State<MainLayout> {
               leading: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(color: AppTheme.errorColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Icon(Icons.logout, color: AppTheme.errorColor, size: 22),
+                child: const Icon(Icons.logout, color: AppTheme.errorColor, size: 22),
               ),
-              title: Text('Cerrar sesión', style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.w500)),
+              title: const Text('Cerrar sesión', style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.w500)),
               onTap: () {
                 authProvider.logout();
                 setState(() => _selectedIndex = 0);
@@ -316,7 +316,7 @@ class _MainLayoutState extends State<MainLayout> {
       title: Text(title, style: TextStyle(color: selected ? primaryColor : (isAuthenticated ? AppTheme.gray800 : AppTheme.gray400), fontWeight: selected ? FontWeight.w600 : FontWeight.normal, fontSize: 14)),
       selected: selected,
       onTap: () => _onItemSelected(index),
-      subtitle: !isAuthenticated ? Text('Requiere inicio de sesión', style: TextStyle(fontSize: 10, color: AppTheme.gray500)) : null,
+      subtitle: !isAuthenticated ? const Text('Requiere inicio de sesión', style: TextStyle(fontSize: 10, color: AppTheme.gray500)) : null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
@@ -362,7 +362,7 @@ class _MainLayoutState extends State<MainLayout> {
           : null,
       selected: selected,
       onTap: () => _onItemSelected(index),
-      subtitle: !isAuthenticated ? Text('Requiere inicio de sesión', style: TextStyle(fontSize: 10, color: AppTheme.gray500)) : null,
+      subtitle: !isAuthenticated ? const Text('Requiere inicio de sesión', style: TextStyle(fontSize: 10, color: AppTheme.gray500)) : null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );

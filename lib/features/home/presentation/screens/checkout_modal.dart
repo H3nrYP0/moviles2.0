@@ -10,7 +10,7 @@ import '../../../../core/services/api_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../features/citas/data/services/api_colombia_service.dart';
-import '../../data/constants/medellin_postal_codes.dart';
+import '../../data/constants/medellin_barrios.dart'; // ✅ import actualizado
 
 class CheckoutModal extends StatefulWidget {
   final CartProvider cartProvider;
@@ -70,6 +70,13 @@ class _CheckoutModalState extends State<CheckoutModal> {
     return formatter.format(amount);
   }
 
+  // ✅ Helper para saber si la ubicación es Medellín
+  bool get _isMedellin {
+    final dept = (_selectedDepartamentoNombre ?? '').toLowerCase();
+    final mun = (_selectedMunicipioNombre ?? '').toLowerCase();
+    return dept == 'antioquia' && mun == 'medellín';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,14 +86,11 @@ class _CheckoutModalState extends State<CheckoutModal> {
   Future<void> _inicializarDatos() async {
     setState(() => _cargandoPerfil = true);
     
-    // 1. Cargar datos del perfil del cliente
     final perfil = await widget.apiService.getMiPerfilUnificado();
     final cliente = perfil['cliente'] as Map<String, dynamic>?;
     
-    // 2. Cargar departamentos desde la API
     await _loadDepartamentos();
     
-    // Variables auxiliares para almacenar los valores del perfil
     String direccionPerfil = '';
     String barrioPerfil = '';
     String codigoPostalPerfil = '';
@@ -100,18 +104,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
       barrioPerfil = cliente['barrio']?.toString() ?? '';
       codigoPostalPerfil = cliente['codigo_postal']?.toString() ?? '';
       
-      // Asignar a los controladores
       _direccionController.text = direccionPerfil;
       _barrioController.text = barrioPerfil;
       _codigoPostalController.text = codigoPostalPerfil;
       
-      // Actualizar el provider
       widget.cartProvider.setDeliveryAddress(direccionPerfil);
       widget.cartProvider.setBarrioEntrega(barrioPerfil);
       widget.cartProvider.setCodigoPostalEntrega(codigoPostalPerfil);
     }
     
-    // Buscar IDs de departamento y municipio (si existen en el perfil)
     if (departamentoPerfil.isNotEmpty) {
       final deptMatch = _departamentos.firstWhere(
         (d) => d['name'].toLowerCase() == departamentoPerfil.toLowerCase(),
@@ -122,7 +123,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
         _selectedDepartamentoNombre = deptMatch['name'];
         widget.cartProvider.setSelectedDepartamento(_selectedDepartamentoId, _selectedDepartamentoNombre);
         
-        // Cargar municipios de ese departamento
         await _loadMunicipios(_selectedDepartamentoId!);
         
         if (municipioPerfil.isNotEmpty) {
@@ -135,38 +135,22 @@ class _CheckoutModalState extends State<CheckoutModal> {
             _selectedMunicipioNombre = munMatch['name'];
             widget.cartProvider.setSelectedMunicipio(_selectedMunicipioId, _selectedMunicipioNombre);
             
-            // Solo actualizar código postal si la API lo devuelve y es diferente al del perfil
-            final postalDesdeApi = munMatch['postalCode'] as String?;
-            if (postalDesdeApi != null && postalDesdeApi.isNotEmpty) {
-              _codigoPostalController.text = postalDesdeApi;
-              widget.cartProvider.setCodigoPostalEntrega(postalDesdeApi);
-            }
-            // Si la API no tiene código postal, se mantiene el valor del perfil (ya asignado)
+            // ⚠️ Ya no se asigna código postal automático desde la API
           } else {
-            // No se encontró el municipio en la API, dejar el nombre y código postal del perfil
             _selectedMunicipioNombre = municipioPerfil;
             widget.cartProvider.setSelectedMunicipio(null, municipioPerfil);
           }
         }
       }
     } else {
-      // Si no hay departamento en el perfil, aseguramos que los campos estén vacíos
       _selectedDepartamentoId = null;
       _selectedDepartamentoNombre = null;
       _selectedMunicipioId = null;
       _selectedMunicipioNombre = null;
     }
     
-    // ✅ Si el perfil tiene barrio y el código postal está vacío, intentar autocompletar desde el mapa de Medellín
-    if (barrioPerfil.isNotEmpty && _codigoPostalController.text.isEmpty) {
-      final postal = MedellinPostalCodes.getPostalCode(barrioPerfil);
-      if (postal != null && postal.isNotEmpty) {
-        _codigoPostalController.text = postal;
-        widget.cartProvider.setCodigoPostalEntrega(postal);
-      }
-    }
+    // ❌ Eliminado: bloque que autocompletaba código postal desde el barrio del perfil
     
-    // 4. Restaurar otros valores del carrito (método de pago, etc.)
     _showQRCode = widget.cartProvider.selectedPaymentMethod == 'transferencia';
     _mostrarSeccionComprobante = _showQRCode;
     
@@ -175,15 +159,13 @@ class _CheckoutModalState extends State<CheckoutModal> {
 
   Future<void> _loadDepartamentos() async {
     setState(() => _cargandoDepartamentos = true);
-    final depts = await ApiColombiaService.getDepartamentos();
-    _departamentos = depts;
+    _departamentos = await ApiColombiaService.getDepartamentos();
     setState(() => _cargandoDepartamentos = false);
   }
 
   Future<void> _loadMunicipios(int departmentId) async {
     setState(() => _cargandoMunicipios = true);
-    final muns = await ApiColombiaService.getCiudadesPorDepartamento(departmentId);
-    _municipios = muns;
+    _municipios = await ApiColombiaService.getCiudadesPorDepartamento(departmentId);
     setState(() => _cargandoMunicipios = false);
   }
 
@@ -195,7 +177,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
         _selectedMunicipioId = null;
         _selectedMunicipioNombre = null;
         _municipios = [];
-        // No limpiamos el código postal al cambiar departamento
       });
       widget.cartProvider.setSelectedDepartamento(_selectedDepartamentoId, _selectedDepartamentoNombre);
       _loadMunicipios(dept['id']);
@@ -216,15 +197,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
       setState(() {
         _selectedMunicipioId = mun['id'];
         _selectedMunicipioNombre = mun['name'];
-        final postalDesdeApi = mun['postalCode'] as String?;
-        if (postalDesdeApi != null && postalDesdeApi.isNotEmpty) {
-          _codigoPostalController.text = postalDesdeApi;
-          widget.cartProvider.setCodigoPostalEntrega(postalDesdeApi);
-        } else {
-          // Si la API no tiene código postal, no tocamos el controlador (conserva el anterior, que podría ser del perfil)
-          // Actualizamos el provider con el valor actual
-          widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
-        }
+        // ⚠️ Ya no se asigna código postal automático
       });
       widget.cartProvider.setSelectedMunicipio(_selectedMunicipioId, _selectedMunicipioNombre);
     } else {
@@ -249,6 +222,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
     widget.cartProvider.setBarrioEntrega(_barrioController.text);
     widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
   }
+
+  // ... (los métodos _pickFile, _uploadComprobante, _confirmAndCreateOrder, _showSnackbar, _isConfirmButtonEnabled se mantienen sin cambios)
+  // Por brevedad no se repiten, pero debes conservarlos tal como estaban.
 
   Future<void> _pickFile() async {
     try {
@@ -385,8 +361,8 @@ class _CheckoutModalState extends State<CheckoutModal> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: _cargandoPerfil
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+        ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+        : SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +432,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
             ),
             const SizedBox(height: 8),
           ],
-          Divider(height: 1, color: AppTheme.gray300),
+          const Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -502,7 +478,6 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 isSelected: cartProvider.selectedDeliveryMethod == 'domicilio',
                 onTap: () {
                   cartProvider.selectDeliveryMethod('domicilio');
-                  // Restaurar valores guardados en el provider
                   _direccionController.text = cartProvider.deliveryAddress ?? '';
                   _barrioController.text = cartProvider.barrioEntrega ?? '';
                   _codigoPostalController.text = cartProvider.codigoPostalEntrega ?? '';
@@ -566,32 +541,25 @@ class _CheckoutModalState extends State<CheckoutModal> {
         ),
         const SizedBox(height: 12),
 
-        // ✅ Autocomplete para Barrio (con mapa de Medellín)
+        // ✅ Autocomplete para Barrio (solo sugerencias, sin código postal)
         Autocomplete<String>(
           optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
+            if (!_isMedellin || textEditingValue.text.isEmpty) {
               return const Iterable<String>.empty();
             }
             final query = textEditingValue.text.toLowerCase();
-            return MedellinPostalCodes.allBarrios.where((barrio) {
+            return MedellinBarrios.barrios.where((barrio) {
               return barrio.toLowerCase().contains(query);
             }).toList();
           },
           onSelected: (String barrioSeleccionado) {
-            final postalCode = MedellinPostalCodes.getPostalCode(barrioSeleccionado);
-            if (postalCode != null && postalCode.isNotEmpty) {
-              _codigoPostalController.text = postalCode;
-              widget.cartProvider.setCodigoPostalEntrega(postalCode);
-            } else {
-              widget.cartProvider.setCodigoPostalEntrega(_codigoPostalController.text);
-            }
             widget.cartProvider.setBarrioEntrega(barrioSeleccionado);
             setState(() {
               _barrioController.text = barrioSeleccionado;
             });
+            // ⚠️ NO se modifica _codigoPostalController
           },
           fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-            // Sincronizar el controlador interno con el _barrioController existente
             if (_barrioController.text != textEditingController.text) {
               textEditingController.text = _barrioController.text;
             }
@@ -610,9 +578,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
         ),
         const SizedBox(height: 12),
 
+        // Código postal (manual)
         TextField(
           controller: _codigoPostalController,
-          decoration: AppTheme.inputDecoration(label: 'Código postal', hint: 'Código postal (opcional)'),
+          decoration: AppTheme.inputDecoration(label: 'Código postal', hint: 'Opcional'),
           keyboardType: TextInputType.number,
           onChanged: (value) => widget.cartProvider.setCodigoPostalEntrega(value),
         ),
@@ -688,7 +657,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
         children: [
           Row(
             children: [
-              Icon(Icons.payments, color: AppTheme.infoColor, size: 24),
+              const Icon(Icons.payments, color: AppTheme.infoColor, size: 24),
               const SizedBox(width: 8),
               Text('Pago por transferencia', style: AppTheme.titleMedium.copyWith(color: AppTheme.infoColor)),
             ],
@@ -732,17 +701,22 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 height: 150,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return Center(child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null));
+                  return Center(child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                        : null,
+                    color: AppTheme.primaryColor,
+                  ));
                 },
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 150,
                   height: 150,
                   color: AppTheme.gray100,
-                  child: Column(
+                  child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.qr_code_2, size: 80, color: AppTheme.primaryColor),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text('Código QR de pago', style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
                     ],
                   ),
@@ -758,10 +732,10 @@ class _CheckoutModalState extends State<CheckoutModal> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.warningColor.withOpacity(0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(Icons.warning_amber, color: AppTheme.warningColor, size: 20),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'IMPORTANTE: Después de pagar, sube el comprobante abajo.',
@@ -791,7 +765,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
         children: [
           Row(
             children: [
-              Icon(Icons.cloud_upload, color: AppTheme.successColor, size: 24),
+              const Icon(Icons.cloud_upload, color: AppTheme.successColor, size: 24),
               const SizedBox(width: 8),
               Text('Subir comprobante de pago', style: AppTheme.titleMedium.copyWith(color: AppTheme.successColor)),
             ],
@@ -810,15 +784,15 @@ class _CheckoutModalState extends State<CheckoutModal> {
               ),
               child: Row(
                 children: [
-                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Icon(Icons.insert_drive_file, color: AppTheme.successColor)),
+                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppTheme.successColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.insert_drive_file, color: AppTheme.successColor)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_fileName!, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
+                        Text(_fileName!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
                         const SizedBox(height: 2),
-                        Text(kIsWeb ? 'Listo para subir' : 'Archivo local', style: TextStyle(fontSize: 11, color: AppTheme.gray600)),
+                        const Text(kIsWeb ? 'Listo para subir' : 'Archivo local', style: TextStyle(fontSize: 11, color: AppTheme.gray600)),
                       ],
                     ),
                   ),
@@ -849,9 +823,9 @@ class _CheckoutModalState extends State<CheckoutModal> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, color: AppTheme.errorColor, size: 20),
+                  const Icon(Icons.error_outline, color: AppTheme.errorColor, size: 20),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(_errorComprobante!, style: TextStyle(color: AppTheme.errorColor, fontSize: 13))),
+                  Expanded(child: Text(_errorComprobante!, style: const TextStyle(color: AppTheme.errorColor, fontSize: 13))),
                 ],
               ),
             ),
@@ -866,7 +840,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                 backgroundColor: AppTheme.primaryLight.withOpacity(0.2),
                 foregroundColor: AppTheme.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: AppTheme.primaryLight)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: AppTheme.primaryLight)),
               ),
               onPressed: _pickFile,
             ),
@@ -909,7 +883,7 @@ class _CheckoutModalState extends State<CheckoutModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor)),
+                        const Text('Comprobante subido exitosamente', style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.successColor)),
                         const SizedBox(height: 4),
                         Text('URL: ${_comprobanteUrlSubido!.substring(0, 50)}...', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],

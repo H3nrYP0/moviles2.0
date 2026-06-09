@@ -44,8 +44,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
       if (clienteId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('No se encontró información de cliente. Completa tu perfil.'),
+            const SnackBar(
+              content: Text('No se encontró información de cliente. Completa tu perfil.'),
               backgroundColor: AppTheme.warningColor,
             ),
           );
@@ -153,7 +153,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 60, color: AppTheme.errorColor),
+              const Icon(Icons.error_outline, size: 60, color: AppTheme.errorColor),
               const SizedBox(height: 16),
               const Text(
                 'Error al cargar pedidos',
@@ -245,7 +245,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.shopping_bag, size: 80, color: AppTheme.gray400),
+                      const Icon(Icons.shopping_bag, size: 80, color: AppTheme.gray400),
                       const SizedBox(height: 16),
                       Text(
                         _estadoFiltro != null
@@ -292,7 +292,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_off, size: 80, color: AppTheme.warningColor),
+            const Icon(Icons.person_off, size: 80, color: AppTheme.warningColor),
             const SizedBox(height: 16),
             const Text(
               'Inicio de sesión requerido',
@@ -645,7 +645,7 @@ class _PedidoCard extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
-                        Text('• ', style: AppTheme.bodySmall),
+                        const Text('• ', style: AppTheme.bodySmall),
                         Expanded(
                           child: Text(
                             item.productoNombre,

@@ -67,10 +67,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     if (widget.product.stock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Producto agotado'),
+        const SnackBar(
+          content: Text('Producto agotado'),
           backgroundColor: AppTheme.errorColor,
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -93,7 +93,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.check_circle, color: AppTheme.white),
+            const Icon(Icons.check_circle, color: AppTheme.white),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -202,7 +202,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           Text(
                             'Total: ${_formatPrice(widget.product.precioVenta * _quantity)}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               color: AppTheme.gray500,
                               fontWeight: FontWeight.w500,
@@ -228,7 +228,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.description, size: 18, color: AppTheme.primaryColor),
+                              const Icon(Icons.description, size: 18, color: AppTheme.primaryColor),
                               const SizedBox(width: 8),
                               Text(
                                 'Descripción',
@@ -239,7 +239,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           const SizedBox(height: 12),
                           Text(
                             widget.product.descripcion!,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               color: AppTheme.gray600,
                               height: 1.5,
@@ -306,7 +306,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                                 Text(
                                   '${hasStock ? widget.product.stock : 0} disponibles',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.gray600,
                                   ),
@@ -395,7 +395,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.shopping_bag,
               size: 80,
               color: AppTheme.primaryColor,
@@ -406,7 +406,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Text(
                 widget.product.nombre,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.bold,

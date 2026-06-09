@@ -50,10 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildWelcomeBanner()),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+            const SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverToBoxAdapter(
-                child: const Text(
+                child: Text(
                   'Productos Destacados',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
@@ -88,17 +88,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 20, bottom: 16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [AppTheme.primaryColor, AppTheme.primaryLight],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Column(
+      child: const Column(
         children: [
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             'Bienvenido a Eyes Settings',
             style: TextStyle(
               fontSize: 24,
@@ -106,8 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Tu visión, nuestra prioridad',
             style: TextStyle(fontSize: 16, color: Colors.white70),
           ),
@@ -144,9 +144,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    Icon(Icons.wifi_off_outlined, color: AppTheme.gray600, size: 64),
+                    const Icon(Icons.wifi_off_outlined, color: AppTheme.gray600, size: 64),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'Oops, algo salió mal',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.gray800),
                     ),
@@ -154,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       provider.error,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.gray600),
+                      style: const TextStyle(color: AppTheme.gray600),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton.icon(
@@ -182,9 +182,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 60),
                 child: Column(
                   children: [
-                    Icon(Icons.sentiment_dissatisfied, size: 80, color: AppTheme.gray400),
+                    const Icon(Icons.sentiment_dissatisfied, size: 80, color: AppTheme.gray400),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'No hay productos destacados',
                       style: TextStyle(fontSize: 16, color: AppTheme.gray600),
                     ),
@@ -205,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 280,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
@@ -261,7 +261,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
                             color: AppTheme.gray200,
-                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryColor, // ← Usa el color teal de tu tema
+                              ),
+                            ),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: AppTheme.gray200,
@@ -352,9 +357,9 @@ class _ProductCardSkeleton extends StatelessWidget {
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.gray300,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
             ),
           ),

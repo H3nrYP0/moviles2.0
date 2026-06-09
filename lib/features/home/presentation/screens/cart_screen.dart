@@ -70,7 +70,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildBody(BuildContext context, CartProvider cartProvider) {
     if (cartProvider.items.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -79,7 +79,7 @@ class _CartScreenState extends State<CartScreen> {
               size: 80,
               color: AppTheme.gray400,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               'Tu carrito está vacío',
               style: TextStyle(
@@ -88,7 +88,7 @@ class _CartScreenState extends State<CartScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Agrega productos desde el catálogo',
               style: TextStyle(
@@ -96,7 +96,7 @@ class _CartScreenState extends State<CartScreen> {
                 fontSize: 14,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
           ],
         ),
       );
@@ -121,7 +121,7 @@ class _CartScreenState extends State<CartScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppTheme.surfaceColor,
-            border: Border(top: BorderSide(color: AppTheme.gray300)),
+            border: const Border(top: BorderSide(color: AppTheme.gray300)),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.black.withOpacity(0.1),
@@ -173,7 +173,7 @@ class _CartScreenState extends State<CartScreen> {
       ),
       child: Column(
         children: [
-          Text(
+          const Text(
             'Resumen del Pedido',
             style: TextStyle(
               fontSize: 16,
@@ -187,14 +187,14 @@ class _CartScreenState extends State<CartScreen> {
             children: [
               Text(
                 'Subtotal (${cartProvider.items.length} productos)',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   color: AppTheme.gray600,
                 ),
               ),
               Text(
                 _formatPrice(cartProvider.subtotal),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
@@ -203,12 +203,12 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Divider(height: 1, color: AppTheme.gray300),
+          const Divider(height: 1, color: AppTheme.gray300),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Total',
                 style: TextStyle(
                   fontSize: 18,
@@ -231,7 +231,7 @@ class _CartScreenState extends State<CartScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
+        title: const Text(
           'Vaciar carrito',
           style: AppTheme.titleMedium,
         ),
@@ -353,7 +353,7 @@ class _CartItemCard extends StatelessWidget {
                     : null,
               ),
               child: item.product.imagenUrl == null || item.product.imagenUrl!.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Icon(
                         Icons.shopping_bag,
                         size: 30,
@@ -380,7 +380,7 @@ class _CartItemCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${_formatPrice(item.product.precioVenta)} c/u',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppTheme.gray600,
                       fontSize: 13,
                     ),
@@ -388,7 +388,7 @@ class _CartItemCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${_formatPrice(item.subtotal)} total',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppTheme.successColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,

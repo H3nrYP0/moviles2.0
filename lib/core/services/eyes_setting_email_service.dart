@@ -90,7 +90,7 @@ class EyesSettingEmailService {
   }
   
   static String _buildRecoveryEmailHtml(String userName, String code) {
-    final expiryTime = DateTime.now().add(Duration(minutes: 15));
+    final expiryTime = DateTime.now().add(const Duration(minutes: 15));
     final formattedExpiry = '${expiryTime.hour.toString().padLeft(2, '0')}:${expiryTime.minute.toString().padLeft(2, '0')}';
     
     return '''

@@ -108,7 +108,7 @@ class CloudinaryService {
       // 6. Enviar solicitud con timeout
       print('🚀 Enviando a Cloudinary...');
       final streamedResponse = await request.send().timeout(
-        Duration(seconds: 30),
+        const Duration(seconds: 30),
         onTimeout: () {
           throw TimeoutException('Cloudinary timeout después de 30 segundos');
         },

@@ -310,7 +310,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                 style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
               ),
               const SizedBox(height: 8),
-              Text('Seleccione una hora disponible:', style: AppTheme.bodySmall),
+              const Text('Seleccione una hora disponible:', style: AppTheme.bodySmall),
               const SizedBox(height: 16),
               Expanded(
                 child: GridView.builder(
@@ -408,7 +408,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       
       if (result['success'] == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: const Duration(seconds: 3)),
+          const SnackBar(content: Text('Cita creada exitosamente'), backgroundColor: AppTheme.successColor, duration: Duration(seconds: 3)),
         );
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.pop(context);
@@ -504,7 +504,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.person, color: AppTheme.primaryColor),
+                            const Icon(Icons.person, color: AppTheme.primaryColor),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -568,7 +568,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                       style: AppTheme.bodyMedium,
                                     ),
                                   ),
-                                  Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
+                                  const Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
                                 ],
                               ),
                             ),
@@ -601,7 +601,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                             style: AppTheme.bodyMedium,
                                           ),
                                   ),
-                                  Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
+                                  const Icon(Icons.arrow_drop_down, color: AppTheme.gray600),
                                 ],
                               ),
                             ),
@@ -621,11 +621,11 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         child: _isLoading
-                            ? Row(
+                            ? const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white)),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white)),
+                                  SizedBox(width: 12),
                                   Text('Creando cita...', style: AppTheme.buttonText),
                                 ],
                               )
@@ -667,10 +667,10 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       labelText: label,
       labelStyle: AppTheme.bodyMedium,
       border: const OutlineInputBorder(),
-      prefixIcon: Icon(Icons.spa, color: AppTheme.primaryColor),
+      prefixIcon: const Icon(Icons.spa, color: AppTheme.primaryColor),
       filled: true,
       fillColor: AppTheme.surfaceColor,
-      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryColor, width: 2)),
+      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: AppTheme.primaryColor, width: 2)),
     );
   }
   
@@ -685,7 +685,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 20, color: AppTheme.errorColor),
+          const Icon(Icons.error_outline, size: 20, color: AppTheme.errorColor),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -713,7 +713,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.info, size: 20, color: AppTheme.primaryColor),
+          const Icon(Icons.info, size: 20, color: AppTheme.primaryColor),
           const SizedBox(width: 8),
           Expanded(child: Text(mensaje, style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor))),
         ],

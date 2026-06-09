@@ -8,7 +8,7 @@ import '../../../auth/data/models/user_model.dart';
 import 'password_recovery_screen.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../features/citas/data/services/api_colombia_service.dart';
-import '../../data/constants/medellin_postal_codes.dart';
+import '../../data/constants/medellin_barrios.dart'; // ✅ Solo barrios, sin códigos postales
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -48,16 +48,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final List<String> _generos = const ['Masculino', 'Femenino', 'Otro'];
   final List<String> _tiposDocumento = const ['CC', 'TI', 'CE', 'PA'];
 
-  // ========== Nuevas variables para dirección dinámica ==========
+  // ========== Variables para dirección dinámica ==========
   List<Map<String, dynamic>> _departamentos = [];
   List<Map<String, dynamic>> _municipios = [];
   bool _cargandoDepartamentos = false;
   bool _cargandoMunicipios = false;
   
-  String? _selectedDepartamentoNombre;  // departamento seleccionado (nombre)
-  String? _selectedMunicipioNombre;    // municipio seleccionado (nombre, sincronizado con _selectedMunicipio)
+  String? _selectedDepartamentoNombre;
+  String? _selectedMunicipioNombre;
   int? _selectedDepartamentoId;
   int? _selectedMunicipioId;
+
+  // ✅ Helper para saber si la ubicación es Medellín
+  bool get _isMedellin {
+    final dept = (_selectedDepartamentoNombre ?? '').toLowerCase();
+    final mun = (_selectedMunicipioNombre ?? '').toLowerCase();
+    return dept == 'antioquia' && mun == 'medellín';
+  }
 
   @override
   void initState() {
@@ -171,13 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _barrioController.text = _clienteData!['barrio']?.toString() ?? '';
       _codigoPostalController.text = _clienteData!['codigo_postal']?.toString() ?? '';
 
-      // Cargar departamento y municipio (nombres)
       String? dep = _clienteData!['departamento']?.toString();
       String? mun = _clienteData!['municipio']?.toString();
       if (dep != null && dep.isNotEmpty) _selectedDepartamentoNombre = dep;
       if (mun != null && mun.isNotEmpty) {
         _selectedMunicipioNombre = mun;
-        _selectedMunicipio = mun;   // mantener compatibilidad
+        _selectedMunicipio = mun;
       }
       _selectedGenero = _normalizeGender(_clienteData!['genero']?.toString());
     }
@@ -252,7 +258,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final depts = await ApiColombiaService.getDepartamentos();
     _departamentos = depts;
     
-    // Preseleccionar departamento si existe en el perfil
     if (_selectedDepartamentoNombre != null) {
       final match = _departamentos.firstWhere(
         (d) => d['name'].toLowerCase() == _selectedDepartamentoNombre!.toLowerCase(),
@@ -261,7 +266,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (match['id'] != null) {
         _selectedDepartamentoId = match['id'];
         await _loadMunicipios(_selectedDepartamentoId!);
-        // Preseleccionar municipio si existe
         if (_selectedMunicipioNombre != null) {
           final munMatch = _municipios.firstWhere(
             (m) => m['name'].toLowerCase() == _selectedMunicipioNombre!.toLowerCase(),
@@ -292,7 +296,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _selectedMunicipioNombre = null;
         _selectedMunicipio = null;
         _municipios = [];
-        _codigoPostalController.clear();
       });
       _loadMunicipios(dept['id']);
     } else {
@@ -312,10 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _selectedMunicipioId = mun['id'];
         _selectedMunicipioNombre = mun['name'];
-        _selectedMunicipio = mun['name'];  // sincronizar con variable existente
-        if (mun.containsKey('postalCode') && mun['postalCode'] != null && mun['postalCode'].isNotEmpty) {
-          _codigoPostalController.text = mun['postalCode'];
-        }
+        _selectedMunicipio = mun['name'];
       });
     } else {
       setState(() {
@@ -327,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  GUARDAR PERFIL UNIFICADO (ACTUALIZADO)
+  //  GUARDAR PERFIL UNIFICADO
   // ==========================================================
   Future<void> _savePerfil() async {
     FocusScope.of(context).unfocus();
@@ -385,7 +385,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
       
-      // Actualizar AuthProvider y datos locales
       if (result['usuario'] != null) {
         authProvider.updateUserFromMap(result['usuario']);
         _usuarioData = result['usuario'];
@@ -414,8 +413,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cambiar contraseña', style: AppTheme.titleMedium),
-        content: Text(
+        title: const Text('Cambiar contraseña', style: AppTheme.titleMedium),
+        content: const Text(
           'Serás redirigido a la pantalla de recuperación de contraseña para crear una nueva.',
           style: AppTheme.bodyMedium,
         ),
@@ -445,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  WIDGETS DE FORMULARIO (MODIFICADOS PARA USAR API)
+  //  WIDGETS DE FORMULARIO
   // ==========================================================
   Widget _buildDepartamentoField() {
     return Column(
@@ -539,7 +538,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ✅ Autocomplete para barrio usando MedellinPostalCodes
+  // ✅ Autocomplete para barrio usando MedellinBarrios (solo sugerencias)
   Widget _buildBarrioAutocomplete() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,23 +547,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 8),
         Autocomplete<String>(
           optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
+            if (!_isMedellin || textEditingValue.text.isEmpty) {
               return const Iterable<String>.empty();
             }
             final query = textEditingValue.text.toLowerCase();
-            return MedellinPostalCodes.allBarrios.where((barrio) {
+            return MedellinBarrios.barrios.where((barrio) {
               return barrio.toLowerCase().contains(query);
             }).toList();
           },
           onSelected: (String barrioSeleccionado) {
-            final postalCode = MedellinPostalCodes.getPostalCode(barrioSeleccionado);
-            if (postalCode != null && postalCode.isNotEmpty) {
-              _codigoPostalController.text = postalCode;
-            }
-            _barrioController.text = barrioSeleccionado;
+            setState(() {
+              _barrioController.text = barrioSeleccionado;
+            });
           },
           fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-            // Sincronizar el controlador interno con _barrioController
             if (_barrioController.text != textEditingController.text) {
               textEditingController.text = _barrioController.text;
             }
@@ -577,7 +573,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: textEditingController,
               focusNode: focusNode,
               decoration: InputDecoration(
-                hintText: 'Ej: El Poblado',
+                hintText: _isMedellin ? 'Ej: El Poblado, Laureles...' : 'Seleccione Medellín primero',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.gray300)),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5)),
                 filled: true,
@@ -585,6 +581,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               onChanged: (value) => _barrioController.text = value,
+              enabled: _isMedellin,
             );
           },
         ),
@@ -592,9 +589,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
-  // El antiguo _buildMunicipioField se mantiene pero no se usa
-  // (se reemplazó por los dos campos anteriores en el modal)
 
   Widget _buildFormField({
     required String label,
@@ -686,7 +680,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  WIDGETS DE VISUALIZACIÓN (sin cambios)
+  //  WIDGETS DE VISUALIZACIÓN
   // ==========================================================
   Widget _buildInfoItem({required IconData icon, required String label, required String value}) {
     return Container(
@@ -767,11 +761,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  MODAL DE EDICIÓN (ACTUALIZADO)
+  //  MODAL DE EDICIÓN
   // ==========================================================
   void _showEditProfileModal() {
     _loadFormData();
-    _loadDepartamentos();   // Cargar departamentos desde API
+    _loadDepartamentos();
     setState(() => _showEditModal = true);
   }
 
@@ -795,7 +789,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Editar datos personales', style: AppTheme.titleLarge),
+                      const Text('Editar datos personales', style: AppTheme.titleLarge),
                       IconButton(
                         icon: const Icon(Icons.close, size: 24),
                         onPressed: _isLoading ? null : () => setState(() => _showEditModal = false),
@@ -879,12 +873,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         _buildFormField(label: 'Correo electrónico', controller: _correoController, required: true, keyboardType: TextInputType.emailAddress, enabled: false, hintText: 'Tu correo electrónico'),
                         
-                        // Campos de dirección dinámicos
                         _buildDepartamentoField(),
                         _buildMunicipioFieldDynamic(),
-                        
                         _buildFormField(label: 'Dirección', controller: _direccionController, maxLines: 2, hintText: 'Tu dirección completa'),
-                        // ✅ Autocomplete para Barrio (en lugar de TextField)
                         _buildBarrioAutocomplete(),
                         _buildFormField(label: 'Código postal', controller: _codigoPostalController, keyboardType: TextInputType.number, hintText: 'Ej: 050001'),
                         _buildFormField(label: 'Ocupación', controller: _ocupacionController, hintText: 'Tu profesión o trabajo'),
@@ -914,7 +905,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            side: BorderSide(color: AppTheme.gray300),
+                            side: const BorderSide(color: AppTheme.gray300),
                           ),
                           child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppTheme.gray600)),
                         ),
@@ -930,7 +921,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: _isLoading
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text('Guardar cambios', style: AppTheme.buttonText),
+                              : const Text('Guardar cambios', style: AppTheme.buttonText),
                         ),
                       ),
                     ],
@@ -945,7 +936,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ==========================================================
-  //  BUILD PRINCIPAL (sin cambios en la estructura)
+  //  BUILD PRINCIPAL
   // ==========================================================
   @override
   Widget build(BuildContext context) {
@@ -960,7 +951,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // Header (sin cambios)
+                // Header
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -1003,7 +994,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                        child: Text('ANTIOQUIA', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: primaryColor)),
+                        child: Text(_selectedDepartamentoNombre?.toUpperCase() ?? 'UBICACIÓN', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: primaryColor)),
                       ),
                     ],
                   ),
@@ -1015,9 +1006,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ElevatedButton(
                     onPressed: _showEditProfileModal,
                     style: ElevatedButton.styleFrom(backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [Icon(Icons.edit, color: Colors.white, size: 20), SizedBox(width: 8), Text('Editar datos personales', style: AppTheme.buttonText)],
+                      children: [Icon(Icons.edit, color: Colors.white, size: 20), SizedBox(width: 8), Text('Editar datos personales', style: AppTheme.buttonText)],
                     ),
                   ),
                 ),
@@ -1029,7 +1020,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mi información', style: AppTheme.titleLarge),
+                      const Text('Mi información', style: AppTheme.titleLarge),
                       const SizedBox(height: 16),
                       _buildInfoSkeleton(),
                     ],
@@ -1044,18 +1035,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.info_outline, size: 48, color: AppTheme.warningColor),
+                        const Icon(Icons.info_outline, size: 48, color: AppTheme.warningColor),
                         const SizedBox(height: 12),
-                        Text('Perfil incompleto', style: AppTheme.titleMedium),
+                        const Text('Perfil incompleto', style: AppTheme.titleMedium),
                         const SizedBox(height: 8),
-                        Text('Necesitas completar tu información de cliente para disfrutar de todos los servicios.', style: AppTheme.bodyMedium, textAlign: TextAlign.center),
+                        const Text('Necesitas completar tu información de cliente para disfrutar de todos los servicios.', style: AppTheme.bodyMedium, textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _showEditProfileModal,
                             style: ElevatedButton.styleFrom(backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                            child: Text('Completar perfil', style: AppTheme.buttonText),
+                            child: const Text('Completar perfil', style: AppTheme.buttonText),
                           ),
                         ),
                       ],
@@ -1065,7 +1056,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mi información', style: AppTheme.titleLarge),
+                      const Text('Mi información', style: AppTheme.titleLarge),
                       const SizedBox(height: 16),
                       Column(
                         children: [
@@ -1074,10 +1065,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildInfoItem(icon: Icons.cake, label: 'Fecha de nacimiento', value: _fechaNacimientoController.text),
                           _buildInfoItem(icon: Icons.transgender, label: 'Género', value: _selectedGenero ?? 'No especificado'),
                           _buildInfoItem(icon: Icons.phone, label: 'Teléfono', value: _telefonoController.text),
+                          _buildInfoItem(icon: Icons.location_city, label: 'Departamento', value: _selectedDepartamentoNombre ?? 'No especificado'),
                           _buildInfoItem(icon: Icons.location_city, label: 'Municipio', value: _selectedMunicipio ?? 'No especificado'),
                           _buildInfoItem(icon: Icons.location_on, label: 'Dirección', value: _direccionController.text),
                           _buildInfoItem(icon: Icons.location_city, label: 'Barrio', value: _barrioController.text),
-                          _buildInfoItem(icon: Icons.location_on, label: 'Código postal', value: _codigoPostalController.text),
+                          _buildInfoItem(icon: Icons.local_post_office, label: 'Código postal', value: _codigoPostalController.text),
                           _buildInfoItem(icon: Icons.work, label: 'Ocupación', value: _ocupacionController.text),
                           _buildInfoItem(icon: Icons.emergency, label: 'Teléfono de emergencia', value: _telefonoEmergenciaController.text),
                         ],
@@ -1087,7 +1079,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 const SizedBox(height: 40),
                 
-                // Sección de seguridad (sin cambios)
+                // Sección de seguridad
                 Container(
                   padding: const EdgeInsets.all(20),
                   margin: const EdgeInsets.symmetric(horizontal: 0),
@@ -1100,7 +1092,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Seguridad de la cuenta', style: AppTheme.titleLarge),
+                      const Text('Seguridad de la cuenta', style: AppTheme.titleLarge),
                       const SizedBox(height: 8),
                       Text('Administra la seguridad de tu cuenta', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
                       const SizedBox(height: 16),
@@ -1113,7 +1105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: const Icon(Icons.lock, color: AppTheme.primaryColor, size: 22),
                           ),
                           title: Text('Cambiar contraseña', style: AppTheme.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
-                          subtitle: Text('Actualiza tu contraseña de seguridad', style: AppTheme.bodySmall),
+                          subtitle: const Text('Actualiza tu contraseña de seguridad', style: AppTheme.bodySmall),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.gray500),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           onTap: _showChangePasswordDialog,

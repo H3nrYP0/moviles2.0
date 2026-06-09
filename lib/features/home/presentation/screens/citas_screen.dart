@@ -143,7 +143,7 @@ class _CitasScreenState extends State<CitasScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 60, color: AppTheme.errorColor),
+              const Icon(Icons.error_outline, size: 60, color: AppTheme.errorColor),
               const SizedBox(height: 16),
               const Text(
                 'Error al cargar citas',
@@ -235,7 +235,7 @@ class _CitasScreenState extends State<CitasScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.event_note, size: 80, color: AppTheme.gray400),
+                      const Icon(Icons.event_note, size: 80, color: AppTheme.gray400),
                       const SizedBox(height: 16),
                       Text(
                         _estadoFiltro != null
@@ -282,7 +282,7 @@ class _CitasScreenState extends State<CitasScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_off, size: 80, color: AppTheme.warningColor),
+            const Icon(Icons.person_off, size: 80, color: AppTheme.warningColor),
             const SizedBox(height: 16),
             const Text(
               'Inicio de sesión requerido',
@@ -513,7 +513,7 @@ class _CitaCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('No', style: TextStyle(color: AppTheme.gray600)),
+            child: const Text('No', style: TextStyle(color: AppTheme.gray600)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -595,7 +595,7 @@ class _CitaCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryColor),
+                  const Icon(Icons.calendar_today, size: 14, color: AppTheme.primaryColor),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -608,7 +608,7 @@ class _CitaCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
+                  const Icon(Icons.person, size: 14, color: AppTheme.primaryColor),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -622,7 +622,7 @@ class _CitaCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.payment, size: 14, color: AppTheme.primaryColor),
+                    const Icon(Icons.payment, size: 14, color: AppTheme.primaryColor),
                     const SizedBox(width: 6),
                     Text(
                       _capitalize(cita.metodoPago!),

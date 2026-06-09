@@ -1,5 +1,6 @@
 // lib/features/auth/presentation/screens/password_recovery_screen.dart
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../features/auth/data/services/recovery_service.dart';
 
 enum RecoveryStep { email, code, newPassword }
@@ -119,7 +120,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
               : result['error'] ?? 'Error al reenviar',
         ),
         backgroundColor:
-            result['success'] == true ? Colors.green : Colors.red,
+            result['success'] == true ? AppTheme.successColor : AppTheme.errorColor,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -201,7 +202,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   }
 
   void _clearCodeFields() {
-    for (var c in _codeControllers) c.clear();
+    for (var c in _codeControllers) {
+      c.clear();
+    }
     _codeFocusNodes.first.requestFocus();
   }
 
@@ -223,17 +226,17 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: AppTheme.gray200.withAlpha(26),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
-                    color: Colors.grey.shade200,
+                    color: AppTheme.gray200,
                     width: 1,
                   ),
                 ),
@@ -241,7 +244,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                   icon: const Icon(
                     Icons.arrow_back,
                     size: 20,
-                    color: Color(0xFF1a237e),
+                    color: AppTheme.primaryColor,
                   ),
                   onPressed: _goToPreviousStep, // CAMBIO: Usa _goToPreviousStep
                   padding: EdgeInsets.zero,
@@ -266,13 +269,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Eyes Settings',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1a237e),
-                    ),
+                    style: AppTheme.headline2.copyWith(fontSize: 22, color: AppTheme.primaryColor),
                   ),
                 ],
               ),
@@ -312,11 +311,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       children: [
         Text(
           'Paso ${_currentStep.index + 1} de 3',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF666666),
-          ),
+          style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Row(
@@ -329,7 +324,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                   right: index < 2 ? 8 : 0,
                 ),
                 decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFF1a237e) : const Color(0xFFe0e0e0),
+                  color: isActive ? AppTheme.primaryColor : AppTheme.gray300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -342,14 +337,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           children: List.generate(3, (index) {
             return Text(
               steps[index],
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: index == _currentStep.index 
-                    ? FontWeight.w600 
-                    : FontWeight.normal,
-                color: index == _currentStep.index 
-                    ? const Color(0xFF1a237e) 
-                    : const Color(0xFF999999),
+              style: AppTheme.bodySmall.copyWith(
+                fontWeight: index == _currentStep.index ? FontWeight.w600 : FontWeight.normal,
+                color: index == _currentStep.index ? AppTheme.primaryColor : AppTheme.gray500,
               ),
             );
           }),
@@ -364,21 +354,18 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: AppTheme.errorColor.withAlpha(31),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: AppTheme.errorColor.withAlpha(77)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+          const Icon(Icons.error_outline, color: AppTheme.errorColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _error!,
-              style: TextStyle(
-                color: Colors.red.shade800,
-                fontSize: 14,
-              ),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.errorColor),
             ),
           ),
         ],
@@ -392,21 +379,18 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: AppTheme.successColor.withAlpha(31),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(color: AppTheme.successColor.withAlpha(77)),
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
+          const Icon(Icons.check_circle, color: AppTheme.successColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _success!,
-              style: TextStyle(
-                color: Colors.green.shade800,
-                fontSize: 14,
-              ),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.successColor),
             ),
           ),
         ],
@@ -420,41 +404,23 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       children: [
         const Text(
           'Recupera tu contraseña',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Ingresa tu correo electrónico para recibir un código de verificación',
-          style: TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 14,
-          ),
+          style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
         ),
         const SizedBox(height: 30),
         
         TextFormField(
           controller: _emailController,
-          decoration: InputDecoration(
-            labelText: 'Correo electrónico',
-            labelStyle: const TextStyle(color: Color(0xFF555555)),
-            prefixIcon: const Icon(Icons.email, color: Color(0xFF1a237e)),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFf8f9fa),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: AppTheme.inputDecoration(
+            label: 'Correo electrónico',
+            prefixIcon: Icons.email,
           ),
           keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(fontSize: 16),
+          style: AppTheme.bodyLarge,
         ),
         const SizedBox(height: 30),
         
@@ -462,13 +428,11 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _sendRecoveryCode,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1a237e),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+            style: AppTheme.primaryButtonStyle.copyWith(
+              padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 2,
+              )),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -476,17 +440,10 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppTheme.white,
                     ),
                   )
-                : const Text(
-                    'Enviar código',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                : const Text('Enviar código'),
           ),
         ),
       ],
@@ -507,10 +464,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         const SizedBox(height: 8),
         Text(
           'Ingresa el código de 6 dígitos enviado a $_email',
-          style: const TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 14,
-          ),
+          style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
         ),
         const SizedBox(height: 30),
         
@@ -530,22 +484,19 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   onChanged: (v) => _onCodeChanged(i, v),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTheme.bodyLarge.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     counterText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
+                      borderSide: const BorderSide(color: AppTheme.gray300),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF1a237e), width: 2),
+                      borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFf8f9fa),
+                    fillColor: AppTheme.backgroundLight,
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
@@ -560,13 +511,11 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _verifyCode,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1a237e),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+            style: AppTheme.primaryButtonStyle.copyWith(
+              padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 2,
+              )),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -574,17 +523,10 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppTheme.white,
                     ),
                   )
-                : const Text(
-                    'Verificar código',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                : const Text('Verificar código'),
           ),
         ),
         
@@ -593,18 +535,15 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               '¿No recibiste el código? ',
-              style: TextStyle(color: Color(0xFF666666)),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
             ),
             TextButton(
               onPressed: _isLoading ? null : _resendCode,
-              child: const Text(
+              child: Text(
                 'Reenviar',
-                style: TextStyle(
-                  color: Color(0xFF1a237e),
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -613,9 +552,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         Center(
           child: TextButton(
             onPressed: _goToPreviousStep,
-            child: const Text(
+            child: Text(
               'Volver a correo',
-              style: TextStyle(color: Color(0xFF666666)),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
             ),
           ),
         ),
@@ -629,18 +568,12 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       children: [
         const Text(
           'Nueva contraseña',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Crea una nueva contraseña segura',
-          style: TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 14,
-          ),
+          style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
         ),
         const SizedBox(height: 30),
         
@@ -648,32 +581,21 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         TextFormField(
           controller: _passwordController,
           obscureText: _obscurePassword,
-          decoration: InputDecoration(
-            labelText: 'Nueva contraseña',
-            labelStyle: const TextStyle(color: Color(0xFF555555)),
-            prefixIcon: const Icon(Icons.lock, color: Color(0xFF1a237e)),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFf8f9fa),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: AppTheme.inputDecoration(
+            label: 'Nueva contraseña',
+            prefixIcon: Icons.lock,
+          ).copyWith(
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                color: const Color(0xFF666666),
+                color: AppTheme.gray500,
               ),
               onPressed: () => setState(() {
                 _obscurePassword = !_obscurePassword;
               }),
             ),
           ),
-          style: const TextStyle(fontSize: 16),
+          style: AppTheme.bodyLarge,
         ),
         
         const SizedBox(height: 20),
@@ -682,32 +604,21 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         TextFormField(
           controller: _confirmPasswordController,
           obscureText: _obscureConfirmPassword,
-          decoration: InputDecoration(
-            labelText: 'Confirmar contraseña',
-            labelStyle: const TextStyle(color: Color(0xFF555555)),
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1a237e)),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFe0e0e0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF1a237e), width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFf8f9fa),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: AppTheme.inputDecoration(
+            label: 'Confirmar contraseña',
+            prefixIcon: Icons.lock_outline,
+          ).copyWith(
             suffixIcon: IconButton(
               icon: Icon(
                 _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                color: const Color(0xFF666666),
+                color: AppTheme.gray500,
               ),
               onPressed: () => setState(() {
                 _obscureConfirmPassword = !_obscureConfirmPassword;
               }),
             ),
           ),
-          style: const TextStyle(fontSize: 16),
+          style: AppTheme.bodyLarge,
         ),
         
         const SizedBox(height: 16),
@@ -716,18 +627,18 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFf0f7ff),
+            color: AppTheme.primaryLight.withAlpha(31),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFd0e3ff)),
+            border: Border.all(color: AppTheme.primaryLight.withAlpha(89)),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.info_outline, size: 16, color: Color(0xFF1a237e)),
-              SizedBox(width: 8),
+              const Icon(Icons.info_outline, size: 16, color: AppTheme.primaryColor),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'La contraseña debe tener al menos 6 caracteres',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF1a237e)),
+                  style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryColor),
                 ),
               ),
             ],
@@ -740,13 +651,11 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _changePassword,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1a237e),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+            style: AppTheme.primaryButtonStyle.copyWith(
+              padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 2,
+              )),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -754,17 +663,10 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppTheme.white,
                     ),
                   )
-                : const Text(
-                    'Cambiar contraseña',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                : const Text('Cambiar contraseña'),
           ),
         ),
         
@@ -773,9 +675,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         Center(
           child: TextButton(
             onPressed: _goToPreviousStep,
-            child: const Text(
+            child: Text(
               'Volver a código',
-              style: TextStyle(color: Color(0xFF666666)),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
             ),
           ),
         ),
@@ -786,8 +688,12 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    for (var c in _codeControllers) c.dispose();
-    for (var f in _codeFocusNodes) f.dispose();
+    for (var c in _codeControllers) {
+      c.dispose();
+    }
+    for (var f in _codeFocusNodes) {
+      f.dispose();
+    }
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
