@@ -39,7 +39,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
   List<String> _horasDisponibles = [];
   
   // Métodos de pago
-  final List<String> _metodosPago = [
+  final List<String> _metodosPago = const [
     'Efectivo',
     'Tarjeta',
     'Transferencia',
@@ -465,7 +465,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(color: AppTheme.primaryColor),
                   SizedBox(height: 16),
                   Text('Cargando datos...'),
                 ],
@@ -599,7 +599,7 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _isLoadingHoras
-                                        ? const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                        ? const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor))
                                         : Text(
                                             _selectedTime != null
                                                 ? _formatTimeOfDay(_selectedTime!)
@@ -645,15 +645,6 @@ class _CrearCitaScreenState extends State<CrearCitaScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    if (!_isLoading)
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancelar', style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor)),
-                        ),
-                      ),
                   ],
                 ),
               ),

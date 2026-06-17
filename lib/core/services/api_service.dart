@@ -766,4 +766,148 @@ class ApiService {
       return {'error': 'Error de conexión: $e'};
     }
   }
+
+  // ==========================================================
+  //  NUEVOS MÉTODOS PARA REGISTRO CON CÓDIGO Y RECUPERACIÓN
+  // ==========================================================
+
+  /// Paso 1 del registro: enviar datos y solicitar código de verificación
+  Future<Map<String, dynamic>> registerSendCode({
+    required String nombre,
+    required String apellido,
+    required String correo,
+    required String contrasenia,
+    required String numeroDocumento,
+    required String fechaNacimiento,
+    String? tipoDocumento,
+    String? telefono,
+  }) async {
+    _log('📝 registerSendCode para: $correo');
+    try {
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.authRegister),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'nombre': nombre,
+          'apellido': apellido,
+          'correo': correo,
+          'contrasenia': contrasenia,
+          'numeroDocumento': numeroDocumento,
+          'fechaNacimiento': fechaNacimiento,
+          'tipoDocumento': tipoDocumento ?? 'CC',
+          'telefono': telefono ?? '',
+        }),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'debug_code': data['debug_code'], // solo en modo TEST_EVENTS
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'No se pudo enviar el código',
+        };
+      }
+    } catch (e) {
+      _log('❌ registerSendCode error: $e', type: 'ERROR');
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  /// Paso 2 del registro: verificar código y crear cuenta (devuelve token)
+  Future<Map<String, dynamic>> registerVerifyCode({
+    required String correo,
+    required String codigo,
+  }) async {
+    _log('🔐 registerVerifyCode para: $correo');
+    try {
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.authVerifyRegister),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'correo': correo, 'codigo': codigo}),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 201 && data['success'] == true) {
+        final token = data['token'];
+        if (token != null) await StorageService.saveToken(token);
+        return {
+          'success': true,
+          'token': token,
+          'usuario': data['usuario'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'Código incorrecto o expirado',
+        };
+      }
+    } catch (e) {
+      _log('❌ registerVerifyCode error: $e', type: 'ERROR');
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  /// Solicitar código de recuperación de contraseña
+  Future<Map<String, dynamic>> forgotPassword(String correo) async {
+    _log('🔑 forgotPassword para: $correo');
+    try {
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.authForgotPassword),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'correo': correo}),
+      );
+      final data = json.decode(response.body);
+      // El backend responde con success true incluso si el correo no existe (por seguridad)
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'debug_code': data['debug_code'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'No se pudo enviar el código',
+        };
+      }
+    } catch (e) {
+      _log('❌ forgotPassword error: $e', type: 'ERROR');
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
+  /// Restablecer contraseña con código de verificación
+  Future<Map<String, dynamic>> resetPassword({
+    required String correo,
+    required String codigo,
+    required String nuevaContrasenia,
+  }) async {
+    _log('🔄 resetPassword para: $correo');
+    try {
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.authResetPassword),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'correo': correo,
+          'codigo': codigo,
+          'nueva_contrasenia': nuevaContrasenia,
+        }),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'No se pudo restablecer la contraseña',
+        };
+      }
+    } catch (e) {
+      _log('❌ resetPassword error: $e', type: 'ERROR');
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
 }

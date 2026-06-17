@@ -213,6 +213,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
+  // MÉTODO OBSOLETO - Se mantiene por compatibilidad, pero no se usa con el nuevo flujo
   Future<Map<String, dynamic>> register({
     required String nombre,
     required String correo,
@@ -248,6 +249,126 @@ class AuthProvider extends ChangeNotifier {
       };
     }
   }
+  
+  // ==========================================================
+  //  NUEVOS MÉTODOS PARA REGISTRO CON CÓDIGO
+  // ==========================================================
+
+  /// Paso 1: Envía los datos del formulario y solicita un código de verificación
+  Future<Map<String, dynamic>> sendRegisterCode({
+    required String nombre,
+    required String apellido,
+    required String correo,
+    required String contrasenia,
+    required String numeroDocumento,
+    required String fechaNacimiento,
+    String? tipoDocumento,
+    String? telefono,
+  }) async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
+    final result = await _apiService.registerSendCode(
+      nombre: nombre,
+      apellido: apellido,
+      correo: correo,
+      contrasenia: contrasenia,
+      numeroDocumento: numeroDocumento,
+      fechaNacimiento: fechaNacimiento,
+      tipoDocumento: tipoDocumento,
+      telefono: telefono,
+    );
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
+
+  /// Paso 2: Verifica el código y completa el registro (crea usuario, cliente, devuelve token)
+  Future<Map<String, dynamic>> verifyAndCompleteRegistration({
+    required String correo,
+    required String codigo,
+  }) async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
+    final result = await _apiService.registerVerifyCode(
+      correo: correo,
+      codigo: codigo,
+    );
+
+    if (result['success'] == true) {
+      final usuarioData = result['usuario'];
+      final token = result['token'];
+
+      _user = User(
+        id: usuarioData['id'],
+        nombre: usuarioData['nombre'],
+        correo: usuarioData['correo'],
+        rolId: usuarioData['rol_id'],
+        estado: true,
+        clienteId: usuarioData['cliente_id'],
+        fotoUrl: usuarioData['foto_url'],
+      );
+
+      await StorageService.saveLoginData(
+        _user!.correo,
+        _user!.nombre,
+        _user!.rolId,
+        _user!.id,
+        clienteId: _user!.clienteId,
+        token: token,
+      );
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
+
+  // ==========================================================
+  //  RECUPERACIÓN DE CONTRASEÑA
+  // ==========================================================
+
+  /// Solicita un código de recuperación para el correo dado
+  Future<Map<String, dynamic>> requestPasswordResetCode(String correo) async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
+    final result = await _apiService.forgotPassword(correo);
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
+
+  /// Restablece la contraseña usando el código y la nueva contraseña
+  Future<Map<String, dynamic>> confirmPasswordReset({
+    required String correo,
+    required String codigo,
+    required String nuevaContrasenia,
+  }) async {
+    _isLoading = true;
+    _error = '';
+    notifyListeners();
+
+    final result = await _apiService.resetPassword(
+      correo: correo,
+      codigo: codigo,
+      nuevaContrasenia: nuevaContrasenia,
+    );
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
+  
+  // ==========================================================
+  //  LOGOUT Y AUXILIARES
+  // ==========================================================
   
   Future<void> logout() async {
     await StorageService.clearLoginData();

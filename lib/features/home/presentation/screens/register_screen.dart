@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
+import 'verify_code_screen.dart'; // 👈 Importar la pantalla de verificación
 
 class RegisterScreen extends StatelessWidget {
   final VoidCallback? onSuccess;
@@ -23,10 +24,7 @@ class RegisterScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-
-
-            
-            // Botón de volver en la parte superior izquierda
+            // Botón de volver
             Align(
               alignment: Alignment.centerLeft,
               child: Container(
@@ -48,7 +46,7 @@ class RegisterScreen extends StatelessWidget {
               ),
             ),
             
-            // Logo/Imagen del ojo
+            // Logo
             Container(
               height: 80,
               width: 80,
@@ -92,7 +90,7 @@ class RegisterScreen extends StatelessWidget {
                 child: _RegisterForm(
                   onSuccess: onSuccess,
                   onLoginPressed: onLoginPressed,
-                  onBackPressed: onBackPressed, // ✅ AÑADIR ESTO
+                  onBackPressed: onBackPressed,
                 ),
               ),
             ),
@@ -106,7 +104,7 @@ class RegisterScreen extends StatelessWidget {
 class _RegisterForm extends StatefulWidget {
   final VoidCallback? onSuccess;
   final VoidCallback? onLoginPressed;
-  final VoidCallback? onBackPressed; // ✅ AÑADIR ESTO
+  final VoidCallback? onBackPressed;
   
   const _RegisterForm({
     this.onSuccess,
@@ -120,24 +118,73 @@ class _RegisterForm extends StatefulWidget {
 
 class __RegisterFormState extends State<_RegisterForm> {
   final _formKey = GlobalKey<FormState>();
+  
+  // Controladores originales
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  
+  // Nuevos controladores
+  final _apellidoController = TextEditingController();
+  final _numeroDocumentoController = TextEditingController();
+  final _telefonoController = TextEditingController();
+  final _fechaNacimientoController = TextEditingController();
+  
+  // Selector tipo documento
+  String? _selectedTipoDocumento;
+  final List<String> _tiposDocumento = ['CC', 'TI', 'CE', 'PA'];
+  
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  // Fecha de nacimiento
+  Future<void> _selectFechaNacimiento(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaNacimientoController.text = 
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
 
   Future<void> _register(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validar campos nuevos
+    if (_selectedTipoDocumento == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona un tipo de documento'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_apellidoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El apellido es requerido'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_numeroDocumentoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El número de documento es requerido'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_fechaNacimientoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona tu fecha de nacimiento'), backgroundColor: Colors.red),
+      );
+      return;
+    }
     if (_passwordController.text != _confirmPasswordController.text) {
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Las contraseñas no coinciden'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Las contraseñas no coinciden'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -145,13 +192,18 @@ class __RegisterFormState extends State<_RegisterForm> {
     FocusScope.of(context).unfocus();
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
-    final result = await authProvider.register(
+    // Usar el nuevo método sendRegisterCode
+    final result = await authProvider.sendRegisterCode(
       nombre: _nameController.text.trim(),
+      apellido: _apellidoController.text.trim(),
       correo: _emailController.text.trim(),
       contrasenia: _passwordController.text,
+      numeroDocumento: _numeroDocumentoController.text.trim(),
+      fechaNacimiento: _fechaNacimientoController.text,
+      tipoDocumento: _selectedTipoDocumento,
+      telefono: _telefonoController.text.trim().isEmpty ? null : _telefonoController.text.trim(),
     );
 
     if (!mounted) return;
@@ -159,21 +211,30 @@ class __RegisterFormState extends State<_RegisterForm> {
     if (result['success'] == true) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? '¡Registro exitoso!'),
+          content: Text(result['message'] ?? 'Código enviado al correo'),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
-
-      widget.onSuccess?.call();
-
-      if (navigator.canPop()) {
-        navigator.pop();
-      }
+      // Navegar a la pantalla de verificación
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerifyCodeScreen(
+            correo: _emailController.text.trim(),
+            debugCode: result['debug_code'],
+            onVerified: () {
+              widget.onSuccess?.call();
+              // Cerrar todas las pantallas hasta la raíz
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+          ),
+        ),
+      );
     } else {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(result['error'] ?? 'Error en el registro'),
+          content: Text(result['error'] ?? 'Error al enviar los datos'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),
         ),
@@ -181,11 +242,8 @@ class __RegisterFormState extends State<_RegisterForm> {
     }
   }
 
-  // Función para navegar a la pantalla de login
   void _navigateToLogin() {
-    if (widget.onLoginPressed != null) {
-      widget.onLoginPressed!();
-    }
+    widget.onLoginPressed?.call();
   }
 
   @override
@@ -196,47 +254,103 @@ class __RegisterFormState extends State<_RegisterForm> {
       key: _formKey,
       child: Column(
         children: [
+          // Tipo de documento (dropdown)
           const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.gray300),
+              borderRadius: BorderRadius.circular(8),
+              color: AppTheme.gray50,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedTipoDocumento,
+                hint: Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Text('Tipo de documento *', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray500)),
+                ),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem<String>(value: null, child: Padding(padding: EdgeInsets.only(left: 16), child: Text('Seleccionar...'))),
+                  ..._tiposDocumento.map((doc) => DropdownMenuItem<String>(value: doc, child: Padding(padding: EdgeInsets.only(left: 16), child: Text(doc)))),
+                ],
+                onChanged: (value) => setState(() => _selectedTipoDocumento = value),
+                style: AppTheme.bodyLarge,
+                dropdownColor: AppTheme.surfaceColor,
+                icon: const Padding(padding: EdgeInsets.only(right: 16), child: Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          // Número de documento
+          TextFormField(
+            controller: _numeroDocumentoController,
+            decoration: AppTheme.inputDecoration(hint: 'Número de documento *', prefixIcon: Icons.credit_card),
+            keyboardType: TextInputType.number,
+            validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+            style: AppTheme.bodyLarge,
+          ),
+          const SizedBox(height: 20),
+          
+          // Nombre
           TextFormField(
             controller: _nameController,
-            decoration: AppTheme.inputDecoration(
-            hint: 'Nombre completo *',
-            prefixIcon: Icons.person,
-          ),
+            decoration: AppTheme.inputDecoration(hint: 'Nombre *', prefixIcon: Icons.person),
             validator: Validators.validateName,
             style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
-          const SizedBox(height: 8),
+          
+          // Apellido
+          TextFormField(
+            controller: _apellidoController,
+            decoration: AppTheme.inputDecoration(hint: 'Apellido *', prefixIcon: Icons.person_outline),
+            validator: (value) => (value == null || value.isEmpty) ? 'Requerido' : null,
+            style: AppTheme.bodyLarge,
+          ),
+          const SizedBox(height: 20),
+          
+          // Fecha de nacimiento
+          GestureDetector(
+            onTap: () => _selectFechaNacimiento(context),
+            child: AbsorbPointer(
+              child: TextFormField(
+                controller: _fechaNacimientoController,
+                decoration: AppTheme.inputDecoration(hint: 'Fecha de nacimiento * (AAAA-MM-DD)', prefixIcon: Icons.cake),
+                validator: (value) => (value == null || value.isEmpty) ? 'Requerida' : null,
+                style: AppTheme.bodyLarge,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          // Correo
           TextFormField(
             controller: _emailController,
-            decoration: AppTheme.inputDecoration(
-            hint: 'ejemplo@correo.com *',
-            prefixIcon: Icons.email,
-          ),
+            decoration: AppTheme.inputDecoration(hint: 'ejemplo@correo.com *', prefixIcon: Icons.email),
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
             style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
           
-          const SizedBox(height: 8),
+          // Teléfono (opcional)
+          TextFormField(
+            controller: _telefonoController,
+            decoration: AppTheme.inputDecoration(hint: 'Teléfono (opcional)', prefixIcon: Icons.phone),
+            keyboardType: TextInputType.phone,
+            style: AppTheme.bodyLarge,
+          ),
+          const SizedBox(height: 20),
+          
+          // Contraseña
           TextFormField(
             controller: _passwordController,
-            decoration: AppTheme.inputDecoration(
-              hint: 'Contraseña *',
-              prefixIcon: Icons.lock,
-            ).copyWith(
+            decoration: AppTheme.inputDecoration(hint: 'Contraseña *', prefixIcon: Icons.lock).copyWith(
               suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: AppTheme.gray500,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: AppTheme.gray500),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
             obscureText: _obscurePassword,
@@ -245,40 +359,26 @@ class __RegisterFormState extends State<_RegisterForm> {
           ),
           const SizedBox(height: 20),
           
-          const SizedBox(height: 8),
+          // Confirmar contraseña
           TextFormField(
             controller: _confirmPasswordController,
-            decoration: AppTheme.inputDecoration(
-              hint: 'Confirmar contraseña *',
-              prefixIcon: Icons.lock_outline,
-            ).copyWith(
+            decoration: AppTheme.inputDecoration(hint: 'Confirmar contraseña *', prefixIcon: Icons.lock_outline).copyWith(
               suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                  color: AppTheme.gray500,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  });
-                },
+                icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, color: AppTheme.gray500),
+                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
               ),
             ),
             obscureText: _obscureConfirmPassword,
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor confirma tu contraseña';
-              }
-              if (value != _passwordController.text) {
-                return 'Las contraseñas no coinciden';
-              }
+              if (value == null || value.isEmpty) return 'Confirma tu contraseña';
+              if (value != _passwordController.text) return 'No coinciden';
               return null;
             },
             style: AppTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
           
-          // Información de seguridad
+          // Información de seguridad (sin cambios)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -294,15 +394,9 @@ class __RegisterFormState extends State<_RegisterForm> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'La contraseña debe tener al menos 6 caracteres',
-                        style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryColor),
-                      ),
+                      Text('La contraseña debe tener al menos 6 caracteres', style: AppTheme.bodySmall.copyWith(color: AppTheme.primaryColor)),
                       const SizedBox(height: 4),
-                      Text(
-                        '* Campos obligatorios',
-                        style: AppTheme.bodySmall.copyWith(color: AppTheme.gray600),
-                      ),
+                      Text('* Campos obligatorios', style: AppTheme.bodySmall.copyWith(color: AppTheme.gray600)),
                     ],
                   ),
                 ),
@@ -311,55 +405,30 @@ class __RegisterFormState extends State<_RegisterForm> {
           ),
           const SizedBox(height: 30),
           
-          // Botón de registro
+          // Botón de registro (igual)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : () => _register(context),
               style: AppTheme.primaryButtonStyle.copyWith(
                 padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                )),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               ),
               child: authProvider.isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Registrarse',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Registrarse', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ),
           const SizedBox(height: 20),
           
-          // Enlace a login - Ahora funcional
+          // Enlace a login
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                '¿Ya tienes cuenta? ',
-                style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
-              ),
+              Text('¿Ya tienes cuenta? ', style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600)),
               TextButton(
                 onPressed: _navigateToLogin,
-                child: Text(
-                  'Inicia sesión aquí',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: Text('Inicia sesión aquí', style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -371,9 +440,13 @@ class __RegisterFormState extends State<_RegisterForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _apellidoController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _numeroDocumentoController.dispose();
+    _telefonoController.dispose();
+    _fechaNacimientoController.dispose();
     super.dispose();
   }
 }

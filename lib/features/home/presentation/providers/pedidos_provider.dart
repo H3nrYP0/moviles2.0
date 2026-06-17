@@ -37,19 +37,19 @@ class PedidosProvider extends ChangeNotifier {
   }
 
   // ===================== ESTADOS =====================
-List<Map<String, dynamic>> _estados = [];
+  List<Map<String, dynamic>> _estados = [];
 
-List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
+  List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
 
-Future<void> loadEstados({bool forceRefresh = false}) async {
-  try {
-    final data = await _apiService.getEstadosPedido();
-    _estados = data;
-  } catch (e) {
-    _estados = [];
+  Future<void> loadEstados({bool forceRefresh = false}) async {
+    try {
+      final data = await _apiService.getEstadosPedido();
+      _estados = data;
+    } catch (e) {
+      _estados = [];
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   List<Pedido> get filteredPedidos {
     List<Pedido> baseList = _isAdminMode ? _allPedidos : _pedidos;
@@ -85,23 +85,20 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     notifyListeners();
   }
 
-  // ✅ OPTIMIZADO: una sola llamada a getClientesMap() en modo admin
+  // ✅ Carga de nombres de clientes (sin cambios)
   Future<void> _cargarNombresClientes(List<Pedido> pedidos) async {
     final clienteIds = pedidos.map((p) => p.clienteId).toSet();
 
     if (_isAdminMode) {
-      // ADMIN: cargar todos los clientes de una sola vez
       try {
         final clientesMap = await _apiService.getClientesMap();
         _clientesNombres.addAll(clientesMap);
       } catch (e) {
-        // Fallback: asignar nombres genéricos por si falla
         for (final clienteId in clienteIds) {
           _clientesNombres.putIfAbsent(clienteId, () => 'Cliente #$clienteId');
         }
       }
     } else {
-      // CLIENTE: solo su propio cliente (máximo una llamada)
       for (final clienteId in clienteIds) {
         if (!_clientesNombres.containsKey(clienteId)) {
           try {
@@ -121,7 +118,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     notifyListeners();
   }
 
-  // 🔥 MODIFICADO: ahora recibe clienteId en lugar de usuarioId
+  // 🔥 MODIFICADO: ordenamiento usando fechaDateTime
   Future<void> loadPedidos(int clienteId, {bool isAdmin = false}) async {
     _isLoading = true;
     _error = '';
@@ -131,32 +128,42 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
 
     try {
       if (isAdmin) {
-        // ADMIN: obtener todos los pedidos (sin filtrar por usuario)
         final response = await _apiService.getAllPedidos();
 
         _allPedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
-        // En modo admin, mostramos todos los pedidos (no filtramos por usuarioId)
+        // Ordenar usando fechaDateTime (nulls al final, más recientes primero)
+        _allPedidos.sort((a, b) {
+          final dateA = a.fechaDateTime;
+          final dateB = b.fechaDateTime;
+          if (dateA == null && dateB == null) return 0;
+          if (dateA == null) return 1;
+          if (dateB == null) return -1;
+          return dateB.compareTo(dateA);
+        });
+
         _pedidos = List.from(_allPedidos);
 
-        _allPedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
-        _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
-
         await _cargarNombresClientes(_allPedidos);
-
         _hasError = false;
       } else {
-        // CLIENTE: solo sus pedidos usando el endpoint correcto
         final response = await _apiService.getPedidosByCliente(clienteId);
 
         _pedidos = response.map((json) => Pedido.fromJson(json)).toList();
 
-        _pedidos.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+        // Ordenar usando fechaDateTime
+        _pedidos.sort((a, b) {
+          final dateA = a.fechaDateTime;
+          final dateB = b.fechaDateTime;
+          if (dateA == null && dateB == null) return 0;
+          if (dateA == null) return 1;
+          if (dateB == null) return -1;
+          return dateB.compareTo(dateA);
+        });
 
         _allPedidos = List.from(_pedidos);
 
         await _cargarNombresClientes(_pedidos);
-
         _hasError = false;
       }
     } catch (e) {
@@ -176,20 +183,11 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
 
   Map<String, dynamic> get estadisticasAdmin {
     final stats = <String, dynamic>{};
-
-    final estados = [
-      'pendiente',
-      'confirmado',
-      'en camino',
-      'entregado',
-      'cancelado'
-    ];
+    const estados = ['pendiente', 'confirmado', 'en camino', 'entregado', 'cancelado'];
 
     for (var estado in estados) {
-      stats[estado] =
-          _allPedidos.where((p) => p.estado.toLowerCase() == estado).length;
+      stats[estado] = _allPedidos.where((p) => p.estado.toLowerCase() == estado).length;
     }
-
     stats['total'] = _allPedidos.length;
 
     for (var estado in estados) {
@@ -197,10 +195,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
           .where((p) => p.estado.toLowerCase() == estado)
           .fold(0.0, (sum, p) => sum + p.total);
     }
-
-    stats['total_general'] =
-        _allPedidos.fold(0.0, (sum, p) => sum + p.total);
-
+    stats['total_general'] = _allPedidos.fold(0.0, (sum, p) => sum + p.total);
     return stats;
   }
 

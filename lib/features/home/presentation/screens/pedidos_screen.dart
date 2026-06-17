@@ -79,15 +79,12 @@ class _PedidosScreenState extends State<PedidosScreen> {
   }
 
   List<Pedido> _getPedidosFiltrados(PedidosProvider pedidosProvider) {
-    // ✅ Crear una copia mutable de la lista original
     List<Pedido> lista = List.from(pedidosProvider.pedidos);
 
-    // Filtrar por estado
     if (_estadoFiltro != null && _estadoFiltro != 'todos') {
       lista = lista.where((pedido) => pedido.estado.toLowerCase() == _estadoFiltro).toList();
     }
 
-    // Filtrar por texto de búsqueda
     final query = _searchController.text.toLowerCase();
     if (query.isNotEmpty) {
       lista = lista.where((pedido) {
@@ -105,9 +102,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
       }).toList();
     }
 
-    // ✅ Ordenar por ID de mayor a menor (los más recientes primero)
     lista.sort((a, b) => b.id.compareTo(a.id));
-
     return lista;
   }
 
@@ -183,7 +178,6 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
     return Column(
       children: [
-        // Filtros por estado (chips dinámicos)
         if (pedidosProvider.estados.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -320,20 +314,18 @@ class _PedidosScreenState extends State<PedidosScreen> {
 }
 
 // ------------------------------------------------------------
-//  Tarjeta de pedido (con estados reales)
+//  Tarjeta de pedido (con estados reales y fecha corregida)
 // ------------------------------------------------------------
 class _PedidoCard extends StatelessWidget {
   final Pedido pedido;
 
   const _PedidoCard({required this.pedido});
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return dateString;
-    }
+  // ✅ NUEVO: método que usa pedido.fechaDateTime en lugar de recibir String
+  String _formatDate() {
+    final dateTime = pedido.fechaDateTime;
+    if (dateTime == null) return 'Fecha no disponible';
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
   String _capitalize(String text) {
@@ -425,8 +417,9 @@ class _PedidoCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // ✅ Usar _formatDate() sin argumentos
                     Text(
-                      _formatDate(pedido.fechaCreacion),
+                      _formatDate(),
                       style: AppTheme.bodyMedium.copyWith(color: AppTheme.gray600),
                     ),
                     const SizedBox(height: 24),
@@ -608,8 +601,9 @@ class _PedidoCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ✅ Usar _formatDate() sin argumentos
                         Text(
-                          _formatDate(pedido.fechaCreacion),
+                          _formatDate(),
                           style: AppTheme.titleMedium.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),

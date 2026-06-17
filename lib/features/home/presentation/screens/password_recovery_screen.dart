@@ -1,7 +1,8 @@
 // lib/features/auth/presentation/screens/password_recovery_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../features/auth/data/services/recovery_service.dart';
+import '../providers/auth_provider.dart';
 
 enum RecoveryStep { email, code, newPassword }
 
@@ -15,6 +16,7 @@ class PasswordRecoveryScreen extends StatefulWidget {
 class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   RecoveryStep _currentStep = RecoveryStep.email;
   String _email = '';
+  String _recoveryCode = ''; // Almacena el código ingresado
 
   // Controllers
   final _emailController = TextEditingController();
@@ -48,65 +50,50 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
 
     FocusScope.of(context).unfocus();
 
-    final check = await RecoveryService.checkEmailExists(
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.requestPasswordResetCode(
       _emailController.text.trim(),
     );
 
-    if (check['success'] == true) {
-      final codeResult = await RecoveryService.generateRecoveryCode(
-        _emailController.text.trim(),
-      );
-
-      if (codeResult['success'] == true) {
-        setState(() {
-          _email = _emailController.text.trim();
-          _currentStep = RecoveryStep.code;
-          _success = 'Código enviado a $_email';
-        });
-      } else {
-        setState(() => _error = codeResult['error']);
-      }
+    if (result['success'] == true) {
+      setState(() {
+        _email = _emailController.text.trim();
+        _currentStep = RecoveryStep.code;
+        _success = 'Código enviado a $_email';
+        // Si el backend devuelve debug_code (modo pruebas), lo podemos autocompletar
+        final debugCode = result['debug_code'];
+        if (debugCode != null && debugCode.length == 6) {
+          for (int i = 0; i < 6; i++) {
+            _codeControllers[i].text = debugCode[i];
+          }
+        }
+      });
     } else {
-      setState(() => _error = check['error']);
+      setState(() => _error = result['error'] ?? 'Error al enviar el código');
     }
 
     setState(() => _isLoading = false);
   }
 
-  // ---------------- PASO 2: VERIFICAR CÓDIGO ----------------
-  Future<void> _verifyCode() async {
+  // ---------------- PASO 2: VERIFICAR CÓDIGO (solo almacena, no llama al backend) ----------------
+  void _goToNewPasswordStep() {
     final code = _codeControllers.map((c) => c.text).join();
-
     if (code.length != 6) {
       setState(() => _error = 'Ingresa el código completo');
       return;
     }
-
     setState(() {
-      _isLoading = true;
+      _recoveryCode = code;
+      _currentStep = RecoveryStep.newPassword;
       _error = null;
     });
-
-    FocusScope.of(context).unfocus();
-
-    final result = await RecoveryService.verifyCode(code);
-
-    if (result['success'] == true) {
-      setState(() {
-        _currentStep = RecoveryStep.newPassword;
-        _success = 'Código verificado';
-      });
-    } else {
-      setState(() => _error = result['error']);
-    }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _resendCode() async {
     setState(() => _isLoading = true);
 
-    final result = await RecoveryService.generateRecoveryCode(_email);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.requestPasswordResetCode(_email);
 
     setState(() => _isLoading = false);
 
@@ -132,10 +119,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
     } else if (value.isEmpty && index > 0) {
       _codeFocusNodes[index - 1].requestFocus();
     }
-
-    if (_codeControllers.every((c) => c.text.isNotEmpty)) {
-      _verifyCode();
-    }
+    // No auto-verificar, dejamos que el usuario presione "Continuar"
   }
 
   // ---------------- PASO 3: CAMBIAR CONTRASEÑA ----------------
@@ -158,9 +142,11 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
 
     FocusScope.of(context).unfocus();
 
-    final result = await RecoveryService.changePassword(
-      newPassword: _passwordController.text,
-      confirmPassword: _confirmPasswordController.text,
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.confirmPasswordReset(
+      correo: _email,
+      codigo: _recoveryCode,
+      nuevaContrasenia: _passwordController.text,
     );
 
     if (result['success'] == true) {
@@ -187,7 +173,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       _success = null;
 
       if (_currentStep == RecoveryStep.email) {
-        // AÑADE ESTA LÍNEA: Cerrar pantalla si está en el primer paso
         Navigator.pop(context);
         return;
       } else if (_currentStep == RecoveryStep.code) {
@@ -219,7 +204,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           children: [
             const SizedBox(height: 20),
 
-            // Botón de volver CON CAMBIO DE ESTILO
+            // Botón de volver
             Align(
               alignment: Alignment.centerLeft,
               child: Container(
@@ -246,7 +231,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     size: 20,
                     color: AppTheme.primaryColor,
                   ),
-                  onPressed: _goToPreviousStep, // CAMBIO: Usa _goToPreviousStep
+                  onPressed: _goToPreviousStep,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -510,23 +495,14 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _verifyCode,
+            onPressed: _isLoading ? null : _goToNewPasswordStep,
             style: AppTheme.primaryButtonStyle.copyWith(
               padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 16)),
               shape: WidgetStateProperty.all(RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               )),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.white,
-                    ),
-                  )
-                : const Text('Verificar código'),
+            child: const Text('Continuar'),
           ),
         ),
         
