@@ -121,25 +121,26 @@ class Cita {
 
   // ===================== TO API JSON =====================
   Map<String, dynamic> toApiJson() {
-    final fechaStr =
-        '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
+  final fechaStr =
+      '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
 
-    final horaStr =
-        '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}:00';
+  // ✅ Quitamos los segundos
+  final horaStr =
+      '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}';
 
-    return {
-      'cliente_id': clienteId,
-      'servicio_id': servicioId,
-      'empleado_id': empleadoId,
-      'estado_cita_id': estadoCitaId,
-      'fecha': fechaStr,
-      'hora': horaStr,
-      'duracion': duracion ?? 30,
-      if (metodoPago != null && metodoPago!.isNotEmpty)
-        'metodo_pago': metodoPago,
-      if (notas != null && notas!.isNotEmpty) 'notas': notas,
-    };
-  }
+  return {
+    'cliente_id': clienteId,
+    'servicio_id': servicioId,
+    'empleado_id': empleadoId,
+    'estado_cita_id': estadoCitaId,
+    'fecha': fechaStr,
+    'hora': horaStr,
+    'duracion': duracion ?? 30,
+    if (metodoPago != null && metodoPago!.isNotEmpty)
+      'metodo_pago': metodoPago,
+    if (notas != null && notas!.isNotEmpty) 'notas': notas,
+  };
+}
 
   // ===================== COPY WITH =====================
   Cita copyWith({

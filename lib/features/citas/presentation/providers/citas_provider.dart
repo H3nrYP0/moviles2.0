@@ -11,15 +11,15 @@ class CitasProvider extends ChangeNotifier {
   List<Cita> _allCitas = [];
   List<Servicio> _servicios = [];
   List<Map<String, dynamic>> _empleados = [];
-  List<Map<String, dynamic>> _clientes = [];          // ✅ Lista para dropdown
-  Map<int, String> _clientesMap = {};                 // ✅ Mapa para búsqueda rápida
+  List<Map<String, dynamic>> _clientes = [];
+  Map<int, String> _clientesMap = {};
 
   // ===================== CACHÉ =====================
   static List<Servicio>? _cachedServicios;
   static DateTime? _cachedServiciosTime;
   static List<Map<String, dynamic>>? _cachedEmpleados;
   static DateTime? _cachedEmpleadosTime;
-  static List<Map<String, dynamic>>? _cachedClientes; // ✅ Cache de lista de clientes
+  static List<Map<String, dynamic>>? _cachedClientes;
   static DateTime? _cachedClientesTime;
   static const _cacheDuration = Duration(minutes: 5);
 
@@ -36,7 +36,7 @@ class CitasProvider extends ChangeNotifier {
   List<Cita> get allCitas => List.from(_allCitas);
   List<Servicio> get servicios => List.from(_servicios);
   List<Map<String, dynamic>> get empleados => List.from(_empleados);
-  List<Map<String, dynamic>> get clientes => List.from(_clientes);   // ✅ Restaurado
+  List<Map<String, dynamic>> get clientes => List.from(_clientes);
   Map<int, String> get clientesMap => Map.unmodifiable(_clientesMap);
   bool get isLoading => _isLoading;
   String get error => _error;
@@ -66,17 +66,17 @@ class CitasProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> _estados = [];
 
-List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
+  List<Map<String, dynamic>> get estados => List.unmodifiable(_estados);
 
-Future<void> loadEstados({bool forceRefresh = false}) async {
-  try {
-    final data = await _apiService.getEstadosCita();
-    _estados = data;
-  } catch (e) {
-    _estados = [];
+  Future<void> loadEstados({bool forceRefresh = false}) async {
+    try {
+      final data = await _apiService.getEstadosCita();
+      _estados = data;
+    } catch (e) {
+      _estados = [];
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   // ===================== CARGA PRINCIPAL =====================
   Future<void> loadCitas({bool forceRefresh = false}) async {
@@ -89,7 +89,7 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
       if (_isAdminMode) {
         await Future.wait([
           _loadEmpleados(forceRefresh: forceRefresh),
-          _loadClientes(forceRefresh: forceRefresh),   // ✅ Usamos nuevo método unificado
+          _loadClientes(forceRefresh: forceRefresh),
         ]);
       }
 
@@ -158,7 +158,6 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     }
   }
 
-  // ✅ Método unificado: carga lista de clientes y construye mapa
   Future<void> _loadClientes({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedClientes != null && 
         _cachedClientesTime != null &&
@@ -185,12 +184,16 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     }
   }
 
+  // ✅ CORREGIDO: orden con futuras primero y pasadas después
   Future<void> _loadMisCitas() async {
     try {
       final data = await _apiService.getMisCitas();
       _allCitas = await _enriquecerCitas(data);
+
+      _allCitas.sort(_ordenarCitasPorProximidad);
+
       _citas = List.from(_allCitas);
-      debugPrint('✅ Mis citas cargadas: ${_citas.length}');
+      debugPrint('✅ Mis citas cargadas y ordenadas: ${_citas.length}');
     } catch (e) {
       debugPrint('❌ Error cargando mis citas: $e');
       _allCitas = [];
@@ -198,22 +201,53 @@ Future<void> loadEstados({bool forceRefresh = false}) async {
     }
   }
 
+  // ✅ CORREGIDO: mismo orden para admin
   Future<void> _loadAllCitasAdmin() async {
     try {
       final data = await _apiService.getAllCitas();
       _allCitas = await _enriquecerCitas(data);
+
+      _allCitas.sort(_ordenarCitasPorProximidad);
+
       _citas = List.from(_allCitas);
-      _allCitas.sort((a, b) {
-        final fechaA = DateTime(a.fecha.year, a.fecha.month, a.fecha.day, a.hora.hour, a.hora.minute);
-        final fechaB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day, b.hora.hour, b.hora.minute);
-        return fechaB.compareTo(fechaA);
-      });
-      debugPrint('✅ Todas las citas cargadas (admin): ${_allCitas.length}');
+      debugPrint('✅ Todas las citas cargadas y ordenadas (admin): ${_allCitas.length}');
     } catch (e) {
       debugPrint('❌ Error cargando todas las citas: $e');
       _allCitas = [];
       _citas = [];
     }
+  }
+
+  // ===================== FUNCIÓN DE ORDENAMIENTO COMPARTIDA =====================
+  int _ordenarCitasPorProximidad(Cita a, Cita b) {
+    final ahora = DateTime.now();
+    final fechaA = DateTime(a.fecha.year, a.fecha.month, a.fecha.day);
+    final fechaB = DateTime(b.fecha.year, b.fecha.month, b.fecha.day);
+
+    final esFuturaA = fechaA.isAfter(ahora) || fechaA.isAtSameMomentAs(ahora);
+    final esFuturaB = fechaB.isAfter(ahora) || fechaB.isAtSameMomentAs(ahora);
+
+    // Futuras primero
+    if (esFuturaA && !esFuturaB) return -1;
+    if (!esFuturaA && esFuturaB) return 1;
+
+    // Ambas futuras: orden ascendente (más cercana primero)
+    if (esFuturaA && esFuturaB) {
+      final cmp = fechaA.compareTo(fechaB);
+      if (cmp != 0) return cmp;
+      // Misma fecha, orden por hora ascendente
+      return a.hora.hour.compareTo(b.hora.hour) != 0
+          ? a.hora.hour.compareTo(b.hora.hour)
+          : a.hora.minute.compareTo(b.hora.minute);
+    }
+
+    // Ambas pasadas: orden descendente (más reciente primero)
+    final cmp = fechaB.compareTo(fechaA);
+    if (cmp != 0) return cmp;
+    // Misma fecha, orden por hora descendente
+    return b.hora.hour.compareTo(a.hora.hour) != 0
+        ? b.hora.hour.compareTo(a.hora.hour)
+        : b.hora.minute.compareTo(a.hora.minute);
   }
 
   // Enriquecer citas usando mapas para O(1) lookup
